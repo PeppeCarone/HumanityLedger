@@ -329,12 +329,36 @@ Decisioni emerse dall'intervista strutturata del 2026-06-01 in cui il team ha de
 
 ---
 
+---
+
+## Decisioni W1 (2026-06-01)
+
+### D034 — Risoluzione target 1920×1080
+
+- **Data**: 2026-06-01
+- **Status**: attiva
+- **Decisione**: il viewport del progetto Godot è impostato a 1920×1080. Stretch mode `canvas_items`, aspect `keep`.
+- **Motivazione**: risoluzione standard più diffusa su PC nel 2026, coerente con i prototipi forniti dal team. `canvas_items` permette UI scalata correttamente su finestre più piccole.
+- **Implicazioni**: tutti gli asset visivi vanno progettati per questa risoluzione (1920×1080 nativi). Sfondi a piena schermata vanno renderizzati almeno a questa risoluzione.
+- **Alternative considerate**: 1280×720 (più leggero ma immagini più sgranate sui monitor 1080p/4K), 2560×1440 (sovradimensionato per il fabbisogno).
+
+### D035 — GameState come singolo autoload con metodi puri
+
+- **Data**: 2026-06-01
+- **Status**: attiva
+- **Decisione**: `GameState` è un autoload `Node` con 8 stat come variabili dedicate (`militare: int`, `tesoro: int`, ecc.) + array/dict per quest/flag/decisioni chiave. Tutte le mutazioni passano per metodi (`set_stat`, `modifica_stat`, `apply_effect`) che emettono segnali.
+- **Motivazione**: variabili dedicate (vs `Dictionary` generico) danno autocomplete, type safety e leggibilità. I segnali permettono UI reattiva senza polling.
+- **Implicazioni**: aggiungere una nuova stat richiede modifica del codice (non solo dati). Per MVP le 8 stat sono congelate (D016) quindi accettabile.
+- **Alternative considerate**: `GameState` come `Resource` (più portabile ma più frizione per autoload), dictionary generico (perde tipizzazione), classi separate per ogni stat (overengineering).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D034**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D036**.
 
 ```
-### D034 — ...
+### D036 — ...
 
 - **Data**:
 - **Status**: attiva

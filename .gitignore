@@ -1,0 +1,30 @@
+# Godot 4 ignores
+.godot/
+.import/
+*.import
+export.cfg
+export_presets.cfg
+
+# Build output
+exports/
+*.exe
+*.dmg
+*.pck
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.tmp
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Office lock files
+~$*
+
+# Save files generated locally
+user/
+*.save
