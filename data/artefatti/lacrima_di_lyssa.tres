@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Artefatto" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/artefatto.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Assets/art/ledger/lacrima_di_lyssa.png" id="3"]
+
+[sub_resource type="Resource" id="eff_lacrima"]
+script = ExtResource("2")
+stat_delta = {
+"scienza": 8
+}
+set_flags = {
+"mystery_predisposta": true
+}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = "La Lacrima vibra. Qualcosa è più vicino."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "lacrima_di_lyssa"
+nome = "La Lacrima di Lyssa"
+descrizione = "Goccia di pietra azzurra. +8 a Scienza. Triplica la probabilità di trigger della trama mystery. Apre il finale Era Futura."
+icona = ExtResource("3")
+effetto_inizio_run = SubResource("eff_lacrima")
+sblocca_dialoghi = ["mystery_intro_1"]
+sblocca_finali = ["era_futura"]

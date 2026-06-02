@@ -146,6 +146,16 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 - **Licenza**: AI-generated, uso interno
 - **Note**: Background per menu principale: caverna + consiglieri + tomo "Humanity Ledger" aperto + split Era 1/2.
 
+### `art/ui/menu_buttons.png`
+- **Autore**: AI Generated (team)
+- **Licenza**: AI-generated, uso interno
+- **Note**: Sheet con 9 button cornici (3 dimensioni × 3 stati: normale, hover, pressed). Da slicizzare via AtlasTexture per StyleBoxTexture in W11.
+
+### `art/ledger/pietra_del_fuoco.png`, `corno_adunata.png`, `lacrima_di_lyssa.png`
+- **Origine**: ritagli da `art/_sheets/artefatti.png` (top row, posizioni 0/1/2)
+- **Coordinate**: 204×279 ciascuno, posizioni x=0, 204, 408 a y=0
+- **Note**: 3 artefatti MVP per il Ledger meta-progressivo (D026).
+
 ---
 
 ## Audio

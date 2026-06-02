@@ -2,9 +2,12 @@ extends Node2D
 
 const DROP_ZONE_SCENE: PackedScene = preload("res://scenes/ui/drop_zone.tscn")
 const DRAG_ITEM_SCENE: PackedScene = preload("res://scenes/ui/draggable_item.tscn")
+const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
 const TUTORIAL_QUEST_PATH: String = "res://data/quests/q_caverna_tutorial.tres"
 const CHARACTERS_DIR: String = "res://data/characters/"
 const FEEDBACK_PAUSE_SEC: float = 2.5
+const STAT_TWEEN_DURATION: float = 0.55
+const NARRATIVE_FADE_DURATION: float = 0.4
 
 const STAT_LABELS: Dictionary = {
 	"militare": "Militare",
@@ -31,10 +34,12 @@ var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
 var processing_drop: bool = false
+var ledger_screen_instance: CanvasLayer = null
+var stat_tweens: Dictionary = {}
 
 
 func _ready() -> void:
-	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). R reset, 1-8 debug stat."
+	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, R = reset, 1-8 debug stat."
 	_setup_hud()
 	_load_personaggi()
 	_start_tutorial()
@@ -90,7 +95,7 @@ func _start_tutorial() -> void:
 func _show_current_decision() -> void:
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
-	narrative_label.text = ""
+	_show_narrative("")
 	if current_quest == null:
 		return
 	quest_log_label.text = "Quest: %s\n(passo %d/%d)" % [
@@ -130,7 +135,6 @@ func _setup_consiglieri_for_decision(decision: Decision) -> void:
 			targets_accepts[cid].append(sid)
 	for cid in targets_accepts.keys():
 		var zone: Control = DROP_ZONE_SCENE.instantiate()
-		consiglieri_row.add_child(zone)
 		zone.zone_id = cid
 		var pers: Personaggio = personaggi_db.get(cid)
 		if pers != null:
@@ -142,6 +146,7 @@ func _setup_consiglieri_for_decision(decision: Decision) -> void:
 		for sid in targets_accepts[cid]:
 			accepts.append(sid)
 		zone.accepted_item_ids = accepts
+		consiglieri_row.add_child(zone)
 		zone.item_dropped.connect(_on_item_dropped)
 
 
@@ -150,12 +155,12 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		if opt == null:
 			continue
 		var item: Control = DRAG_ITEM_SCENE.instantiate()
-		decision_panel_row.add_child(item)
 		var sid: String = opt.strategia.id if opt.strategia != null else ""
 		item.item_id = sid
 		item.label_text = opt.label_text
 		item.icon_texture = opt.icona_drag
 		item.feedback_text = opt.feedback_testo
+		decision_panel_row.add_child(item)
 		item.set_meta("option", opt)
 		if not opt.is_disponibile():
 			item.set_disabled(true, opt.motivo_indisponibilita())
@@ -165,6 +170,7 @@ func _on_item_dropped(data: Dictionary) -> void:
 	if processing_drop:
 		return
 	processing_drop = true
+	AudioManager.play_sfx("drop_success")
 	var source: Variant = data.get("source")
 	var option: DecisionOption = null
 	if source != null and source is Control and source.has_meta("option"):
@@ -173,7 +179,8 @@ func _on_item_dropped(data: Dictionary) -> void:
 		processing_drop = false
 		return
 	GameState.apply_effect(option.effetto)
-	narrative_label.text = option.feedback_testo
+	SaveSystem.save_run()
+	_show_narrative(option.feedback_testo)
 	if source.has_method("consume"):
 		source.consume()
 	await get_tree().create_timer(FEEDBACK_PAUSE_SEC).timeout
@@ -187,13 +194,25 @@ func _complete_quest() -> void:
 		return
 	GameState.apply_effect(current_quest.effetto_completamento)
 	QuestManager.completa_quest(current_quest)
+	SaveSystem.save_run()
+	AudioManager.play_sfx("quest_complete")
 	proposer_portrait.texture = null
 	proposer_name_label.text = "Il consiglio è pronto"
 	proposer_text_label.text = "La caverna ha imparato il loro nome. La trama continuerà nei prossimi atti."
-	narrative_label.text = "Quest completata: %s" % current_quest.titolo
-	quest_log_label.text = "Quest: completata"
+	_show_narrative("Quest completata: %s" % current_quest.titolo)
+	quest_log_label.text = "Quest: completata\nPremi L per il Ledger, R per ricominciare"
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
+
+
+func _show_narrative(text: String) -> void:
+	narrative_label.text = text
+	if text.is_empty():
+		narrative_label.modulate.a = 0.0
+		return
+	narrative_label.modulate.a = 0.0
+	var tween: Tween = create_tween()
+	tween.tween_property(narrative_label, "modulate:a", 1.0, NARRATIVE_FADE_DURATION)
 
 
 func _clear_children(node: Node) -> void:
@@ -201,10 +220,28 @@ func _clear_children(node: Node) -> void:
 		c.queue_free()
 
 
-func _on_stat_changed(nome: String, _vecchio: int, nuovo: int) -> void:
+func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	var label: Label = hud_container.get_node_or_null("Stat_" + nome)
-	if label != null:
-		label.text = "%s: %d" % [STAT_LABELS[nome], nuovo]
+	if label == null:
+		return
+	if stat_tweens.has(nome) and stat_tweens[nome] != null:
+		(stat_tweens[nome] as Tween).kill()
+	var tween: Tween = create_tween()
+	stat_tweens[nome] = tween
+	var stat_label: String = STAT_LABELS[nome]
+	tween.tween_method(
+		func(value: float) -> void:
+			if is_instance_valid(label):
+				label.text = "%s: %d" % [stat_label, int(round(value))],
+		float(vecchio),
+		float(nuovo),
+		STAT_TWEEN_DURATION,
+	)
+	var flash_color: Color = Color(0.6, 1.0, 0.6) if nuovo > vecchio else Color(1.0, 0.6, 0.6)
+	label.modulate = flash_color
+	var color_tween: Tween = create_tween()
+	color_tween.tween_property(label, "modulate", Color.WHITE, STAT_TWEEN_DURATION + 0.2)
+	AudioManager.play_sfx("stat_up" if nuovo > vecchio else "stat_down")
 	_refresh_disabled_options()
 
 
@@ -224,20 +261,37 @@ func _refresh_disabled_options() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_R: _reset_run()
-			KEY_1: GameState.modifica_stat("militare", 5)
-			KEY_2: GameState.modifica_stat("tesoro", 5)
-			KEY_3: GameState.modifica_stat("diplomazia", 5)
-			KEY_4: GameState.modifica_stat("scienza", 5)
-			KEY_5: GameState.modifica_stat("legge", 5)
-			KEY_6: GameState.modifica_stat("spionaggio", 5)
-			KEY_7: GameState.modifica_stat("popolo", 5)
-			KEY_8: GameState.modifica_stat("costruzione", 5)
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	match event.keycode:
+		KEY_R: _reset_run()
+		KEY_L: _toggle_ledger()
+		KEY_ESCAPE: _close_ledger_if_open()
+		KEY_1: GameState.modifica_stat("militare", 5)
+		KEY_2: GameState.modifica_stat("tesoro", 5)
+		KEY_3: GameState.modifica_stat("diplomazia", 5)
+		KEY_4: GameState.modifica_stat("scienza", 5)
+		KEY_5: GameState.modifica_stat("legge", 5)
+		KEY_6: GameState.modifica_stat("spionaggio", 5)
+		KEY_7: GameState.modifica_stat("popolo", 5)
+		KEY_8: GameState.modifica_stat("costruzione", 5)
+
+
+func _toggle_ledger() -> void:
+	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
+		_close_ledger_if_open()
+	else:
+		ledger_screen_instance = LEDGER_SCENE.instantiate()
+		add_child(ledger_screen_instance)
+
+
+func _close_ledger_if_open() -> void:
+	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
+		ledger_screen_instance.queue_free()
+		ledger_screen_instance = null
 
 
 func _reset_run() -> void:
 	GameState.reset_run()
-	narrative_label.text = ""
+	_show_narrative("")
 	_start_tutorial()

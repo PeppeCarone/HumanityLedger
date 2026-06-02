@@ -28,3 +28,6 @@ desktop.ini
 # Save files generated locally
 user/
 *.save
+
+# Screenshots e capture per debug
+Assets/Screenshot/

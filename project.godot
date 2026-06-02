@@ -23,6 +23,7 @@ QuestManager="*res://scripts/autoload/quest_manager.gd"
 NarrativeLog="*res://scripts/autoload/narrative_log.gd"
 Diplomacy="*res://scripts/autoload/diplomacy.gd"
 SaveSystem="*res://scripts/autoload/save_system.gd"
+AudioManager="*res://scripts/autoload/audio_manager.gd"
 
 [display]
 

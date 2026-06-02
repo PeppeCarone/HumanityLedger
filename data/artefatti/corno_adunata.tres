@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="Artefatto" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/artefatto.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Assets/art/ledger/corno_adunata.png" id="3"]
+
+[sub_resource type="Resource" id="eff_corno"]
+script = ExtResource("2")
+stat_delta = {
+"militare": 12
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = "Il Corno chiama, e il clan risponde."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "corno_adunata"
+nome = "Il Corno dell'Adunata"
+descrizione = "Cavo come una voce antica. +12 a Militare all'inizio della run. Le scelte di guerra costano meno reputazione."
+icona = ExtResource("3")
+effetto_inizio_run = SubResource("eff_corno")
+sblocca_dialoghi = ["era1_brann_extra_1"]
+sblocca_finali = ["era_guerra_estesa"]

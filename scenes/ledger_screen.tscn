@@ -1,0 +1,108 @@
+[gd_scene format=3 uid="uid://b1ledgerscreen"]
+
+[ext_resource type="Script" path="res://scripts/ui/ledger_screen.gd" id="1_ledger"]
+
+[node name="LedgerScreen" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_ledger")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="PanelContainer" parent="."]
+offset_left = 120.0
+offset_top = 80.0
+offset_right = 1800.0
+offset_bottom = 1000.0
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "Il Ledger del Popolo"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Memoria che si tramanda di era in era"
+horizontal_alignment = 1
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="SectionsRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 40
+
+[node name="LoreSection" type="VBoxContainer" parent="Panel/Margin/VBox/SectionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="LoreTitle" type="Label" parent="Panel/Margin/VBox/SectionsRow/LoreSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Lore"
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/SectionsRow/LoreSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LoreList" type="VBoxContainer" parent="Panel/Margin/VBox/SectionsRow/LoreSection/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="ArtefattiSection" type="VBoxContainer" parent="Panel/Margin/VBox/SectionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="ArtefattiTitle" type="Label" parent="Panel/Margin/VBox/SectionsRow/ArtefattiSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Artefatti"
+
+[node name="ArtefattiList" type="HBoxContainer" parent="Panel/Margin/VBox/SectionsRow/ArtefattiSection"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="EventiSection" type="VBoxContainer" parent="Panel/Margin/VBox/SectionsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="EventiTitle" type="Label" parent="Panel/Margin/VBox/SectionsRow/EventiSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Eventi sbloccabili"
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/SectionsRow/EventiSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EventiList" type="VBoxContainer" parent="Panel/Margin/VBox/SectionsRow/EventiSection/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Footer" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Premi L o Esc per chiudere, o clicca fuori dal pannello"
+horizontal_alignment = 1
+modulate = Color(1, 1, 1, 0.5)
