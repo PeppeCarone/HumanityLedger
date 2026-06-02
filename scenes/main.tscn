@@ -13,39 +13,77 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 color = Color(0.08, 0.07, 0.10, 1)
 
 [node name="Title" type="Label" parent="UI"]
 offset_left = 60.0
-offset_top = 60.0
+offset_top = 30.0
 offset_right = 1860.0
-offset_bottom = 130.0
+offset_bottom = 100.0
+mouse_filter = 2
 theme_override_font_sizes/font_size = 56
 text = "HumanityLedger"
 horizontal_alignment = 1
 
 [node name="VersionLabel" type="Label" parent="UI"]
 offset_left = 60.0
-offset_top = 140.0
+offset_top = 105.0
 offset_right = 1860.0
-offset_bottom = 180.0
-theme_override_font_sizes/font_size = 22
-text = "W1 setup placeholder"
+offset_bottom = 145.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "W2 prototipo drag-and-drop"
 horizontal_alignment = 1
 
-[node name="StatsPanel" type="PanelContainer" parent="UI"]
+[node name="HUDPanel" type="PanelContainer" parent="UI"]
 offset_left = 60.0
-offset_top = 220.0
-offset_right = 520.0
+offset_top = 160.0
+offset_right = 420.0
 offset_bottom = 720.0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/StatsPanel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/HUDPanel"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="Help" type="Label" parent="UI"]
+[node name="ConsiglieriRow" type="HBoxContainer" parent="UI"]
+offset_left = 460.0
+offset_top = 180.0
+offset_right = 1860.0
+offset_bottom = 460.0
+alignment = 1
+theme_override_constants/separation = 60
+
+[node name="NarrativeLabel" type="Label" parent="UI"]
+offset_left = 460.0
+offset_top = 490.0
+offset_right = 1860.0
+offset_bottom = 620.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 24
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="DecisionPanel" type="PanelContainer" parent="UI"]
+offset_left = 460.0
+offset_top = 650.0
+offset_right = 1860.0
+offset_bottom = 900.0
+mouse_filter = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/DecisionPanel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 80
+
+[node name="HelpLabel" type="Label" parent="UI"]
 offset_left = 60.0
-offset_top = 950.0
+offset_top = 940.0
 offset_right = 1860.0
 offset_bottom = 1000.0
+mouse_filter = 2
 theme_override_font_sizes/font_size = 18
-text = "Premi 1-8 per incrementare la stat corrispondente. R per reset."
+text = ""
+horizontal_alignment = 1

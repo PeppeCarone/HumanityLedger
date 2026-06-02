@@ -137,15 +137,12 @@ func apply_effect(effetto: Resource) -> void:
 
 
 func reset_run() -> void:
-	militare = INITIAL_STAT_VALUE
-	tesoro = INITIAL_STAT_VALUE
-	diplomazia = INITIAL_STAT_VALUE
-	scienza = INITIAL_STAT_VALUE
-	legge = INITIAL_STAT_VALUE
-	spionaggio = INITIAL_STAT_VALUE
-	popolo = INITIAL_STAT_VALUE
-	costruzione = INITIAL_STAT_VALUE
+	for stat_name in STAT_NAMES:
+		set_stat(stat_name, INITIAL_STAT_VALUE)
+	var pop_vecchio: int = popolazione
 	popolazione = INITIAL_POPOLAZIONE
+	if pop_vecchio != popolazione:
+		popolazione_changed.emit(pop_vecchio, popolazione)
 	era_corrente = 1
 	atto_corrente = 1
 	quest_completate.clear()
