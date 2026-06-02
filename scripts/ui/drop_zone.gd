@@ -1,14 +1,16 @@
 extends Control
 
 @export var zone_id: String = ""
-@export var label_text: String = "Drop here"
+@export var label_text: String = "Consigliere"
+@export var portrait_texture: Texture2D
 @export var bg_color: Color = Color(0.18, 0.16, 0.22, 1.0)
-@export var hover_color: Color = Color(0.4, 0.75, 0.4, 0.45)
-@export var fail_flash_color: Color = Color(0.85, 0.25, 0.25, 0.45)
+@export var hover_color: Color = Color(0.4, 0.75, 0.4, 0.55)
+@export var fail_flash_color: Color = Color(0.85, 0.25, 0.25, 0.55)
 @export var accepted_item_ids: Array[String] = []
 
 @onready var bg: ColorRect = $Background
 @onready var hover: ColorRect = $HoverHighlight
+@onready var portrait_rect: TextureRect = $PortraitTexture
 @onready var lbl: Label = $Label
 
 signal item_dropped(data: Dictionary)
@@ -17,10 +19,25 @@ var _is_hovering: bool = false
 
 
 func _ready() -> void:
-	bg.color = bg_color
-	hover.color = hover_color
-	hover.modulate.a = 0.0
-	lbl.text = label_text
+	_refresh()
+
+
+func _refresh() -> void:
+	if bg != null:
+		bg.color = bg_color
+	if hover != null:
+		hover.color = hover_color
+		hover.modulate.a = 0.0
+	if portrait_rect != null:
+		portrait_rect.texture = portrait_texture
+		portrait_rect.visible = portrait_texture != null
+	if lbl != null:
+		lbl.text = label_text
+
+
+func set_portrait(tex: Texture2D) -> void:
+	portrait_texture = tex
+	_refresh()
 
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:

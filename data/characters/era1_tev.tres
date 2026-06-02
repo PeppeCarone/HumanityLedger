@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Personaggio" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/personaggio.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/art/era1_paleo/plasmatore_tev.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "era1_tev"
+nome = "Tev"
+archetipo = "Il Plasmatore"
+era = 1
+stat_collegata = "costruzione"
+ritratto = ExtResource("2")
+tic_linguistico = "Concreto, descrive sempre ciò che si può fare"

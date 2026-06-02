@@ -118,7 +118,33 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 
 ## Asset di gioco (sliced / originali)
 
-*(da popolare man mano che produciamo gli atlas .tres dalle reference sheets)*
+### `art/era1_paleo/cacciatore_brann.png` ... `plasmatore_tev.png` (8 file)
+- **Origine**: ritagli da `art/_sheets/consiglieri.png` (top row paleolitico)
+- **Coordinate**: 128×279 ciascuno, posizioni x=0,128,256,384,512,640,768,896 a y=0
+- **Strumento**: PowerShell + System.Drawing (W3 setup)
+- **Note**: i ritagli sono pixel-equal-grid; le posizioni esatte dei sprite nella sheet potrebbero discostarsi leggermente. Per perfezionamenti usare AtlasTexture in Godot editor.
+
+### `art/era2_mitico/maresciallo_calden.png` ... `architetta_lena.png` (8 file)
+- **Origine**: ritagli da `art/_sheets/consiglieri.png` (bottom row mitico)
+- **Coordinate**: 128×279 a y=280
+
+### `art/strategie/scudo.png`, `pergamena.png`, `libro.png`, `ascia.png`
+- **Origine**: ritagli da `art/_sheets/oggetti_decisioni.png`
+- **Coordinate**: 256×279 ciascuno
+  - scudo: (0, 0)
+  - pergamena: (512, 0)
+  - libro: (768, 0)
+  - ascia: (768, 280)
+
+### `art/ui/logo.png`
+- **Autore**: AI Generated (team)
+- **Licenza**: AI-generated, uso interno
+- **Note**: Logo del gioco "Humanity Ledger" con castello+fuoco in cerchio. Per menu principale e branding.
+
+### `art/ui/main_menu_bg.png`
+- **Autore**: AI Generated (team)
+- **Licenza**: AI-generated, uso interno
+- **Note**: Background per menu principale: caverna + consiglieri + tomo "Humanity Ledger" aperto + split Era 1/2.
 
 ---
 

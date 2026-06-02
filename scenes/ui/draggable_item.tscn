@@ -1,9 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://btfdrag1item"]
+[gd_scene format=3 uid="uid://btfdrag1item"]
 
 [ext_resource type="Script" path="res://scripts/ui/draggable_item.gd" id="1_drag"]
 
 [node name="DraggableItem" type="Control"]
-custom_minimum_size = Vector2(140, 140)
+custom_minimum_size = Vector2(160, 200)
 mouse_filter = 1
 script = ExtResource("1_drag")
 
@@ -12,14 +12,23 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.7, 0.55, 0.35, 1)
+color = Color(0.2, 0.15, 0.1, 0.85)
+
+[node name="IconTexture" type="TextureRect" parent="."]
+anchor_right = 1.0
+offset_bottom = 160.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Label" type="Label" parent="."]
-anchors_preset = 15
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -40.0
 mouse_filter = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 16
 text = "Item"
 horizontal_alignment = 1
 vertical_alignment = 1
+autowrap_mode = 2

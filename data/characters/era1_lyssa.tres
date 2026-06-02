@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Personaggio" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/personaggio.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/art/era1_paleo/sciamana_lyssa.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "era1_lyssa"
+nome = "Lyssa"
+archetipo = "Sciamana"
+era = 1
+stat_collegata = "scienza"
+ritratto = ExtResource("2")
+tic_linguistico = "Per immagini, oracolare, paragoni naturali"

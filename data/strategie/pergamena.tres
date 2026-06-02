@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Strategia" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/strategia.gd" id="1_strat"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_strat")
+id = "pergamena"
+nome = "Pergamena"
+icona = ExtResource("2_tex")
+descrizione_breve = "Parole che legano e dividono"
+prerequisiti_stat = {
+"scienza": 35
+}
+prerequisiti_flag = []
+gesto_tipo = "icona_su_consigliere"
+target_tag = "consigliere_diplomazia"
