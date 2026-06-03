@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+
+[sub_resource type="Resource" id="eff_sapere"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 12,
+"legge": -4
+}
+set_flags = {
+"protetto_alchimista": true
+}
+unlock_lore = ["lore_conflitto_religioso"]
+add_decisione_chiave = "protetto_alchimista"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_curia"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12,
+"scienza": -4,
+"popolo": -5
+}
+set_flags = {
+"curia_al_potere": true
+}
+unlock_lore = ["lore_conflitto_religioso"]
+add_decisione_chiave = "curia_al_potere"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_reprimi"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 10,
+"popolo": -8
+}
+set_flags = {}
+unlock_lore = ["lore_conflitto_religioso"]
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = -2
+
+[sub_resource type="Resource" id="opt_sapere"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Proteggere l'Alchimista"
+target_consigliere_id = "era2_iove"
+effetto = SubResource("eff_sapere")
+feedback_testo = "Iove conserva i suoi libri sotto la tua protezione. La curia grida allo scandalo, ma il sapere sopravvive alla notte."
+
+[sub_resource type="Resource" id="opt_curia"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Imporre l'ordine della curia"
+target_consigliere_id = "era2_maren"
+effetto = SubResource("eff_curia")
+feedback_testo = "Maren dà ragione alla curia. L'ordine torna, rigido come pietra. Chi dubita impara a tacere."
+
+[sub_resource type="Resource" id="opt_reprimi"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Reprimere i tumulti"
+target_consigliere_id = "era2_calden"
+effetto = SubResource("eff_reprimi")
+feedback_testo = "Calden disperde la folla con le lance. Le strade tornano vuote e silenziose. Il regno tiene, ma qualcosa si è incrinato."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_06_conflitto"
+era = 2
+testo_consigliere = "Karro: la curia e il popolo si scontrano nelle piazze per il sapere di Iove. C'è chi vuole bruciare i suoi libri e chi morirebbe per difenderli. Il regno trema. Da che parte stiamo?"
+personaggio_id = "era2_karro"
+opzioni = [SubResource("opt_sapere"), SubResource("opt_curia"), SubResource("opt_reprimi")]
+tipo_decisione = "catastrofe"

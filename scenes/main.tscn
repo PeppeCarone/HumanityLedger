@@ -23,7 +23,7 @@ offset_right = 1860.0
 offset_bottom = 44.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 18
-text = "HumanityLedger — W7 transizione Era 1->2: Regno Mitico, ritratti puliti, Voce nel Bosco"
+text = "HumanityLedger — W8 Era 2 atti 1-2: Impero del Sole, Lega delle Coste, Conflitto Religioso, Tempio Vuoto"
 horizontal_alignment = 1
 
 [node name="HUDPanel" type="PanelContainer" parent="UI"]

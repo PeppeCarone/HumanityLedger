@@ -67,6 +67,26 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "La Voce nel Bosco",
 		"testo": "Un inviato straniero ripete le parole del sogno paleolitico: il volto senza nome, la voce sotto la pietra. La presenza ha attraversato le ere."
 	},
+	"lore_impero_sole": {
+		"titolo": "L'Impero del Sole",
+		"testo": "Vasto e antico, splendente e marcio. A est il Sole tramonta lentamente, e pretende tributi da chi cresce alla sua ombra."
+	},
+	"lore_lega_coste": {
+		"titolo": "La Lega delle Coste",
+		"testo": "Mercanti senza re, fedeli solo al guadagno. A ovest le navi della Lega vendono a tutti e tradiscono chiunque, con un sorriso."
+	},
+	"lore_conflitto_religioso": {
+		"titolo": "Il Conflitto Religioso",
+		"testo": "La curia teme il sapere, il popolo lo invoca. Il regno si spacca tra chi vuole bruciare i libri e chi morirebbe per leggerli."
+	},
+	"lore_tempio_vuoto": {
+		"titolo": "Il Tempio Vuoto",
+		"testo": "Un tempio identico all'Idolo della caverna, apparso senza mani che lo costruissero. La presenza non chiede di essere capita: solo ricordata."
+	},
+	"lore_imperi_rivali": {
+		"titolo": "Gli Imperi Rivali",
+		"testo": "Tra il Sole che cala e le Coste che mercanteggiano, il regno mitico impara il prezzo di esistere accanto ad altri."
+	},
 }
 
 const EVENTI_REGISTRY: Dictionary = {

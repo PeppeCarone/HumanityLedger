@@ -13,7 +13,14 @@ const QUEST_SEQUENZE: Dictionary = {
 	],
 	2: [
 		"q_corte_si_forma",
+		"q_pressione_imperi",
 	],
+}
+const CIV_LABELS: Dictionary = {
+	"popolo_nebbie": "Popolo delle Nebbie",
+	"clan_bisonte": "Clan del Bisonte",
+	"impero_sole": "Impero del Sole",
+	"lega_coste": "Lega delle Coste",
 }
 const COLOR_BG_ERA1: Color = Color(0.08, 0.07, 0.10, 1.0)
 const COLOR_BG_ERA2: Color = Color(0.10, 0.09, 0.14, 1.0)
@@ -55,6 +62,7 @@ const STAT_LABELS: Dictionary = {
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
+var rapporti_label: Label = null
 var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
@@ -72,6 +80,7 @@ func _ready() -> void:
 	GameState.stat_changed.connect(_on_stat_changed)
 	GameState.popolazione_changed.connect(_on_popolazione_changed)
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
+	GameState.rapporto_changed.connect(_on_rapporto_changed)
 	_start_era1()
 
 
@@ -98,6 +107,15 @@ func _setup_hud() -> void:
 	quest_log_label.add_theme_font_size_override("font_size", 18)
 	quest_log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud_container.add_child(quest_log_label)
+	var spacer3: Control = Control.new()
+	spacer3.custom_minimum_size = Vector2(0, 16)
+	hud_container.add_child(spacer3)
+	rapporti_label = Label.new()
+	rapporti_label.name = "Rapporti"
+	rapporti_label.add_theme_font_size_override("font_size", 16)
+	rapporti_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hud_container.add_child(rapporti_label)
+	_refresh_rapporti()
 
 
 func _load_personaggi() -> void:
@@ -129,7 +147,7 @@ func _avvia_prossima_quest() -> void:
 	if q == null:
 		if GameState.era_corrente == 1 and GameState.has_flag("era1_completata"):
 			_show_transizione_a_era2()
-		elif GameState.era_corrente == 2 and GameState.has_flag("era2_atto1_completato"):
+		elif GameState.era_corrente == 2 and GameState.has_flag("era2_atto2_completato"):
 			_show_fine_demo()
 		else:
 			_show_attesa_quest()
@@ -409,6 +427,27 @@ func _on_popolazione_changed(vecchio: int, nuovo: int) -> void:
 	tween.tween_property(popolazione_label, "modulate", Color.WHITE, STAT_TWEEN_DURATION + 0.2)
 
 
+func _on_rapporto_changed(_civ_id: String, _vecchio: int, _nuovo: int) -> void:
+	_refresh_rapporti()
+
+
+func _refresh_rapporti() -> void:
+	if rapporti_label == null:
+		return
+	var righe: Array[String] = []
+	for civ_id in GameState.rapporti_civilta.keys():
+		var valore: int = int(GameState.rapporti_civilta[civ_id])
+		if valore == 0 and not CIV_LABELS.has(civ_id):
+			continue
+		var nome: String = CIV_LABELS.get(civ_id, civ_id)
+		var segno: String = "+" if valore > 0 else ""
+		righe.append("%s: %s%d" % [nome, segno, valore])
+	if righe.is_empty():
+		rapporti_label.text = ""
+	else:
+		rapporti_label.text = "Rapporti:\n" + "\n".join(righe)
+
+
 func _colore_proposer(tipo: String) -> Color:
 	match tipo:
 		"catastrofe": return COLOR_PROPOSER_CATASTROFE
@@ -473,4 +512,5 @@ func _reset_run() -> void:
 	var bg: ColorRect = $UI/Background
 	if bg != null:
 		bg.color = COLOR_BG_ERA1
+	_refresh_rapporti()
 	_start_era1()

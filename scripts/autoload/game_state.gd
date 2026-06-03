@@ -38,6 +38,7 @@ signal flag_set(nome: String, valore: Variant)
 signal era_advanced(nuova_era: int)
 signal popolazione_changed(valore_vecchio: int, valore_nuovo: int)
 signal mystery_attivata
+signal rapporto_changed(civ_id: String, valore_vecchio: int, valore_nuovo: int)
 
 
 func get_stat(nome: String) -> int:
@@ -111,7 +112,10 @@ func segna_quest_completata(id: String) -> void:
 
 func modifica_rapporto_civilta(civ_id: String, delta: int) -> void:
 	var corrente: int = rapporti_civilta.get(civ_id, 0)
-	rapporti_civilta[civ_id] = clampi(corrente + delta, -100, 100)
+	var nuovo: int = clampi(corrente + delta, -100, 100)
+	rapporti_civilta[civ_id] = nuovo
+	if nuovo != corrente:
+		rapporto_changed.emit(civ_id, corrente, nuovo)
 
 
 func avanza_era() -> void:
