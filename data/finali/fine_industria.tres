@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_industria"
+nome = "Era dell'Industria"
+testo = "Il popolo dello spirito accese la grande fonderia. Fumo e ingranaggi anticiparono un'era che il mondo non era pronto a vedere. Le macchine di Lena moltiplicarono le braccia e divorarono le foreste. Costruimmo ciò che le ere precedenti non avrebbero osato sognare, e consumammo ciò che non sapremo restituire. Progresso e perdita camminarono mano nella mano. La presenza dei sogni si rifletté negli ingranaggi come in mille specchi rotti. Questa fu un'era ambivalente: ogni conquista portava l'ombra di ciò che costava."
+condizioni_stat = {
+"costruzione": 55,
+"scienza": 45
+}
+decisioni_chiave_richieste = ["avviato_fonderia"]
+decisioni_chiave_escludenti = []
+priorita = 10

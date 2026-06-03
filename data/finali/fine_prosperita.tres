@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_prosperita"
+nome = "Era della Prosperità"
+testo = "Il popolo dello spirito scelse il commercio e la pace ricca. Le navi della Lega riempirono i nostri porti, i granai traboccarono, e nessun bambino conobbe la fame. Le piazze si fecero larghe e festose. Fu un'era morbida, forse troppo: chi nasce nell'abbondanza dimentica come si stringono i denti. Eppure il popolo rise, amò, costruì giardini invece di mura. La presenza dei sogni si perse nel rumore allegro dei mercati. Non tutte le ere devono essere tragiche. Questa fu un'era di pane, di vino e di lunghe estati."
+condizioni_stat = {
+"tesoro": 50,
+"popolo": 50
+}
+decisioni_chiave_richieste = ["commercio_lega"]
+decisioni_chiave_escludenti = []
+priorita = 10

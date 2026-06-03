@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_alleanza"
+nome = "Era dell'Alleanza"
+testo = "Il popolo dello spirito scelse di non scegliere un solo padrone. Sereth sedette tra l'Impero del Sole e la Lega delle Coste e cucì una pace che nessuno credeva possibile. Il regno divenne il centro di una rete di vessilli intrecciati, ponti e patti. Non fummo i più forti né i più ricchi, ma fummo indispensabili a tutti. Il popolo imparò a essere uno tra molti, e a trovarci dignità. La presenza dei sogni passò di corte in corte come una voce tradotta in mille lingue. Questa fu un'era corale, dove nessuno regnava da solo."
+condizioni_stat = {
+"diplomazia": 55
+}
+decisioni_chiave_richieste = ["mediato_pace"]
+decisioni_chiave_escludenti = []
+priorita = 10

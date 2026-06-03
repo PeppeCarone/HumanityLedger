@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="Quest" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_08_destino.tres" id="3"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_09_convergenza.tres" id="4"]
+
+[sub_resource type="Resource" id="eff_complete"]
+script = ExtResource("2")
+stat_delta = {}
+set_flags = {
+"era2_completata": true
+}
+unlock_lore = ["lore_scelta_finale"]
+add_decisione_chiave = ""
+add_to_log = "Lo spirito del popolo ha preso la sua ultima decisione. L'era si chiude e il Ledger registra ciò che siamo diventati."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "q_scelta_finale"
+titolo = "La Scelta Finale"
+era = 2
+tipo = "chiave"
+precondizioni_flag = ["era2_atto2_completato"]
+precondizioni_stat = {}
+passi = [ExtResource("3"), ExtResource("4")]
+effetto_completamento = SubResource("eff_complete")
+flag_di_completamento = "era2_completata"
+visibile_nel_log = true
+descrizione_log = "L'ultimo atto: il regno sceglie il suo destino tra guerra, pace, industria e la Voce dei sogni."

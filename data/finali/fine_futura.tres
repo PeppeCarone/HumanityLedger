@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_futura"
+nome = "Era Futura"
+testo = "Il popolo dello spirito accolse la Voce. Iove aprì il tempio che nessuno aveva costruito, e ciò che dormiva sotto la pietra dalle ere della caverna entrò finalmente tra noi. Il popolo cambiò in qualcosa che non si riconosce più del tutto come umano: città fluttuanti, geometrie impossibili, menti intrecciate oltre il corpo. Non fu una fine, ma una soglia. Il volto senza nome, finalmente, ebbe un nome, e quel nome eravamo noi, trasfigurati. La presenza non era mai stata altro che ciò che saremmo potuti diventare. Questa fu l'era oltre le ere."
+condizioni_stat = {}
+decisioni_chiave_richieste = ["accolto_la_voce"]
+decisioni_chiave_escludenti = []
+priorita = 100

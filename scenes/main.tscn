@@ -23,7 +23,7 @@ offset_right = 1860.0
 offset_bottom = 44.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 18
-text = "HumanityLedger — W8 Era 2 atti 1-2: Impero del Sole, Lega delle Coste, Conflitto Religioso, Tempio Vuoto"
+text = "HumanityLedger — W9 Era 2 completa: Atto 3, 6 finali, schermata epilogo"
 horizontal_alignment = 1
 
 [node name="HUDPanel" type="PanelContainer" parent="UI"]

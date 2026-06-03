@@ -87,6 +87,36 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "Gli Imperi Rivali",
 		"testo": "Tra il Sole che cala e le Coste che mercanteggiano, il regno mitico impara il prezzo di esistere accanto ad altri."
 	},
+	"lore_marcia_impero": {
+		"titolo": "La Marcia contro l'Impero",
+		"testo": "Le legioni mossero verso est. Il cielo del Sole calante si tinse di fumo: il regno scelse la spada."
+	},
+	"lore_pace_imperi": {
+		"titolo": "La Pace tra gli Imperi",
+		"testo": "Sereth cucì un patto impossibile tra il Sole e le Coste. Il regno divenne il centro indispensabile di molti."
+	},
+	"lore_grande_fonderia": {
+		"titolo": "La Grande Fonderia",
+		"testo": "Fumo e ingranaggi anticiparono un'era non ancora nata. Il regno costruì oltre il sognabile, e consumò oltre il restituibile."
+	},
+	"lore_convergenza": {
+		"titolo": "La Convergenza",
+		"testo": "La presenza dei sogni entrò nel popolo attraverso il tempio. Il volto senza nome ebbe finalmente un nome: noi."
+	},
+	"lore_voce_rifiutata": {
+		"titolo": "La Voce Rifiutata",
+		"testo": "Il popolo chiuse il tempio e le sue domande. Restammo umani: fragili, mortali, liberi. La Voce tacque."
+	},
+	"lore_scelta_finale": {
+		"titolo": "La Scelta Finale",
+		"testo": "L'ultima decisione dello spirito. Ogni era confluisce qui, e il Ledger registra ciò che siamo diventati."
+	},
+	"epilogo_fine_guerra": {"titolo": "Epilogo: Era della Guerra", "testo": "Lo spirito scelse la spada e vinse, al prezzo del fumo e delle tombe."},
+	"epilogo_fine_prosperita": {"titolo": "Epilogo: Era della Prosperità", "testo": "Lo spirito scelse il pane e il commercio. Un'era morbida, di lunghe estati."},
+	"epilogo_fine_scienza": {"titolo": "Epilogo: Era della Scienza", "testo": "Lo spirito protesse il sapere e aprì porte che nessuno sapeva chiuse."},
+	"epilogo_fine_alleanza": {"titolo": "Epilogo: Era dell'Alleanza", "testo": "Lo spirito non scelse un solo padrone e divenne indispensabile a tutti."},
+	"epilogo_fine_industria": {"titolo": "Epilogo: Era dell'Industria", "testo": "Lo spirito accese la fonderia: progresso e perdita, mano nella mano."},
+	"epilogo_fine_futura": {"titolo": "Epilogo: Era Futura", "testo": "Lo spirito accolse la Voce e attraversò la soglia oltre l'umano."},
 }
 
 const EVENTI_REGISTRY: Dictionary = {

@@ -3,7 +3,9 @@ extends Node2D
 const DROP_ZONE_SCENE: PackedScene = preload("res://scenes/ui/drop_zone.tscn")
 const DRAG_ITEM_SCENE: PackedScene = preload("res://scenes/ui/draggable_item.tscn")
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
+const ENDING_SCENE: PackedScene = preload("res://scenes/ending_screen.tscn")
 const CHARACTERS_DIR: String = "res://data/characters/"
+const FINALI_DIR: String = "res://data/finali/"
 const QUEST_SEQUENZE: Dictionary = {
 	1: [
 		"q_caverna_tutorial",
@@ -14,6 +16,7 @@ const QUEST_SEQUENZE: Dictionary = {
 	2: [
 		"q_corte_si_forma",
 		"q_pressione_imperi",
+		"q_scelta_finale",
 	],
 }
 const CIV_LABELS: Dictionary = {
@@ -68,6 +71,7 @@ var current_step: int = 0
 var personaggi_db: Dictionary = {}
 var processing_drop: bool = false
 var ledger_screen_instance: CanvasLayer = null
+var ending_instance: CanvasLayer = null
 var stat_tweens: Dictionary = {}
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
@@ -147,8 +151,8 @@ func _avvia_prossima_quest() -> void:
 	if q == null:
 		if GameState.era_corrente == 1 and GameState.has_flag("era1_completata"):
 			_show_transizione_a_era2()
-		elif GameState.era_corrente == 2 and GameState.has_flag("era2_atto2_completato"):
-			_show_fine_demo()
+		elif GameState.era_corrente == 2 and GameState.has_flag("era2_completata"):
+			_show_ending()
 		else:
 			_show_attesa_quest()
 		return
@@ -240,17 +244,77 @@ func _entra_era2() -> void:
 	_avvia_prossima_quest()
 
 
-func _show_fine_demo() -> void:
+func _show_ending() -> void:
 	in_attesa_quest = false
 	in_transizione_era = false
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
 	proposer_portrait.texture = null
 	proposer_name_label.modulate = COLOR_PROPOSER_NORMALE
-	proposer_name_label.text = "Fine della demo (W7)"
-	proposer_text_label.text = "Il Consiglio del Regno Mitico è formato e la Voce dei sogni è tornata. Gli atti 2-3 dell'Era 2, le civiltà rivali e i 6 finali arrivano nelle prossime settimane."
-	quest_log_label.text = "Demo conclusa.\nPremi L per il Ledger, R per ricominciare."
-	_show_narrative("La presenza attraversa le ere. Il Ledger ricorda.")
+	var finale: Finale = _valuta_finale()
+	if finale != null:
+		Ledger.unlock_lore("epilogo_" + finale.id)
+		proposer_name_label.text = "Epilogo: %s" % finale.nome
+		quest_log_label.text = "Era 2 completata.\nPremi R per ricominciare."
+	else:
+		proposer_name_label.text = "Epilogo"
+	proposer_text_label.text = ""
+	_show_narrative("Lo spirito ha preso la sua ultima decisione.")
+	if ending_instance != null and is_instance_valid(ending_instance):
+		ending_instance.queue_free()
+	ending_instance = ENDING_SCENE.instantiate()
+	ending_instance.finale = finale
+	add_child(ending_instance)
+
+
+func _valuta_finale() -> Finale:
+	var finali: Array[Finale] = _carica_finali()
+	if finali.is_empty():
+		return null
+	var migliore: Finale = null
+	var miglior_punteggio: int = -1
+	for f in finali:
+		var s: int = f.match_score()
+		if s > miglior_punteggio:
+			miglior_punteggio = s
+			migliore = f
+	if migliore != null and miglior_punteggio >= 0:
+		return migliore
+	return _finale_fallback(finali)
+
+
+func _carica_finali() -> Array[Finale]:
+	var out: Array[Finale] = []
+	var dir: DirAccess = DirAccess.open(FINALI_DIR)
+	if dir == null:
+		return out
+	dir.list_dir_begin()
+	var fname: String = dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".tres"):
+			var f: Finale = load(FINALI_DIR + fname) as Finale
+			if f != null:
+				out.append(f)
+		fname = dir.get_next()
+	dir.list_dir_end()
+	return out
+
+
+func _finale_fallback(finali: Array[Finale]) -> Finale:
+	# Nessun finale soddisfa le condizioni: scegli quello la cui stat dominante
+	# è più alta nel giocatore (escludendo il finale mystery, che richiede la scelta).
+	var migliore: Finale = null
+	var miglior_valore: int = -1
+	for f in finali:
+		if f.id == "fine_futura":
+			continue
+		var somma: int = 0
+		for stat_name in f.condizioni_stat.keys():
+			somma += GameState.get_stat(stat_name)
+		if somma > miglior_valore:
+			miglior_valore = somma
+			migliore = f
+	return migliore
 
 
 func _show_current_decision() -> void:
@@ -509,6 +573,9 @@ func _reset_run() -> void:
 	GameState.reset_run()
 	_show_narrative("")
 	in_transizione_era = false
+	if ending_instance != null and is_instance_valid(ending_instance):
+		ending_instance.queue_free()
+		ending_instance = null
 	var bg: ColorRect = $UI/Background
 	if bg != null:
 		bg.color = COLOR_BG_ERA1

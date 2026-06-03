@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_guerra"
+nome = "Era della Guerra"
+testo = "Il popolo dello spirito scelse la spada. Le legioni marciarono contro il Sole calante e il cielo a est si tinse di fumo. Vincemmo: l'Impero cadde, le sue città arsero, il nostro nome fu inciso col ferro nelle cronache di ogni terra. Ma il prezzo cammina accanto alla gloria. Le madri contano i figli che non tornano, e il regno che abbiamo costruito sa parlare solo la lingua delle armi. La presenza dei sogni ci osservò marciare, e tacque. Forse non c'era altro da dire. Questa fu un'era di eroi e di tombe."
+condizioni_stat = {
+"militare": 55
+}
+decisioni_chiave_richieste = ["marciato_contro_impero"]
+decisioni_chiave_escludenti = []
+priorita = 10
