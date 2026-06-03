@@ -1,0 +1,92 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+
+[sub_resource type="Resource" id="eff_ascolta"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 12
+}
+set_flags = {
+"ascolta_sogno_condiviso": true
+}
+unlock_lore = ["lore_sogno_condiviso"]
+add_decisione_chiave = "ascolta_la_voce"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_archivia"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 10,
+"popolo": 2
+}
+set_flags = {
+"sogno_archiviato": true
+}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_ignora"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 6,
+"popolo": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_ascolta"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Ascolta il sogno"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_ascolta")
+feedback_testo = "Lyssa e Murr raccontano la stessa visione, parola per parola. Il popolo tace. Qualcosa li ha sognati entrambi."
+
+[sub_resource type="Resource" id="opt_archivia"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Annota e archivia"
+target_consigliere_id = "era1_murr"
+effetto = SubResource("eff_archivia")
+feedback_testo = "Murr incide il sogno tra le regole vecchie. Catalogato, perde i denti. Forse era meglio così."
+
+[sub_resource type="Resource" id="opt_ignora"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "È solo fame"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_ignora")
+feedback_testo = "Brann ride forte. Sogni vuoti riempiono pance vuote, dice. Tornino tutti al lavoro."
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_02_sogno_condiviso"
+era = 1
+testo_consigliere = "Lyssa: questa notte Murr ha sognato il mio sogno. Lo stesso volto senza nome, la stessa voce sotto la pietra. Non è coincidenza. Cosa ne facciamo?"
+personaggio_id = "era1_lyssa"
+opzioni = [SubResource("opt_ascolta"), SubResource("opt_archivia"), SubResource("opt_ignora")]
+tipo_decisione = "mistero"

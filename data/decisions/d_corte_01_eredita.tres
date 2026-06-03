@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+
+[sub_resource type="Resource" id="eff_mura"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 12,
+"costruzione": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_ambasciate"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 12,
+"tesoro": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_tempio"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 12,
+"popolo": 4
+}
+set_flags = {}
+unlock_lore = ["lore_tempio_centrale"]
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_mura"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Alzare le mura"
+target_consigliere_id = "era2_calden"
+effetto = SubResource("eff_mura")
+feedback_testo = "Calden cinge la collina di pietra. Il regno nasce sapendo di doversi difendere."
+
+[sub_resource type="Resource" id="opt_ambasciate"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Inviare ambasciate"
+target_consigliere_id = "era2_sereth"
+effetto = SubResource("eff_ambasciate")
+feedback_testo = "Sereth manda doni e parole alle corti vicine. Il regno nasce con amici, prima che con nemici."
+
+[sub_resource type="Resource" id="opt_tempio"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Erigere il tempio"
+target_consigliere_id = "era2_lena"
+effetto = SubResource("eff_tempio")
+feedback_testo = "Lena innalza il tempio centrale. Sull'altare arde lo stesso fuoco della caverna, anche se nessuno ricorda perché."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_01_eredita"
+era = 2
+testo_consigliere = "Lena: lo spirito del popolo ci ha condotti dalla caverna a questa collina di pietra. Ora siamo un regno. Da dove cominciamo a governare?"
+personaggio_id = "era2_lena"
+opzioni = [SubResource("opt_mura"), SubResource("opt_ambasciate"), SubResource("opt_tempio")]
+tipo_decisione = "proposta_consigliere"

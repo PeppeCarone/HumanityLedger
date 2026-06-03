@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+
+[sub_resource type="Resource" id="eff_pietra"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 14,
+"popolo": 5
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_raduna"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 12,
+"costruzione": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_pittura"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 10,
+"popolo": 2
+}
+set_flags = {
+"pittura_ascoltata": true
+}
+unlock_lore = ["lore_pittura_mutata"]
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_pietra"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Cavare la grande pietra"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_pietra")
+feedback_testo = "Tev sceglie il masso più alto della valle. Ci vorranno molte mani, ma reggerà mille inverni."
+
+[sub_resource type="Resource" id="opt_raduna"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Radunare il popolo"
+target_consigliere_id = "era1_aru"
+effetto = SubResource("eff_raduna")
+feedback_testo = "Aru canta il lavoro che verrà. Le mani arrivano da sole: nessuno vuole mancare alla nascita del simbolo."
+
+[sub_resource type="Resource" id="opt_pittura"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "La pittura è cambiata"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_pittura")
+feedback_testo = "Lyssa indica la parete: la figura dipinta ieri ora guarda altrove. Nessuno l'ha toccata. Il volto senza nome torna."
+
+[resource]
+script = ExtResource("dec")
+id = "d_con_02_pietra"
+era = 1
+testo_consigliere = "Aru: il popolo chiede un centro, qualcosa che dica chi siamo. Prima di erigere l'Idolo dobbiamo preparare la pietra e le mani. Da cosa partiamo?"
+personaggio_id = "era1_aru"
+opzioni = [SubResource("opt_pietra"), SubResource("opt_raduna"), SubResource("opt_pittura")]
+tipo_decisione = "proposta_consigliere"

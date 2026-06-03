@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+
+[sub_resource type="Resource" id="eff_forza"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 10,
+"tesoro": 5,
+"popolo": -2
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_battuta"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 10,
+"popolo": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_tracce"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 10,
+"tesoro": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_forza"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Caccia in forza"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_forza")
+feedback_testo = "Brann conduce la muta degli uomini. Tornano carichi, ma qualcuno mormora per la fatica."
+
+[sub_resource type="Resource" id="opt_battuta"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Battuta coordinata"
+target_consigliere_id = "era1_orm"
+effetto = SubResource("eff_battuta")
+feedback_testo = "Orm divide i ruoli con gesti calmi. La caccia diventa danza, e nessuno resta indietro."
+
+[sub_resource type="Resource" id="opt_tracce"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Leggere le tracce"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_tracce")
+feedback_testo = "Lyssa china la testa sulle orme. Sa dove la preda dormirà prima ancora che vi arrivi."
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_01_caccia"
+era = 1
+testo_consigliere = "Brann: fuori dalla caverna la selvaggina è più grande e più sveglia. La prima caccia deciderà se il popolo mangia o teme. Come la guidiamo?"
+personaggio_id = "era1_brann"
+opzioni = [SubResource("opt_forza"), SubResource("opt_battuta"), SubResource("opt_tracce")]
+tipo_decisione = "proposta_consigliere"

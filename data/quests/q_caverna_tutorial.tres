@@ -1,10 +1,13 @@
-[gd_resource type="Resource" script_class="Quest" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="Quest" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
 [ext_resource type="Resource" path="res://data/decisions/d_caverna_01_apertura.tres" id="3"]
 [ext_resource type="Resource" path="res://data/decisions/d_caverna_02_scorte.tres" id="4"]
 [ext_resource type="Resource" path="res://data/decisions/d_caverna_03_sogno.tres" id="5"]
+[ext_resource type="Resource" path="res://data/decisions/d_caverna_04_nebbie.tres" id="6"]
+[ext_resource type="Resource" path="res://data/decisions/d_caverna_05_inverno.tres" id="7"]
+[ext_resource type="Resource" path="res://data/decisions/d_caverna_06_uscita.tres" id="8"]
 
 [sub_resource type="Resource" id="eff_complete"]
 script = ExtResource("2")
@@ -14,20 +17,20 @@ set_flags = {
 }
 unlock_lore = ["lore_uscita_caverna"]
 add_decisione_chiave = ""
-add_to_log = "Il consiglio è pronto. La caverna ha imparato il loro nome."
+add_to_log = "Il popolo esce dalla caverna. Dietro restano solo le pitture e la cenere."
 rapporti_civilta = {}
 popolazione_delta = 0
 
 [resource]
 script = ExtResource("1")
 id = "q_caverna_tutorial"
-titolo = "Il Consiglio si forma"
+titolo = "Fuori dalla caverna"
 era = 1
 tipo = "chiave"
 precondizioni_flag = []
 precondizioni_stat = {}
-passi = [ExtResource("3"), ExtResource("4"), ExtResource("5")]
+passi = [ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8")]
 effetto_completamento = SubResource("eff_complete")
 flag_di_completamento = "caverna_tutorial_completata"
 visibile_nel_log = true
-descrizione_log = "Tre voci attorno al fuoco. Decidi e il popolo segue."
+descrizione_log = "Sei prove attorno al fuoco. Il clan impara a decidere, poi lascia la caverna."

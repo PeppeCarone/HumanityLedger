@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="Quest" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Resource" path="res://data/decisions/d_idolo_01_erigi.tres" id="3"]
+
+[sub_resource type="Resource" id="eff_complete"]
+script = ExtResource("2")
+stat_delta = {}
+set_flags = {
+"era1_completata": true
+}
+unlock_lore = ["lore_idolo_del_fuoco"]
+add_decisione_chiave = ""
+add_to_log = "L'Idolo del Fuoco arde sopra l'insediamento. L'Era Paleolitica si chiude: il popolo ha un simbolo che durerà oltre la memoria."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "q_idolo_del_fuoco"
+titolo = "L'Idolo del Fuoco"
+era = 1
+tipo = "chiave"
+precondizioni_flag = ["confronto_completato"]
+precondizioni_stat = {
+"costruzione": 45,
+"popolo": 40
+}
+passi = [ExtResource("3")]
+effetto_completamento = SubResource("eff_complete")
+flag_di_completamento = "era1_completata"
+visibile_nel_log = true
+descrizione_log = "La quest chiave dell'era: erigere il primo Idolo del Fuoco. Richiede Costruzione e Popolo forti."

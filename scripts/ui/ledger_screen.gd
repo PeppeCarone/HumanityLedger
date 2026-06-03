@@ -15,6 +15,58 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "Il Fiume Rosso",
 		"testo": "Per una notte le acque hanno avuto il colore di una decisione."
 	},
+	"lore_popolo_nebbie": {
+		"titolo": "Il Popolo delle Nebbie",
+		"testo": "Vengono dal bosco senza alzare la lancia. Parlano con ossa intagliate e canti bassi."
+	},
+	"lore_segni_nebbie": {
+		"titolo": "I Segni delle Nebbie",
+		"testo": "I gesti degli stranieri ripetono il sogno di Lyssa. Qualcosa li ha già visti prima di noi."
+	},
+	"lore_grande_freddo": {
+		"titolo": "Il Grande Freddo",
+		"testo": "Sette notti senza sole. La caverna ha contato chi resta e chi manca attorno al fuoco."
+	},
+	"lore_sentiero_fiume": {
+		"titolo": "Il Sentiero del Fiume",
+		"testo": "Dove scorre l'acqua scorrono anche gli altri popoli. Il clan sceglie la voce."
+	},
+	"lore_sentiero_monti": {
+		"titolo": "Il Sentiero dei Monti",
+		"testo": "Sulla roccia alta nessuno sorprende alle spalle. Il clan sceglie la lancia."
+	},
+	"lore_sentiero_pianura": {
+		"titolo": "Il Sentiero della Pianura",
+		"testo": "Sulla terra larga si può costruire qualcosa che resti. Il clan sceglie la pietra."
+	},
+	"lore_accampamento": {
+		"titolo": "Il Primo Accampamento",
+		"testo": "Un fuoco, un magazzino, un muro. Il popolo smette di rifugiarsi e comincia ad abitare."
+	},
+	"lore_clan_bisonte": {
+		"titolo": "Il Clan del Bisonte",
+		"testo": "Più numerosi, padroni del fiume. Il primo popolo che ci guarda come pari, o come preda."
+	},
+	"lore_pittura_mutata": {
+		"titolo": "La Pittura Mutata",
+		"testo": "Una figura dipinta cambia sguardo da sola, di notte. Il volto senza nome non resta sulla parete."
+	},
+	"lore_idolo_del_fuoco": {
+		"titolo": "L'Idolo del Fuoco",
+		"testo": "La grande pietra che porta la fiamma. Il primo simbolo eterno del popolo, eretto all'alba di un'era."
+	},
+	"lore_regno_mitico": {
+		"titolo": "Il Regno Mitico",
+		"testo": "La collina di pietra, le mura, il tempio. Il popolo della caverna è diventato un regno fuori dal tempo."
+	},
+	"lore_tempio_centrale": {
+		"titolo": "Il Tempio Centrale",
+		"testo": "Sull'altare arde lo stesso fuoco della caverna. Nessuno ricorda di averlo acceso, eppure non si è mai spento."
+	},
+	"lore_voce_nel_bosco": {
+		"titolo": "La Voce nel Bosco",
+		"testo": "Un inviato straniero ripete le parole del sogno paleolitico: il volto senza nome, la voce sotto la pietra. La presenza ha attraversato le ere."
+	},
 }
 
 const EVENTI_REGISTRY: Dictionary = {

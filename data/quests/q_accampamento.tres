@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="Quest" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Resource" path="res://data/decisions/d_acc_01_caccia.tres" id="3"]
+[ext_resource type="Resource" path="res://data/decisions/d_acc_02_sogno_condiviso.tres" id="4"]
+[ext_resource type="Resource" path="res://data/decisions/d_acc_03_costruzione.tres" id="5"]
+
+[sub_resource type="Resource" id="eff_complete"]
+script = ExtResource("2")
+stat_delta = {}
+set_flags = {
+"accampamento_completato": true
+}
+unlock_lore = ["lore_accampamento"]
+add_decisione_chiave = ""
+add_to_log = "L'accampamento ha un fuoco, un magazzino e un primo muro. Il popolo non si rifugia più: abita."
+rapporti_civilta = {}
+popolazione_delta = 2
+
+[resource]
+script = ExtResource("1")
+id = "q_accampamento"
+titolo = "Fondare l'accampamento"
+era = 1
+tipo = "principale"
+precondizioni_flag = ["caverna_tutorial_completata"]
+precondizioni_stat = {}
+passi = [ExtResource("3"), ExtResource("4"), ExtResource("5")]
+effetto_completamento = SubResource("eff_complete")
+flag_di_completamento = "accampamento_completato"
+visibile_nel_log = true
+descrizione_log = "Caccia, sogni e pietra: il popolo costruisce la sua prima casa fuori dalla caverna."

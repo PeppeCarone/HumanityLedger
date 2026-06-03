@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+
+[sub_resource type="Resource" id="eff_capanna"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 12,
+"popolo": 6
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 1
+
+[sub_resource type="Resource" id="eff_astri"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 8,
+"costruzione": 6
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_scorte"]
+script = ExtResource("eff")
+stat_delta = {
+"tesoro": 12,
+"popolo": 3
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_capanna"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Capanne di pietra"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_capanna")
+feedback_testo = "Tev alza il primo muro fuori dalla caverna. Per la prima volta il popolo costruisce invece di rifugiarsi."
+
+[sub_resource type="Resource" id="opt_astri"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Orientare con gli astri"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_astri")
+feedback_testo = "Lyssa allinea le capanne alle stelle. Il villaggio nasce con un disegno che nessuno sa spiegare del tutto."
+
+[sub_resource type="Resource" id="opt_scorte"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Prima il magazzino"
+target_consigliere_id = "era1_vesha"
+effetto = SubResource("eff_scorte")
+feedback_testo = "Vesha pretende un deposito prima delle case. Pance piene oggi, dice, o non ci sarà nessun domani da costruire."
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_03_costruzione"
+era = 1
+testo_consigliere = "Tev: la terra qui regge il peso. Possiamo costruire qualcosa che resti più di noi. Da dove cominciamo a fondare l'accampamento?"
+personaggio_id = "era1_tev"
+opzioni = [SubResource("opt_capanna"), SubResource("opt_astri"), SubResource("opt_scorte")]
+tipo_decisione = "proposta_consigliere"

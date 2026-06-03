@@ -29,11 +29,15 @@ var flag_narrativi: Dictionary = {}
 var decisioni_chiave: Array[String] = []
 var rapporti_civilta: Dictionary = {}
 var artefatto_equipaggiato: String = ""
+var mystery_attiva: bool = false
+
+const MYSTERY_SOGLIA: int = 2
 
 signal stat_changed(nome: String, valore_vecchio: int, valore_nuovo: int)
 signal flag_set(nome: String, valore: Variant)
 signal era_advanced(nuova_era: int)
 signal popolazione_changed(valore_vecchio: int, valore_nuovo: int)
+signal mystery_attivata
 
 
 func get_stat(nome: String) -> int:
@@ -134,6 +138,38 @@ func apply_effect(effetto: Resource) -> void:
 	if effetto.get("unlock_lore") != null:
 		for lore_id in effetto.unlock_lore:
 			Ledger.unlock_lore(lore_id)
+	if effetto.get("unlock_eventi") != null:
+		for evento_id in effetto.unlock_eventi:
+			Ledger.unlock_evento(evento_id)
+	if effetto.get("popolazione_delta") != null and effetto.popolazione_delta != 0:
+		modifica_popolazione(effetto.popolazione_delta)
+	valuta_mystery()
+
+
+func mystery_punti() -> int:
+	var punti: int = 0
+	if "accolto_popolo_nebbie" in decisioni_chiave:
+		punti += 1
+	if has_flag("nebbie_osservati"):
+		punti += 1
+	if has_flag("sogno_accolto"):
+		punti += 1
+	if has_flag("ascolta_sogno_condiviso"):
+		punti += 1
+	if has_flag("pittura_ascoltata"):
+		punti += 1
+	if artefatto_equipaggiato == "lacrima_di_lyssa":
+		punti += 1
+	return punti
+
+
+func valuta_mystery() -> void:
+	if mystery_attiva:
+		return
+	if mystery_punti() >= MYSTERY_SOGLIA:
+		mystery_attiva = true
+		set_flag("mystery_attiva", true)
+		mystery_attivata.emit()
 
 
 func reset_run() -> void:
@@ -150,6 +186,7 @@ func reset_run() -> void:
 	decisioni_chiave.clear()
 	rapporti_civilta.clear()
 	artefatto_equipaggiato = ""
+	mystery_attiva = false
 
 
 func to_dict() -> Dictionary:
@@ -173,6 +210,7 @@ func to_dict() -> Dictionary:
 		"decisioni_chiave": decisioni_chiave,
 		"rapporti_civilta": rapporti_civilta,
 		"artefatto_equipaggiato": artefatto_equipaggiato,
+		"mystery_attiva": mystery_attiva,
 	}
 
 
@@ -189,3 +227,4 @@ func from_dict(data: Dictionary) -> void:
 	decisioni_chiave.assign(data.get("decisioni_chiave", []))
 	rapporti_civilta = data.get("rapporti_civilta", {})
 	artefatto_equipaggiato = data.get("artefatto_equipaggiato", "")
+	mystery_attiva = data.get("mystery_attiva", false)

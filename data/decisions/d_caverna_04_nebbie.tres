@@ -1,0 +1,98 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+
+[sub_resource type="Resource" id="eff_scambio"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 12,
+"tesoro": 4
+}
+set_flags = {
+"nebbie_alleati": true
+}
+unlock_lore = ["lore_popolo_nebbie"]
+add_decisione_chiave = "accolto_popolo_nebbie"
+add_to_log = ""
+rapporti_civilta = {
+"popolo_nebbie": 25
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_scaccia"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 10,
+"popolo": -3
+}
+set_flags = {
+"nebbie_ostili": true
+}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"popolo_nebbie": -30
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_osserva"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 12
+}
+set_flags = {
+"nebbie_osservati": true
+}
+unlock_lore = ["lore_segni_nebbie"]
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_scambio"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Scambiare segni"
+target_consigliere_id = "era1_orm"
+effetto = SubResource("eff_scambio")
+feedback_testo = "Orm posa pietre dipinte sul muschio. Gli stranieri rispondono con un canto basso. Un patto senza parole."
+
+[sub_resource type="Resource" id="opt_scaccia"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Scacciarli"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_scaccia")
+feedback_testo = "Brann alza la lancia. Le nebbie si ritirano. Resta un freddo che non è solo del vento."
+
+[sub_resource type="Resource" id="opt_osserva"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Osservare in silenzio"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_osserva")
+feedback_testo = "Lyssa segue ogni gesto. I segni degli stranieri somigliano al suo sogno. Troppo."
+
+[resource]
+script = ExtResource("dec")
+id = "d_caverna_04_nebbie"
+era = 1
+testo_consigliere = "Kael: ombre al limite del bosco. Non sono bestie. Portano ossa intagliate e non alzano la lancia. Il Popolo delle Nebbie ci guarda. Cosa offriamo allo straniero?"
+personaggio_id = "era1_kael"
+opzioni = [SubResource("opt_scambio"), SubResource("opt_scaccia"), SubResource("opt_osserva")]
+tipo_decisione = "incontro"

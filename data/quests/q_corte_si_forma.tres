@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="Quest" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_01_eredita.tres" id="3"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_02_voce_bosco.tres" id="4"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_03_fondazione.tres" id="5"]
+
+[sub_resource type="Resource" id="eff_complete"]
+script = ExtResource("2")
+stat_delta = {}
+set_flags = {
+"era2_atto1_completato": true
+}
+unlock_lore = ["lore_regno_mitico"]
+add_decisione_chiave = ""
+add_to_log = "Il consiglio del Regno Mitico è formato. La collina di pietra ha un fuoco, un nome e una direzione."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "q_corte_si_forma"
+titolo = "Il Consiglio del Regno"
+era = 2
+tipo = "chiave"
+precondizioni_flag = ["era1_completata"]
+precondizioni_stat = {}
+passi = [ExtResource("3"), ExtResource("4"), ExtResource("5")]
+effetto_completamento = SubResource("eff_complete")
+flag_di_completamento = "era2_atto1_completato"
+visibile_nel_log = true
+descrizione_log = "Il popolo è ora un regno mitico. Gli 8 nuovi consiglieri si formano e la presenza dei sogni ritorna."

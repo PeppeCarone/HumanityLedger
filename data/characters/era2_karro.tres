@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Personaggio" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/personaggio.gd" id="1"]
+[ext_resource type="Texture2D" path="res://Assets/art/era2_mitico/tribuno_karro.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "era2_karro"
+nome = "Karro"
+archetipo = "Tribuno"
+era = 2
+stat_collegata = "popolo"
+ritratto = ExtResource("2")
+tic_linguistico = "Voce della piazza, calda e minacciosa"

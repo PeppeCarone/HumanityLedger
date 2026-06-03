@@ -29,6 +29,13 @@ func carica_quest() -> void:
 	dir.list_dir_end()
 
 
+func quest_per_id(id: String) -> Resource:
+	for q in tutte_le_quest:
+		if q.get("id") == id:
+			return q
+	return null
+
+
 func quest_disponibili_per_era(era: int) -> Array[Resource]:
 	var out: Array[Resource] = []
 	for q in tutte_le_quest:

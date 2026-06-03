@@ -1,0 +1,95 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+
+[sub_resource type="Resource" id="eff_fiume"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 8,
+"popolo": 4
+}
+set_flags = {
+"uscita_fiume": true
+}
+unlock_lore = ["lore_sentiero_fiume"]
+add_decisione_chiave = "uscita_fiume"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_monti"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 8,
+"costruzione": 4
+}
+set_flags = {
+"uscita_monti": true
+}
+unlock_lore = ["lore_sentiero_monti"]
+add_decisione_chiave = "uscita_monti"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="eff_pianura"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 8,
+"tesoro": 4
+}
+set_flags = {
+"uscita_pianura": true
+}
+unlock_lore = ["lore_sentiero_pianura"]
+add_decisione_chiave = "uscita_pianura"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_fiume"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Verso il fiume"
+target_consigliere_id = "era1_orm"
+effetto = SubResource("eff_fiume")
+feedback_testo = "Orm indica l'acqua lontana. Dove scorre il fiume, scorrono anche gli altri popoli."
+
+[sub_resource type="Resource" id="opt_monti"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Verso i monti"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_monti")
+feedback_testo = "Brann fiuta la roccia alta. Lassù nessuno ci sorprende alle spalle."
+
+[sub_resource type="Resource" id="opt_pianura"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Verso la pianura"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_pianura")
+feedback_testo = "Tev apre le braccia sulla terra larga. Qui si può costruire qualcosa che resti."
+
+[resource]
+script = ExtResource("dec")
+id = "d_caverna_06_uscita"
+era = 1
+testo_consigliere = "Aru: la caverna ci ha cresciuti, ma è diventata stretta. Tre sentieri si aprono oltre la soglia. Dove porteremo il fuoco del popolo?"
+personaggio_id = "era1_aru"
+opzioni = [SubResource("opt_fiume"), SubResource("opt_monti"), SubResource("opt_pianura")]
+tipo_decisione = "svolta"

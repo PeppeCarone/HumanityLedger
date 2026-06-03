@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+
+[sub_resource type="Resource" id="eff_erigi"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 10,
+"popolo": 10
+}
+set_flags = {
+"idolo_eretto": true
+}
+unlock_lore = ["lore_idolo_del_fuoco"]
+add_decisione_chiave = "idolo_eretto"
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 3
+
+[sub_resource type="Resource" id="opt_erigi"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Erigi l'Idolo del Fuoco"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_erigi")
+feedback_testo = "Tev solleva la grande pietra. Il fuoco trova il suo altare. Il popolo ha un centro che non è solo calore: è memoria."
+
+[resource]
+script = ExtResource("dec")
+id = "d_idolo_01_erigi"
+era = 1
+testo_consigliere = "Aru: Costruzione e Popolo sono pronti. La pietra attende le mani di Tev. Diamo al popolo il suo primo simbolo eterno."
+personaggio_id = "era1_aru"
+opzioni = [SubResource("opt_erigi")]
+tipo_decisione = "svolta"

@@ -3,11 +3,35 @@ extends Node2D
 const DROP_ZONE_SCENE: PackedScene = preload("res://scenes/ui/drop_zone.tscn")
 const DRAG_ITEM_SCENE: PackedScene = preload("res://scenes/ui/draggable_item.tscn")
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
-const TUTORIAL_QUEST_PATH: String = "res://data/quests/q_caverna_tutorial.tres"
 const CHARACTERS_DIR: String = "res://data/characters/"
+const QUEST_SEQUENZE: Dictionary = {
+	1: [
+		"q_caverna_tutorial",
+		"q_accampamento",
+		"q_confronto",
+		"q_idolo_del_fuoco",
+	],
+	2: [
+		"q_corte_si_forma",
+	],
+}
+const COLOR_BG_ERA1: Color = Color(0.08, 0.07, 0.10, 1.0)
+const COLOR_BG_ERA2: Color = Color(0.10, 0.09, 0.14, 1.0)
 const FEEDBACK_PAUSE_SEC: float = 2.5
 const STAT_TWEEN_DURATION: float = 0.55
 const NARRATIVE_FADE_DURATION: float = 0.4
+
+const COLOR_PROPOSER_NORMALE: Color = Color.WHITE
+const COLOR_PROPOSER_CATASTROFE: Color = Color(0.6, 0.8, 1.0)
+const COLOR_PROPOSER_SVOLTA: Color = Color(1.0, 0.85, 0.5)
+const COLOR_PROPOSER_MISTERO: Color = Color(0.78, 0.6, 1.0)
+
+const PREFISSO_TIPO: Dictionary = {
+	"catastrofe": "CATASTROFE — ",
+	"svolta": "SVOLTA — ",
+	"incontro": "INCONTRO — ",
+	"mistero": "MISTERO — ",
+}
 
 const STAT_LABELS: Dictionary = {
 	"militare": "Militare",
@@ -30,20 +54,25 @@ const STAT_LABELS: Dictionary = {
 @onready var proposer_text_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerText
 
 var quest_log_label: Label = null
+var popolazione_label: Label = null
 var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
 var processing_drop: bool = false
 var ledger_screen_instance: CanvasLayer = null
 var stat_tweens: Dictionary = {}
+var in_attesa_quest: bool = false
+var in_transizione_era: bool = false
 
 
 func _ready() -> void:
 	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, R = reset, 1-8 debug stat."
 	_setup_hud()
 	_load_personaggi()
-	_start_tutorial()
 	GameState.stat_changed.connect(_on_stat_changed)
+	GameState.popolazione_changed.connect(_on_popolazione_changed)
+	GameState.mystery_attivata.connect(_on_mystery_attivata)
+	_start_era1()
 
 
 func _setup_hud() -> void:
@@ -56,6 +85,14 @@ func _setup_hud() -> void:
 	var spacer: Control = Control.new()
 	spacer.custom_minimum_size = Vector2(0, 20)
 	hud_container.add_child(spacer)
+	popolazione_label = Label.new()
+	popolazione_label.name = "Popolazione"
+	popolazione_label.text = "Popolazione: %d" % GameState.popolazione
+	popolazione_label.add_theme_font_size_override("font_size", 20)
+	hud_container.add_child(popolazione_label)
+	var spacer2: Control = Control.new()
+	spacer2.custom_minimum_size = Vector2(0, 12)
+	hud_container.add_child(spacer2)
 	quest_log_label = Label.new()
 	quest_log_label.name = "QuestLog"
 	quest_log_label.add_theme_font_size_override("font_size", 18)
@@ -80,16 +117,122 @@ func _load_personaggi() -> void:
 	dir.list_dir_end()
 
 
-func _start_tutorial() -> void:
-	current_quest = load(TUTORIAL_QUEST_PATH) as Quest
-	if current_quest == null:
-		push_error("Quest tutorial non caricabile: " + TUTORIAL_QUEST_PATH)
-		return
+func _start_era1() -> void:
 	QuestManager.quest_attive.clear()
 	QuestManager.quest_chiave_corrente = null
-	QuestManager.avvia_quest(current_quest)
+	_avvia_prossima_quest()
+
+
+func _avvia_prossima_quest() -> void:
+	in_attesa_quest = false
+	var q: Quest = _prossima_quest_disponibile()
+	if q == null:
+		if GameState.era_corrente == 1 and GameState.has_flag("era1_completata"):
+			_show_transizione_a_era2()
+		elif GameState.era_corrente == 2 and GameState.has_flag("era2_atto1_completato"):
+			_show_fine_demo()
+		else:
+			_show_attesa_quest()
+		return
+	current_quest = q
+	QuestManager.avvia_quest(q)
 	current_step = 0
 	_show_current_decision()
+
+
+func _quest_ids_era_corrente() -> Array:
+	return QUEST_SEQUENZE.get(GameState.era_corrente, [])
+
+
+func _prossima_quest_disponibile() -> Quest:
+	for qid in _quest_ids_era_corrente():
+		if GameState.quest_e_completata(qid):
+			continue
+		var q: Quest = QuestManager.quest_per_id(qid) as Quest
+		if q != null and q.soddisfa_precondizioni():
+			return q
+	return null
+
+
+func _quest_bloccata_da_stat() -> Quest:
+	for qid in _quest_ids_era_corrente():
+		if GameState.quest_e_completata(qid):
+			continue
+		var q: Quest = QuestManager.quest_per_id(qid) as Quest
+		if q == null:
+			continue
+		var flag_ok: bool = true
+		for flag in q.precondizioni_flag:
+			if not GameState.has_flag(flag):
+				flag_ok = false
+				break
+		if flag_ok and not q.soddisfa_precondizioni():
+			return q
+		return null
+	return null
+
+
+func _requisiti_testo(req: Dictionary) -> String:
+	var parti: Array[String] = []
+	for stat_name in req.keys():
+		var etichetta: String = STAT_LABELS.get(stat_name, stat_name)
+		parti.append("%s %d (hai %d)" % [etichetta, int(req[stat_name]), GameState.get_stat(stat_name)])
+	return ", ".join(parti)
+
+
+func _show_attesa_quest() -> void:
+	in_attesa_quest = true
+	_clear_children(consiglieri_row)
+	_clear_children(decision_panel_row)
+	_show_narrative("")
+	proposer_portrait.texture = null
+	proposer_name_label.modulate = COLOR_PROPOSER_NORMALE
+	proposer_name_label.text = "Il consiglio attende"
+	var bloccata: Quest = _quest_bloccata_da_stat()
+	if bloccata != null:
+		proposer_text_label.text = "%s\nServe ancora: %s" % [
+			bloccata.descrizione_log, _requisiti_testo(bloccata.precondizioni_stat)
+		]
+		quest_log_label.text = "In attesa: %s\n(rafforza le stat richieste)" % bloccata.titolo
+	else:
+		proposer_text_label.text = "Le condizioni non sono ancora mature."
+		quest_log_label.text = "In attesa"
+
+
+func _show_transizione_a_era2() -> void:
+	in_attesa_quest = false
+	in_transizione_era = true
+	_clear_children(consiglieri_row)
+	_clear_children(decision_panel_row)
+	proposer_portrait.texture = null
+	proposer_name_label.modulate = COLOR_PROPOSER_SVOLTA
+	proposer_name_label.text = "Fine dell'Era Paleolitica"
+	proposer_text_label.text = "Le stagioni passano, le pietre crescono, i nomi cambiano. L'Idolo del Fuoco arde ancora, ma ora sopra un tempio. Il popolo è diventato un Regno Mitico."
+	quest_log_label.text = "Era 1 completata.\nPremi INVIO per entrare nell'Era 2.\n(le stat vengono trasferite)"
+	_show_narrative("Premi INVIO per attraversare le ere.")
+
+
+func _entra_era2() -> void:
+	in_transizione_era = false
+	GameState.avanza_era()
+	var bg: ColorRect = $UI/Background
+	if bg != null and not GameState.mystery_attiva:
+		var t: Tween = create_tween()
+		t.tween_property(bg, "color", COLOR_BG_ERA2, 1.0)
+	_avvia_prossima_quest()
+
+
+func _show_fine_demo() -> void:
+	in_attesa_quest = false
+	in_transizione_era = false
+	_clear_children(consiglieri_row)
+	_clear_children(decision_panel_row)
+	proposer_portrait.texture = null
+	proposer_name_label.modulate = COLOR_PROPOSER_NORMALE
+	proposer_name_label.text = "Fine della demo (W7)"
+	proposer_text_label.text = "Il Consiglio del Regno Mitico è formato e la Voce dei sogni è tornata. Gli atti 2-3 dell'Era 2, le civiltà rivali e i 6 finali arrivano nelle prossime settimane."
+	quest_log_label.text = "Demo conclusa.\nPremi L per il Ledger, R per ricominciare."
+	_show_narrative("La presenza attraversa le ere. Il Ledger ricorda.")
 
 
 func _show_current_decision() -> void:
@@ -108,13 +251,16 @@ func _show_current_decision() -> void:
 	if decision == null:
 		push_error("Decision nulla allo step %d" % current_step)
 		return
+	var nome_base: String = decision.personaggio_id
 	var proposer: Personaggio = personaggi_db.get(decision.personaggio_id)
 	if proposer != null:
 		proposer_portrait.texture = proposer.ritratto
-		proposer_name_label.text = "%s — %s" % [proposer.nome, proposer.archetipo]
+		nome_base = "%s — %s" % [proposer.nome, proposer.archetipo]
 	else:
 		proposer_portrait.texture = null
-		proposer_name_label.text = decision.personaggio_id
+	var prefisso: String = PREFISSO_TIPO.get(decision.tipo_decisione, "")
+	proposer_name_label.text = prefisso + nome_base
+	proposer_name_label.modulate = _colore_proposer(decision.tipo_decisione)
 	proposer_text_label.text = decision.testo_consigliere
 	_setup_consiglieri_for_decision(decision)
 	_setup_decision_panel_for_decision(decision)
@@ -196,13 +342,8 @@ func _complete_quest() -> void:
 	QuestManager.completa_quest(current_quest)
 	SaveSystem.save_run()
 	AudioManager.play_sfx("quest_complete")
-	proposer_portrait.texture = null
-	proposer_name_label.text = "Il consiglio è pronto"
-	proposer_text_label.text = "La caverna ha imparato il loro nome. La trama continuerà nei prossimi atti."
-	_show_narrative("Quest completata: %s" % current_quest.titolo)
-	quest_log_label.text = "Quest: completata\nPremi L per il Ledger, R per ricominciare"
-	_clear_children(consiglieri_row)
-	_clear_children(decision_panel_row)
+	current_quest = null
+	_avvia_prossima_quest()
 
 
 func _show_narrative(text: String) -> void:
@@ -243,6 +384,37 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	color_tween.tween_property(label, "modulate", Color.WHITE, STAT_TWEEN_DURATION + 0.2)
 	AudioManager.play_sfx("stat_up" if nuovo > vecchio else "stat_down")
 	_refresh_disabled_options()
+	if in_attesa_quest:
+		_avvia_prossima_quest()
+
+
+func _on_mystery_attivata() -> void:
+	var bg: ColorRect = $UI/Background
+	if bg != null:
+		var t: Tween = create_tween()
+		t.tween_property(bg, "color", Color(0.16, 0.05, 0.06, 1.0), 1.5)
+	Ledger.unlock_evento("fiume_rosso")
+	Ledger.unlock_lore("lore_fiume_rosso")
+	AudioManager.play_sfx("quest_complete")
+	_show_narrative("Il fuoco arde di un rosso che non conosce. Oltre la fiamma, qualcosa ascolta.")
+
+
+func _on_popolazione_changed(vecchio: int, nuovo: int) -> void:
+	if popolazione_label == null:
+		return
+	popolazione_label.text = "Popolazione: %d" % nuovo
+	var flash_color: Color = Color(0.6, 1.0, 0.6) if nuovo > vecchio else Color(1.0, 0.6, 0.6)
+	popolazione_label.modulate = flash_color
+	var tween: Tween = create_tween()
+	tween.tween_property(popolazione_label, "modulate", Color.WHITE, STAT_TWEEN_DURATION + 0.2)
+
+
+func _colore_proposer(tipo: String) -> Color:
+	match tipo:
+		"catastrofe": return COLOR_PROPOSER_CATASTROFE
+		"svolta": return COLOR_PROPOSER_SVOLTA
+		"mistero": return COLOR_PROPOSER_MISTERO
+		_: return COLOR_PROPOSER_NORMALE
 
 
 func _refresh_disabled_options() -> void:
@@ -266,6 +438,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	match event.keycode:
 		KEY_R: _reset_run()
 		KEY_L: _toggle_ledger()
+		KEY_ENTER, KEY_KP_ENTER:
+			if in_transizione_era:
+				_entra_era2()
 		KEY_ESCAPE: _close_ledger_if_open()
 		KEY_1: GameState.modifica_stat("militare", 5)
 		KEY_2: GameState.modifica_stat("tesoro", 5)
@@ -294,4 +469,8 @@ func _close_ledger_if_open() -> void:
 func _reset_run() -> void:
 	GameState.reset_run()
 	_show_narrative("")
-	_start_tutorial()
+	in_transizione_era = false
+	var bg: ColorRect = $UI/Background
+	if bg != null:
+		bg.color = COLOR_BG_ERA1
+	_start_era1()
