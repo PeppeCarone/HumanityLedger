@@ -31,3 +31,7 @@ user/
 
 # Screenshots e capture per debug
 Assets/Screenshot/
+
+# Python cache
+__pycache__/
+*.pyc

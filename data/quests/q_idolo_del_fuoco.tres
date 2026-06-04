@@ -24,8 +24,8 @@ era = 1
 tipo = "chiave"
 precondizioni_flag = ["confronto_completato"]
 precondizioni_stat = {
-"costruzione": 45,
-"popolo": 40
+"costruzione": 42,
+"popolo": 38
 }
 passi = [ExtResource("3")]
 effetto_completamento = SubResource("eff_complete")

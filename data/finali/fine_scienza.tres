@@ -8,8 +8,7 @@ id = "fine_scienza"
 nome = "Era della Scienza"
 testo = "Il popolo dello spirito scelse il sapere. Quando la curia volle bruciare i libri di Iove, lo spirito lo protesse, e il fuoco non li raggiunse. Da quella notte le torri d'osservazione si moltiplicarono, i simboli arcani si fecero luce, e il regno cominciò a chiedersi il perché di ogni cosa. Aprimmo porte che nessuno sapeva chiuse. Alcune davano su meraviglie, altre sul buio. La presenza dei sogni, per la prima volta, parve incuriosita di noi. Questa fu un'era di domande, e ogni risposta ne generava dieci nuove."
 condizioni_stat = {
-"scienza": 55,
-"legge": 40
+"scienza": 55
 }
 decisioni_chiave_richieste = ["protetto_alchimista"]
 decisioni_chiave_escludenti = []
