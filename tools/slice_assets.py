@@ -101,6 +101,114 @@ def slice_events():
     print("event illustrations -> Assets/art/eventi/ (8)")
 
 
+def _gray_bg(p):
+    r, g, b = p[0], p[1], p[2]
+    return abs(r - 127) <= 24 and abs(g - 127) <= 24 and abs(b - 127) <= 24 and max(abs(r - g), abs(g - b), abs(r - b)) <= 16
+
+
+def _flood_clear_gray(im):
+    im = im.convert("RGBA")
+    w, h = im.size
+    px = im.load()
+    seen = [[False] * w for _ in range(h)]
+    q = deque()
+    for x in range(w):
+        q += [(x, 0), (x, h - 1)]
+    for y in range(h):
+        q += [(0, y), (w - 1, y)]
+    while q:
+        x, y = q.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x]:
+            continue
+        seen[y][x] = True
+        if _gray_bg(px[x, y]):
+            px[x, y] = (0, 0, 0, 0)
+            q += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return im
+
+
+def slice_ambasciatori():
+    out = "Assets/art/ambasciatori"
+    os.makedirs(out, exist_ok=True)
+    src = Image.open(os.path.join(SHEETS, "npc_portraits.png")).convert("RGB")
+    # npc_portraits is a 10x4 grid on a flat gray (127) background, names baked under each face.
+    picks = {
+        "impero_sole": (18, 433, 106, 532),
+        "lega_coste": (123, 433, 205, 532),
+        "clan_bisonte": (722, 24, 803, 126),
+        "popolo_nebbie": (625, 24, 704, 126),
+    }
+    for civ_id, box in picks.items():
+        cell = src.crop(box)
+        cell = _flood_clear_gray(cell)
+        bbox = cell.getbbox()
+        if bbox:
+            cell = cell.crop(bbox)
+        cell.save(os.path.join(out, civ_id + ".png"))
+    print("ambasciatori -> Assets/art/ambasciatori/ (4)")
+
+
+def _checker_mid(p):
+    r, g, b = p[0], p[1], p[2]
+    avg = (r + g + b) / 3
+    return max(r, g, b) - min(r, g, b) <= 18 and 116 <= avg <= 210
+
+
+def _flood_clear(im, pred):
+    im = im.convert("RGBA")
+    w, h = im.size
+    px = im.load()
+    seen = [[False] * w for _ in range(h)]
+    q = deque()
+    for x in range(w):
+        q += [(x, 0), (x, h - 1)]
+    for y in range(h):
+        q += [(0, y), (w - 1, y)]
+    while q:
+        x, y = q.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x]:
+            continue
+        seen[y][x] = True
+        if pred(px[x, y]):
+            px[x, y] = (0, 0, 0, 0)
+            q += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    return im
+
+
+def slice_panel_frame():
+    out = "Assets/art/ui"
+    src = Image.open(os.path.join(UI, "menu_buttons.png")).convert("RGB")
+    # middle-column, middle-row: clean rectangular double-border frame with parchment fill
+    cell = src.crop((357, 193, 666, 372))
+    cell = _flood_clear(cell, _checker_mid)
+    bbox = cell.getbbox()
+    if bbox:
+        cell = cell.crop(bbox)
+    cell.save(os.path.join(out, "panel_frame.png"))
+    # border-only variant: flood the cream parchment center to transparent so a
+    # dark interior shows through (keeps light HUD text readable).
+    border = cell.convert("RGBA")
+    w, h = border.size
+    px = border.load()
+
+    def is_parchment(p):
+        r, g, b, a = p
+        return a > 0 and r >= 172 and r >= g >= b and (r + g + b) / 3 >= 150
+
+    seen = [[False] * w for _ in range(h)]
+    q = deque([(w // 2, h // 2)])
+    while q:
+        x, y = q.popleft()
+        if x < 0 or y < 0 or x >= w or y >= h or seen[y][x]:
+            continue
+        seen[y][x] = True
+        if is_parchment(px[x, y]):
+            px[x, y] = (0, 0, 0, 0)
+            q += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    border.save(os.path.join(out, "panel_border.png"))
+    print("panel frame -> Assets/art/ui/panel_frame.png + panel_border.png", cell.size)
+
+
 def slice_finali():
     out = "Assets/art/finali"
     os.makedirs(out, exist_ok=True)
@@ -124,4 +232,5 @@ if __name__ == "__main__":
     slice_backgrounds()
     slice_events()
     slice_finali()
+    slice_ambasciatori()
     print("done")

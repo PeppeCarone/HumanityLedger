@@ -75,6 +75,7 @@ var quest_log_label: Label = null
 var popolazione_label: Label = null
 var stat_value_labels: Dictionary = {}
 var rapporti_label: Label = null
+var rapporti_box: VBoxContainer = null
 var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
@@ -89,6 +90,7 @@ var in_transizione_era: bool = false
 
 func _ready() -> void:
 	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, ESC = pausa."
+	_applica_cornici()
 	_setup_hud()
 	_load_personaggi()
 	GameState.stat_changed.connect(_on_stat_changed)
@@ -96,6 +98,28 @@ func _ready() -> void:
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
 	_start_era1()
+
+
+func _applica_cornici() -> void:
+	var path: String = "res://Assets/art/ui/panel_border.png"
+	if not ResourceLoader.exists(path):
+		return
+	var tex: Texture2D = load(path)
+	for node_path in ["UI/HUDPanel", "UI/ConsigliereProposer", "UI/DecisionPanel"]:
+		var panel: Control = get_node_or_null(node_path)
+		if panel == null:
+			continue
+		var sb: StyleBoxTexture = StyleBoxTexture.new()
+		sb.texture = tex
+		sb.texture_margin_left = 44
+		sb.texture_margin_right = 44
+		sb.texture_margin_top = 40
+		sb.texture_margin_bottom = 40
+		sb.content_margin_left = 42
+		sb.content_margin_right = 42
+		sb.content_margin_top = 36
+		sb.content_margin_bottom = 32
+		panel.add_theme_stylebox_override("panel", sb)
 
 
 func _setup_hud() -> void:
@@ -143,6 +167,10 @@ func _setup_hud() -> void:
 	rapporti_label.add_theme_font_size_override("font_size", 16)
 	rapporti_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hud_container.add_child(rapporti_label)
+	rapporti_box = VBoxContainer.new()
+	rapporti_box.name = "RapportiBox"
+	rapporti_box.add_theme_constant_override("separation", 4)
+	hud_container.add_child(rapporti_box)
 	_refresh_rapporti()
 
 
@@ -552,20 +580,36 @@ func _on_rapporto_changed(_civ_id: String, _vecchio: int, _nuovo: int) -> void:
 
 
 func _refresh_rapporti() -> void:
-	if rapporti_label == null:
+	if rapporti_label == null or rapporti_box == null:
 		return
-	var righe: Array[String] = []
+	_clear_children(rapporti_box)
+	var qualcuno: bool = false
 	for civ_id in GameState.rapporti_civilta.keys():
 		var valore: int = int(GameState.rapporti_civilta[civ_id])
 		if valore == 0 and not CIV_LABELS.has(civ_id):
 			continue
+		qualcuno = true
 		var nome: String = CIV_LABELS.get(civ_id, civ_id)
 		var segno: String = "+" if valore > 0 else ""
-		righe.append("%s: %s%d" % [nome, segno, valore])
-	if righe.is_empty():
-		rapporti_label.text = ""
-	else:
-		rapporti_label.text = "Rapporti:\n" + "\n".join(righe)
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		var face: TextureRect = TextureRect.new()
+		face.custom_minimum_size = Vector2(38, 38)
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var face_path: String = "res://Assets/art/ambasciatori/%s.png" % civ_id
+		if ResourceLoader.exists(face_path):
+			face.texture = load(face_path)
+		row.add_child(face)
+		var lbl: Label = Label.new()
+		lbl.text = "%s\n%s%d" % [nome, segno, valore]
+		lbl.add_theme_font_size_override("font_size", 15)
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var col_val: Color = Color(0.6, 1.0, 0.6) if valore > 0 else (Color(1.0, 0.6, 0.6) if valore < 0 else Color(1, 1, 1, 0.8))
+		lbl.add_theme_color_override("font_color", col_val)
+		row.add_child(lbl)
+		rapporti_box.add_child(row)
+	rapporti_label.text = "Rapporti:" if qualcuno else ""
 
 
 func _colore_proposer(tipo: String) -> Color:

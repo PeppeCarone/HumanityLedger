@@ -35,6 +35,7 @@ func _run() -> void:
 	GameState.reset_run()
 	GameState.era_corrente = 2
 	GameState.set_flag("era1_completata", true)
+	GameState.rapporti_civilta = {"impero_sole": 3, "lega_coste": -2}
 	await _shot("res://scenes/main.tscn", "shot_era2")
 	GameState.reset_run()
 	await _shot("res://scenes/main.tscn", "shot_evento", Callable(), func(inst: Node) -> void:
