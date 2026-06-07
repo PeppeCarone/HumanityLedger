@@ -2,7 +2,9 @@ extends Control
 
 const GAME_SCENE: String = "res://scenes/main.tscn"
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
+const BG_PATH: String = "res://Assets/art/ui/main_menu_bg.png"
 
+@onready var background: TextureRect = $Background
 @onready var nuova_btn: Button = $Buttons/NuovaPartita
 @onready var continua_btn: Button = $Buttons/Continua
 @onready var ledger_btn: Button = $Buttons/Ledger
@@ -12,6 +14,8 @@ var ledger_instance: CanvasLayer = null
 
 
 func _ready() -> void:
+	if ResourceLoader.exists(BG_PATH):
+		background.texture = load(BG_PATH)
 	nuova_btn.pressed.connect(_on_nuova)
 	continua_btn.pressed.connect(_on_continua)
 	ledger_btn.pressed.connect(_on_ledger)

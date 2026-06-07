@@ -14,6 +14,7 @@ const TONI: Dictionary = {
 
 @onready var background: ColorRect = $Background
 @onready var titolo_label: Label = $Center/Panel/Margin/VBox/Titolo
+@onready var immagine: TextureRect = $Center/Panel/Margin/VBox/Immagine
 @onready var testo_label: Label = $Center/Panel/Margin/VBox/Testo
 @onready var footer_label: Label = $Center/Panel/Margin/VBox/Footer
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 	var tono: Color = TONI.get(finale.id, Color.WHITE)
 	titolo_label.text = finale.nome
 	titolo_label.modulate = tono
+	_imposta_illustrazione()
 	testo_label.text = finale.testo
 	footer_label.text = "Premi R per ricominciare, L per il Ledger"
 	background.color = Color(0.04, 0.03, 0.05, 1.0)
@@ -34,3 +36,15 @@ func _ready() -> void:
 	var tween: Tween = create_tween()
 	tween.tween_property(titolo_label, "modulate:a", 1.0, 1.0)
 	tween.tween_property(testo_label, "modulate:a", 1.0, 1.2)
+
+
+func _imposta_illustrazione() -> void:
+	if finale.illustrazione != null:
+		immagine.texture = finale.illustrazione
+		return
+	var nome: String = finale.id.trim_prefix("fine_")
+	var path: String = "res://Assets/art/finali/%s.png" % nome
+	if ResourceLoader.exists(path):
+		immagine.texture = load(path)
+	else:
+		immagine.visible = false

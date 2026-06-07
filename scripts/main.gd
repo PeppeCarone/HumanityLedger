@@ -26,8 +26,9 @@ const CIV_LABELS: Dictionary = {
 	"impero_sole": "Impero del Sole",
 	"lega_coste": "Lega delle Coste",
 }
-const COLOR_BG_ERA1: Color = Color(0.08, 0.07, 0.10, 1.0)
-const COLOR_BG_ERA2: Color = Color(0.10, 0.09, 0.14, 1.0)
+const COLOR_BG_ERA1: Color = Color(0.06, 0.05, 0.08, 0.55)
+const COLOR_BG_ERA2: Color = Color(0.09, 0.07, 0.13, 0.5)
+const COLOR_BG_MYSTERY: Color = Color(0.18, 0.05, 0.06, 0.6)
 const FEEDBACK_PAUSE_SEC: float = 2.5
 const STAT_TWEEN_DURATION: float = 0.55
 const NARRATIVE_FADE_DURATION: float = 0.4
@@ -55,6 +56,11 @@ const STAT_LABELS: Dictionary = {
 	"costruzione": "Costruzione",
 }
 
+const STAT_ICON_DIR: String = "res://Assets/art/stats/"
+const BG_ERA1: String = "res://Assets/art/backgrounds/era1_caverna.png"
+const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
+
+@onready var scene_bg: TextureRect = $UI/SceneBg
 @onready var hud_container: VBoxContainer = $UI/HUDPanel/VBoxContainer
 @onready var consiglieri_row: HBoxContainer = $UI/ConsiglieriRow
 @onready var decision_panel_row: HBoxContainer = $UI/DecisionPanel/HBoxContainer
@@ -66,6 +72,7 @@ const STAT_LABELS: Dictionary = {
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
+var stat_value_labels: Dictionary = {}
 var rapporti_label: Label = null
 var current_quest: Quest = null
 var current_step: int = 0
@@ -91,12 +98,26 @@ func _ready() -> void:
 
 
 func _setup_hud() -> void:
+	stat_value_labels.clear()
 	for stat_name in GameState.STAT_NAMES:
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var icon: TextureRect = TextureRect.new()
+		icon.custom_minimum_size = Vector2(30, 30)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var icon_path: String = STAT_ICON_DIR + stat_name + ".png"
+		if ResourceLoader.exists(icon_path):
+			icon.texture = load(icon_path)
+		row.add_child(icon)
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
 		label.text = "%s: %d" % [STAT_LABELS[stat_name], GameState.get_stat(stat_name)]
 		label.add_theme_font_size_override("font_size", 20)
-		hud_container.add_child(label)
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(label)
+		hud_container.add_child(row)
+		stat_value_labels[stat_name] = label
 	var spacer: Control = Control.new()
 	spacer.custom_minimum_size = Vector2(0, 20)
 	hud_container.add_child(spacer)
@@ -144,7 +165,16 @@ func _load_personaggi() -> void:
 func _start_era1() -> void:
 	QuestManager.quest_attive.clear()
 	QuestManager.quest_chiave_corrente = null
+	_aggiorna_sfondo_era()
 	_avvia_prossima_quest()
+
+
+func _aggiorna_sfondo_era() -> void:
+	if scene_bg == null:
+		return
+	var path: String = BG_ERA2 if GameState.era_corrente >= 2 else BG_ERA1
+	if ResourceLoader.exists(path):
+		scene_bg.texture = load(path)
 
 
 func _avvia_prossima_quest() -> void:
@@ -239,6 +269,7 @@ func _show_transizione_a_era2() -> void:
 func _entra_era2() -> void:
 	in_transizione_era = false
 	GameState.avanza_era()
+	_aggiorna_sfondo_era()
 	var bg: ColorRect = $UI/Background
 	if bg != null and not GameState.mystery_attiva:
 		var t: Tween = create_tween()
@@ -446,7 +477,7 @@ func _clear_children(node: Node) -> void:
 
 
 func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
-	var label: Label = hud_container.get_node_or_null("Stat_" + nome)
+	var label: Label = stat_value_labels.get(nome)
 	if label == null:
 		return
 	if stat_tweens.has(nome) and stat_tweens[nome] != null:
@@ -476,7 +507,7 @@ func _on_mystery_attivata() -> void:
 	var bg: ColorRect = $UI/Background
 	if bg != null:
 		var t: Tween = create_tween()
-		t.tween_property(bg, "color", Color(0.16, 0.05, 0.06, 1.0), 1.5)
+		t.tween_property(bg, "color", COLOR_BG_MYSTERY, 1.5)
 	Ledger.unlock_evento("fiume_rosso")
 	Ledger.unlock_lore("lore_fiume_rosso")
 	AudioManager.play_sfx("quest_complete")

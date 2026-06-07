@@ -31,6 +31,11 @@ user/
 
 # Screenshots e capture per debug
 Assets/Screenshot/
+tools/_preview/
+tools/_out/
+
+# Godot editor binario tenuto in locale (cartella .exe)
+Godot_*_win64.exe/
 
 # Python cache
 __pycache__/
