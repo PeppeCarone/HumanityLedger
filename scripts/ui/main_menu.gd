@@ -29,14 +29,18 @@ func _ready() -> void:
 
 func _on_nuova() -> void:
 	SaveSystem.reset_run()
-	get_tree().change_scene_to_file(GAME_SCENE)
+	var err: int = get_tree().change_scene_to_file(GAME_SCENE)
+	if err != OK:
+		push_error("Nuova Partita: change_scene fallito (err %d) su %s" % [err, GAME_SCENE])
 
 
 func _on_continua() -> void:
 	if not SaveSystem.exists_run():
 		return
 	SaveSystem.load_run()
-	get_tree().change_scene_to_file(GAME_SCENE)
+	var err: int = get_tree().change_scene_to_file(GAME_SCENE)
+	if err != OK:
+		push_error("Continua: change_scene fallito (err %d) su %s" % [err, GAME_SCENE])
 
 
 func _on_ledger() -> void:
