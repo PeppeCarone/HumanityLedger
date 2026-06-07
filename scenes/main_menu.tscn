@@ -1,0 +1,88 @@
+[gd_scene format=3 uid="uid://b1mainmenu0001"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.07, 0.1, 1)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 220.0
+offset_right = 1860.0
+offset_bottom = 340.0
+theme_override_font_sizes/font_size = 84
+text = "HUMANITYLEDGER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Subtitle" type="Label" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 350.0
+offset_right = 1860.0
+offset_bottom = 400.0
+theme_override_colors/font_color = Color(0.85, 0.8, 0.65, 1)
+theme_override_font_sizes/font_size = 26
+text = "Lo spirito di un popolo attraverso le ere"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Buttons" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 760.0
+offset_top = 480.0
+offset_right = 1160.0
+offset_bottom = 860.0
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="NuovaPartita" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Nuova Partita"
+
+[node name="Continua" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Continua"
+
+[node name="Ledger" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Ledger"
+
+[node name="Esci" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Esci"
+
+[node name="Version" type="Label" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 1020.0
+offset_right = 1860.0
+offset_bottom = 1060.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.4)
+theme_override_font_sizes/font_size = 16
+text = "W11 — menu e pausa"
+horizontal_alignment = 1

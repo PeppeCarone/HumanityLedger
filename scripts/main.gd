@@ -4,6 +4,7 @@ const DROP_ZONE_SCENE: PackedScene = preload("res://scenes/ui/drop_zone.tscn")
 const DRAG_ITEM_SCENE: PackedScene = preload("res://scenes/ui/draggable_item.tscn")
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
 const ENDING_SCENE: PackedScene = preload("res://scenes/ending_screen.tscn")
+const PAUSE_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const CHARACTERS_DIR: String = "res://data/characters/"
 const FINALI_DIR: String = "res://data/finali/"
 const QUEST_SEQUENZE: Dictionary = {
@@ -72,13 +73,14 @@ var personaggi_db: Dictionary = {}
 var processing_drop: bool = false
 var ledger_screen_instance: CanvasLayer = null
 var ending_instance: CanvasLayer = null
+var pause_instance: CanvasLayer = null
 var stat_tweens: Dictionary = {}
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 
 
 func _ready() -> void:
-	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, R = reset, 1-8 debug stat."
+	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, ESC = pausa."
 	_setup_hud()
 	_load_personaggi()
 	GameState.stat_changed.connect(_on_stat_changed)
@@ -539,12 +541,19 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
 	match event.keycode:
-		KEY_R: _reset_run()
 		KEY_L: _toggle_ledger()
 		KEY_ENTER, KEY_KP_ENTER:
 			if in_transizione_era:
 				_entra_era2()
-		KEY_ESCAPE: _close_ledger_if_open()
+		KEY_ESCAPE: _on_escape()
+		_:
+			if OS.is_debug_build():
+				_debug_input(event.keycode)
+
+
+func _debug_input(keycode: int) -> void:
+	match keycode:
+		KEY_R: _reset_run()
 		KEY_1: GameState.modifica_stat("militare", 5)
 		KEY_2: GameState.modifica_stat("tesoro", 5)
 		KEY_3: GameState.modifica_stat("diplomazia", 5)
@@ -553,6 +562,30 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_6: GameState.modifica_stat("spionaggio", 5)
 		KEY_7: GameState.modifica_stat("popolo", 5)
 		KEY_8: GameState.modifica_stat("costruzione", 5)
+
+
+func _on_escape() -> void:
+	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
+		_close_ledger_if_open()
+		return
+	_toggle_pause()
+
+
+func _toggle_pause() -> void:
+	if pause_instance != null and is_instance_valid(pause_instance):
+		_close_pause()
+		return
+	pause_instance = PAUSE_SCENE.instantiate()
+	pause_instance.connect("resumed", _close_pause)
+	add_child(pause_instance)
+	get_tree().paused = true
+
+
+func _close_pause() -> void:
+	get_tree().paused = false
+	if pause_instance != null and is_instance_valid(pause_instance):
+		pause_instance.queue_free()
+		pause_instance = null
 
 
 func _toggle_ledger() -> void:

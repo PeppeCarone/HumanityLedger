@@ -15,6 +15,7 @@ const SFX_PATHS: Dictionary = {
 const MUSIC_VOLUME_DB: float = -8.0
 const SFX_VOLUME_DB: float = -4.0
 const MAX_CONCURRENT_SFX: int = 8
+const SETTINGS_PATH: String = "user://settings.cfg"
 
 var _music_player: AudioStreamPlayer
 var _sfx_pool: Array[AudioStreamPlayer] = []
@@ -24,6 +25,7 @@ var _muted: bool = false
 
 
 func _ready() -> void:
+	_load_settings()
 	_music_player = AudioStreamPlayer.new()
 	_music_player.name = "MusicPlayer"
 	_music_player.volume_db = MUSIC_VOLUME_DB
@@ -82,3 +84,27 @@ func set_muted(value: bool) -> void:
 	_muted = value
 	if _muted:
 		_music_player.stop()
+	_save_settings()
+
+
+func is_muted() -> bool:
+	return _muted
+
+
+func toggle_muted() -> bool:
+	set_muted(not _muted)
+	return _muted
+
+
+func _load_settings() -> void:
+	var cfg: ConfigFile = ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) != OK:
+		return
+	_muted = cfg.get_value("audio", "muted", false)
+
+
+func _save_settings() -> void:
+	var cfg: ConfigFile = ConfigFile.new()
+	cfg.load(SETTINGS_PATH)
+	cfg.set_value("audio", "muted", _muted)
+	cfg.save(SETTINGS_PATH)
