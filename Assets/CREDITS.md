@@ -166,7 +166,23 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 
 ## Font
 
-*(nessuno ancora — scelta definitiva W1, vedi 05-art-audio.md)*
+### `fonts/Cinzel.ttf` — titoli
+- **Autore**: Natanael Gama
+- **Licenza**: SIL Open Font License 1.1 (`fonts/Cinzel-OFL.txt`)
+- **Fonte**: Google Fonts (github.com/google/fonts, `ofl/cinzel`)
+- **Uso**: titoli/intestazioni (capitali romane, tono mitico-epico). Applicato via codice
+  con `FontVariation` (wght 600-700) a: nome consigliere proponente, titolo schermata
+  finale, titolo menu pausa.
+
+### `fonts/Alegreya.ttf` — corpo
+- **Autore**: Juan Pablo del Peral (Huerta Tipográfica)
+- **Licenza**: SIL Open Font License 1.1 (`fonts/Alegreya-OFL.txt`)
+- **Fonte**: Google Fonts (github.com/google/fonts, `ofl/alegreya`)
+- **Uso**: font di default del progetto (`project.godot` → `gui/theme/custom_font`),
+  serif letterario per tutto il testo di interfaccia.
+
+Entrambi variabili (asse `wght`). OFL = uso commerciale/accademico consentito con
+mantenimento del file di licenza (incluso). Nessuna modifica ai font.
 
 ---
 

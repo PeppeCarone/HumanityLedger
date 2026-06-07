@@ -27,6 +27,12 @@ func _ready() -> void:
 	var tono: Color = TONI.get(finale.id, Color.WHITE)
 	titolo_label.text = finale.nome
 	titolo_label.modulate = tono
+	var cinzel_path: String = "res://Assets/fonts/Cinzel.ttf"
+	if ResourceLoader.exists(cinzel_path):
+		var fv: FontVariation = FontVariation.new()
+		fv.base_font = load(cinzel_path)
+		fv.variation_opentype = {"wght": 700}
+		titolo_label.add_theme_font_override("font", fv)
 	_imposta_illustrazione()
 	testo_label.text = finale.testo
 	footer_label.text = "Premi R per ricominciare, L per il Ledger"

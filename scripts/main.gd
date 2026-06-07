@@ -94,6 +94,9 @@ func _ready() -> void:
 	help_label.add_theme_color_override("font_color", Color(0.92, 0.86, 0.72))
 	help_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	help_label.add_theme_constant_override("outline_size", 4)
+	var titolo_font: Font = _font_titoli()
+	if titolo_font != null:
+		proposer_name_label.add_theme_font_override("font", titolo_font)
 	_applica_cornici()
 	_setup_hud()
 	_load_personaggi()
@@ -102,6 +105,17 @@ func _ready() -> void:
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
 	_start_era1()
+
+
+func _font_titoli() -> Font:
+	var path: String = "res://Assets/fonts/Cinzel.ttf"
+	if not ResourceLoader.exists(path):
+		return null
+	var base: FontFile = load(path)
+	var fv: FontVariation = FontVariation.new()
+	fv.base_font = base
+	fv.variation_opentype = {"wght": 600}
+	return fv
 
 
 func _applica_cornici() -> void:

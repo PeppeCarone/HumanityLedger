@@ -9,11 +9,20 @@ signal resumed
 @onready var menu_btn: Button = $Dim/Panel/VBox/TornaMenu
 
 
+@onready var titolo: Label = $Dim/Panel/VBox/Titolo
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	riprendi_btn.pressed.connect(_on_riprendi)
 	audio_btn.pressed.connect(_on_audio)
 	menu_btn.pressed.connect(_on_menu)
+	var cinzel_path: String = "res://Assets/fonts/Cinzel.ttf"
+	if titolo != null and ResourceLoader.exists(cinzel_path):
+		var fv: FontVariation = FontVariation.new()
+		fv.base_font = load(cinzel_path)
+		fv.variation_opentype = {"wght": 700}
+		titolo.add_theme_font_override("font", fv)
 	_refresh_audio_label()
 	riprendi_btn.grab_focus()
 
