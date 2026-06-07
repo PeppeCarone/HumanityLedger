@@ -7,16 +7,15 @@ custom_minimum_size = Vector2(160, 200)
 mouse_filter = 1
 script = ExtResource("1_drag")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="Panel" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.2, 0.15, 0.1, 0.85)
 
 [node name="IconTexture" type="TextureRect" parent="."]
 anchor_right = 1.0
-offset_bottom = 160.0
+offset_bottom = 150.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
@@ -25,8 +24,11 @@ stretch_mode = 5
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -40.0
+offset_top = -48.0
 mouse_filter = 2
+theme_override_colors/font_color = Color(0.97, 0.92, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 5
 theme_override_font_sizes/font_size = 16
 text = "Item"
 horizontal_alignment = 1

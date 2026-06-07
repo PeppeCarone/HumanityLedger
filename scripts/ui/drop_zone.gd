@@ -3,12 +3,12 @@ extends Control
 @export var zone_id: String = ""
 @export var label_text: String = "Consigliere"
 @export var portrait_texture: Texture2D
-@export var bg_color: Color = Color(0.18, 0.16, 0.22, 1.0)
+@export var bg_color: Color = Color(0.14, 0.115, 0.10, 0.96)
 @export var hover_color: Color = Color(0.4, 0.75, 0.4, 0.55)
 @export var fail_flash_color: Color = Color(0.85, 0.25, 0.25, 0.55)
 @export var accepted_item_ids: Array[String] = []
 
-@onready var bg: ColorRect = $Background
+@onready var bg: Panel = $Background
 @onready var hover: ColorRect = $HoverHighlight
 @onready var portrait_rect: TextureRect = $PortraitTexture
 @onready var lbl: Label = $Label
@@ -24,7 +24,12 @@ func _ready() -> void:
 
 func _refresh() -> void:
 	if bg != null:
-		bg.color = bg_color
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
+		sb.bg_color = bg_color
+		sb.border_color = Color(0.5, 0.38, 0.22, 0.9)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(6)
+		bg.add_theme_stylebox_override("panel", sb)
 	if hover != null:
 		hover.color = hover_color
 		hover.modulate.a = 0.0

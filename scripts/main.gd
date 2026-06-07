@@ -90,6 +90,10 @@ var in_transizione_era: bool = false
 
 func _ready() -> void:
 	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, ESC = pausa."
+	help_label.add_theme_font_size_override("font_size", 19)
+	help_label.add_theme_color_override("font_color", Color(0.92, 0.86, 0.72))
+	help_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	help_label.add_theme_constant_override("outline_size", 4)
 	_applica_cornici()
 	_setup_hud()
 	_load_personaggi()
@@ -101,25 +105,26 @@ func _ready() -> void:
 
 
 func _applica_cornici() -> void:
-	var path: String = "res://Assets/art/ui/panel_border.png"
-	if not ResourceLoader.exists(path):
-		return
-	var tex: Texture2D = load(path)
 	for node_path in ["UI/HUDPanel", "UI/ConsigliereProposer", "UI/DecisionPanel"]:
 		var panel: Control = get_node_or_null(node_path)
 		if panel == null:
 			continue
-		var sb: StyleBoxTexture = StyleBoxTexture.new()
-		sb.texture = tex
-		sb.texture_margin_left = 44
-		sb.texture_margin_right = 44
-		sb.texture_margin_top = 40
-		sb.texture_margin_bottom = 40
-		sb.content_margin_left = 42
-		sb.content_margin_right = 42
-		sb.content_margin_top = 36
-		sb.content_margin_bottom = 32
-		panel.add_theme_stylebox_override("panel", sb)
+		panel.add_theme_stylebox_override("panel", _stile_pannello())
+
+
+func _stile_pannello() -> StyleBoxFlat:
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.11, 0.085, 0.07, 0.84)
+	sb.border_color = Color(0.5, 0.38, 0.22, 0.95)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 18
+	sb.content_margin_bottom = 18
+	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.shadow_size = 6
+	return sb
 
 
 func _setup_hud() -> void:

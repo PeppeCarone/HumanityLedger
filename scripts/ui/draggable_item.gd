@@ -8,9 +8,12 @@ extends Control
 @export var stat_delta: int = 0
 @export var feedback_text: String = ""
 
-@onready var bg: ColorRect = $Background
+@onready var bg: Panel = $Background
 @onready var icon_rect: TextureRect = $IconTexture
 @onready var lbl: Label = $Label
+
+const COL_LABEL_NORMALE: Color = Color(0.97, 0.92, 0.8)
+const COL_LABEL_DISABILITATO: Color = Color(0.85, 0.5, 0.42)
 
 var _consumed: bool = false
 var _disabled: bool = false
@@ -23,22 +26,31 @@ func _ready() -> void:
 
 func _refresh() -> void:
 	if bg != null:
-		bg.color = icon_color
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
+		sb.bg_color = icon_color
+		sb.border_color = Color(0.5, 0.38, 0.22, 0.9)
+		sb.set_border_width_all(2)
+		sb.set_corner_radius_all(6)
+		bg.add_theme_stylebox_override("panel", sb)
 	if icon_rect != null:
 		icon_rect.texture = icon_texture
 		icon_rect.visible = icon_texture != null
 	if lbl != null:
 		lbl.text = label_text
 	if _disabled:
-		modulate = Color(1, 1, 1, 0.4)
+		modulate = Color(0.78, 0.74, 0.7, 0.92)
+		if lbl != null:
+			lbl.add_theme_color_override("font_color", COL_LABEL_DISABILITATO)
 		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 		tooltip_text = _disabled_reason
 	elif _consumed:
-		modulate = Color(1, 1, 1, 0.35)
+		modulate = Color(1, 1, 1, 0.4)
 		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 		tooltip_text = ""
 	else:
 		modulate = Color.WHITE
+		if lbl != null:
+			lbl.add_theme_color_override("font_color", COL_LABEL_NORMALE)
 		mouse_default_cursor_shape = Control.CURSOR_DRAG
 		tooltip_text = ""
 
