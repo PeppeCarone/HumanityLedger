@@ -1,15 +1,17 @@
 extends Node
 
+const SFX_DIR: String = "res://Assets/audio/sfx/"
+const MUSIC_DIR: String = "res://Assets/audio/music/"
 const SFX_PATHS: Dictionary = {
-	"drag_pickup": "",
-	"drag_hover": "",
-	"drop_success": "",
-	"drop_fail": "",
-	"stat_up": "",
-	"stat_down": "",
-	"quest_complete": "",
-	"ledger_unlock": "",
-	"era_transition": "",
+	"drag_pickup": "res://Assets/audio/sfx/drag_pickup.ogg",
+	"drag_hover": "res://Assets/audio/sfx/drag_hover.ogg",
+	"drop_success": "res://Assets/audio/sfx/drop_success.ogg",
+	"drop_fail": "res://Assets/audio/sfx/drop_fail.ogg",
+	"stat_up": "res://Assets/audio/sfx/stat_up.ogg",
+	"stat_down": "res://Assets/audio/sfx/stat_down.ogg",
+	"quest_complete": "res://Assets/audio/sfx/quest_complete.ogg",
+	"ledger_unlock": "res://Assets/audio/sfx/ledger_unlock.ogg",
+	"era_transition": "res://Assets/audio/sfx/era_transition.ogg",
 }
 
 const MUSIC_VOLUME_DB: float = -8.0
@@ -22,6 +24,7 @@ var _sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_cursor: int = 0
 var _cache: Dictionary = {}
 var _muted: bool = false
+var _current_music_path: String = ""
 
 
 func _ready() -> void:
@@ -38,6 +41,9 @@ func _ready() -> void:
 		p.bus = "Master"
 		add_child(p)
 		_sfx_pool.append(p)
+	Ledger.lore_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
+	Ledger.evento_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
+	Ledger.artefatto_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
 
 
 func play_sfx(id: String) -> void:
@@ -60,11 +66,15 @@ func play_sfx(id: String) -> void:
 	player.play()
 
 
+func play_music_id(id: String) -> void:
+	play_music(MUSIC_DIR + id + ".ogg")
+
+
 func play_music(path: String) -> void:
-	if _muted:
-		_music_player.stop()
+	if path == _current_music_path and _music_player != null and _music_player.playing:
 		return
-	if path.is_empty():
+	_current_music_path = path
+	if _muted or path.is_empty():
 		_music_player.stop()
 		return
 	if not ResourceLoader.exists(path):
@@ -72,11 +82,14 @@ func play_music(path: String) -> void:
 	var stream: AudioStream = load(path) as AudioStream
 	if stream == null:
 		return
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
 	_music_player.stream = stream
 	_music_player.play()
 
 
 func stop_music() -> void:
+	_current_music_path = ""
 	_music_player.stop()
 
 
@@ -84,6 +97,8 @@ func set_muted(value: bool) -> void:
 	_muted = value
 	if _muted:
 		_music_player.stop()
+	elif _current_music_path != "":
+		play_music(_current_music_path)
 	_save_settings()
 
 

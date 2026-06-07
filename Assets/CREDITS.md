@@ -160,7 +160,29 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 
 ## Audio
 
-*(nessuno ancora — popolare a partire da W4)*
+Tutto l'audio è **sintetizzato da zero** con `tools/gen_audio.py` (numpy/scipy →
+OGG Vorbis). Nessun campione di terzi: opera originale, nessun vincolo di licenza
+(di fatto CC0). Rigenerabile con `python tools/gen_audio.py`.
+
+### SFX (`audio/sfx/*.ogg`)
+- `drag_pickup`, `drag_hover` — tick legnosi soft al prelievo/hover dell'icona
+- `drop_success` — campanella a due note (do→sol) sul drop valido
+- `drop_fail` — tonfo basso ovattato (asset pronto, trigger opzionale)
+- `stat_up` / `stat_down` — arpeggio breve ascendente/discendente sul cambio stat
+- `quest_complete` — arpeggio maggiore al completamento quest
+- `ledger_unlock` — shimmer acuto allo sblocco di lore/eventi/artefatti del Ledger
+- `era_transition` — swell + gong al passaggio d'era
+
+### Musica (`audio/music/*.ogg`, ambient loopata)
+- `menu` — pad caldo contemplativo (Am-F-C-G)
+- `era1` — drone scuro e rado, pulsazione bassa (Paleolitico)
+- `era2` — pad più pieno e regale (Regno Mitico)
+- `ending` — risoluzione calma in maggiore
+
+Sintesi: oscillatori sine + campane inarmoniche, inviluppi ADSR, riverbero a
+convoluzione, filtri Butterworth, LFO lenti. Livelli: SFX picco ~-2/-16 dB,
+musica picco ~-12 dB (sottofondo). Cablato in `AudioManager` (loop + mute
+persistente + ripresa su unmute).
 
 ---
 

@@ -64,6 +64,7 @@ func set_disabled(value: bool, reason: String = "") -> void:
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if _consumed or _disabled:
 		return null
+	AudioManager.play_sfx("drag_pickup")
 	set_drag_preview(_build_preview())
 	return {
 		"item_id": item_id,

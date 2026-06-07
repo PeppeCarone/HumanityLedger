@@ -223,6 +223,7 @@ func _aggiorna_sfondo_era() -> void:
 	var path: String = BG_ERA2 if GameState.era_corrente >= 2 else BG_ERA1
 	if ResourceLoader.exists(path):
 		scene_bg.texture = load(path)
+	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
 
 
 func _avvia_prossima_quest() -> void:
@@ -316,6 +317,7 @@ func _show_transizione_a_era2() -> void:
 	proposer_text_label.text = "Le stagioni passano, le pietre crescono, i nomi cambiano. L'Idolo del Fuoco arde ancora, ma ora sopra un tempio. Il popolo è diventato un Regno Mitico."
 	quest_log_label.text = "Era 1 completata.\nPremi INVIO per entrare nell'Era 2.\n(le stat vengono trasferite)"
 	_show_narrative("Premi INVIO per attraversare le ere.")
+	AudioManager.play_sfx("era_transition")
 
 
 func _entra_era2() -> void:

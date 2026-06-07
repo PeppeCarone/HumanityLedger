@@ -25,6 +25,7 @@ func _ready() -> void:
 	if not ha_save:
 		continua_btn.tooltip_text = "Nessuna partita salvata."
 	nuova_btn.grab_focus()
+	AudioManager.play_music_id("menu")
 
 
 func _on_nuova() -> void:

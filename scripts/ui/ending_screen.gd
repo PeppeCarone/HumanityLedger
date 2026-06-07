@@ -37,6 +37,7 @@ func _ready() -> void:
 	testo_label.text = finale.testo
 	footer_label.text = "Premi R per ricominciare, L per il Ledger"
 	background.color = Color(0.04, 0.03, 0.05, 1.0)
+	AudioManager.play_music_id("ending")
 	titolo_label.modulate.a = 0.0
 	testo_label.modulate.a = 0.0
 	var tween: Tween = create_tween()
