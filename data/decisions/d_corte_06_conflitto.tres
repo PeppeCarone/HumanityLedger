@@ -92,3 +92,4 @@ testo_consigliere = "Karro: la curia e il popolo si scontrano nelle piazze per i
 personaggio_id = "era2_karro"
 opzioni = [SubResource("opt_sapere"), SubResource("opt_curia"), SubResource("opt_reprimi")]
 tipo_decisione = "catastrofe"
+illustrazione_id = "conflitto_religioso"

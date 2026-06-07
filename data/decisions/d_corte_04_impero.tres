@@ -93,3 +93,4 @@ testo_consigliere = "Sereth: l'Impero del Sole pretende un tributo. È potente m
 personaggio_id = "era2_sereth"
 opzioni = [SubResource("opt_tributo"), SubResource("opt_sfida"), SubResource("opt_infiltra")]
 tipo_decisione = "incontro"
+illustrazione_id = "summit"

@@ -93,3 +93,4 @@ testo_consigliere = "Vorrik: la Lega delle Coste a ovest non vuole guerra, vuole
 personaggio_id = "era2_vorrik"
 opzioni = [SubResource("opt_alleanza"), SubResource("opt_porto"), SubResource("opt_dazi")]
 tipo_decisione = "incontro"
+illustrazione_id = "crisi_economica"

@@ -87,3 +87,4 @@ testo_consigliere = "Karro: il popolo guarda al nuovo consiglio e chiede su cosa
 personaggio_id = "era2_karro"
 opzioni = [SubResource("opt_mura"), SubResource("opt_piazza"), SubResource("opt_accademia")]
 tipo_decisione = "svolta"
+illustrazione_id = "scienza"

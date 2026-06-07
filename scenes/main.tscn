@@ -79,6 +79,12 @@ theme_override_font_sizes/font_size = 20
 text = ""
 autowrap_mode = 3
 
+[node name="EventImage" type="TextureRect" parent="UI/ConsigliereProposer/HBox"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
 [node name="ConsiglieriRow" type="HBoxContainer" parent="UI"]
 offset_left = 360.0
 offset_top = 290.0

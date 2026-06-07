@@ -97,3 +97,4 @@ testo_consigliere = "Kael: un inviato del Clan del Bisonte è alle capanne. Sono
 personaggio_id = "era1_kael"
 opzioni = [SubResource("opt_tratta"), SubResource("opt_lance"), SubResource("opt_spia")]
 tipo_decisione = "incontro"
+illustrazione_id = "rebellion"

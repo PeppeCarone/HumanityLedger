@@ -95,3 +95,4 @@ testo_consigliere = "Murr: il Grande Freddo è tornato, come nelle storie vecchi
 personaggio_id = "era1_murr"
 opzioni = [SubResource("opt_riparo"), SubResource("opt_caccia"), SubResource("opt_sapienza")]
 tipo_decisione = "catastrofe"
+illustrazione_id = "famine"

@@ -7,3 +7,4 @@ extends Resource
 @export var personaggio_id: String
 @export var opzioni: Array[DecisionOption] = []
 @export var tipo_decisione: String = "proposta_consigliere"
+@export var illustrazione_id: String = ""

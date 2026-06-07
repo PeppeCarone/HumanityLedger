@@ -69,6 +69,7 @@ const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 @onready var proposer_portrait: TextureRect = $UI/ConsigliereProposer/HBox/PortraitProposer
 @onready var proposer_name_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerName
 @onready var proposer_text_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerText
+@onready var event_image: TextureRect = $UI/ConsigliereProposer/HBox/EventImage
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
@@ -240,6 +241,8 @@ func _show_attesa_quest() -> void:
 	_clear_children(decision_panel_row)
 	_show_narrative("")
 	proposer_portrait.texture = null
+	if event_image != null:
+		event_image.visible = false
 	proposer_name_label.modulate = COLOR_PROPOSER_NORMALE
 	proposer_name_label.text = "Il consiglio attende"
 	var bloccata: Quest = _quest_bloccata_da_stat()
@@ -259,6 +262,8 @@ func _show_transizione_a_era2() -> void:
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
 	proposer_portrait.texture = null
+	if event_image != null:
+		event_image.visible = false
 	proposer_name_label.modulate = COLOR_PROPOSER_SVOLTA
 	proposer_name_label.text = "Fine dell'Era Paleolitica"
 	proposer_text_label.text = "Le stagioni passano, le pietre crescono, i nomi cambiano. L'Idolo del Fuoco arde ancora, ma ora sopra un tempio. Il popolo è diventato un Regno Mitico."
@@ -283,6 +288,8 @@ func _show_ending() -> void:
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
 	proposer_portrait.texture = null
+	if event_image != null:
+		event_image.visible = false
 	proposer_name_label.modulate = COLOR_PROPOSER_NORMALE
 	var finale: Finale = _valuta_finale()
 	if finale != null:
@@ -377,8 +384,24 @@ func _show_current_decision() -> void:
 	proposer_name_label.text = prefisso + nome_base
 	proposer_name_label.modulate = _colore_proposer(decision.tipo_decisione)
 	proposer_text_label.text = decision.testo_consigliere
+	_imposta_event_image(decision.illustrazione_id)
 	_setup_consiglieri_for_decision(decision)
 	_setup_decision_panel_for_decision(decision)
+
+
+func _imposta_event_image(illustrazione_id: String) -> void:
+	if event_image == null:
+		return
+	if illustrazione_id == "":
+		event_image.visible = false
+		event_image.texture = null
+		return
+	var path: String = "res://Assets/art/eventi/%s.png" % illustrazione_id
+	if ResourceLoader.exists(path):
+		event_image.texture = load(path)
+		event_image.visible = true
+	else:
+		event_image.visible = false
 
 
 func _setup_consiglieri_for_decision(decision: Decision) -> void:
