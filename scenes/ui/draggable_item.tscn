@@ -20,6 +20,19 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
+[node name="Target" type="Label" parent="."]
+anchor_right = 1.0
+offset_top = 4.0
+offset_bottom = 28.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.55, 0.88, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 14
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Label" type="Label" parent="."]
 anchor_top = 1.0
 anchor_right = 1.0

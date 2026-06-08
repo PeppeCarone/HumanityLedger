@@ -5,6 +5,7 @@ const DRAG_ITEM_SCENE: PackedScene = preload("res://scenes/ui/draggable_item.tsc
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
 const ENDING_SCENE: PackedScene = preload("res://scenes/ending_screen.tscn")
 const PAUSE_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
+const WORLD_MAP_SCENE: PackedScene = preload("res://scenes/world_map.tscn")
 const CHARACTERS_DIR: String = "res://data/characters/"
 const FINALI_DIR: String = "res://data/finali/"
 const QUEST_SEQUENZE: Dictionary = {
@@ -37,6 +38,14 @@ const COLOR_PROPOSER_NORMALE: Color = Color.WHITE
 const COLOR_PROPOSER_CATASTROFE: Color = Color(0.6, 0.8, 1.0)
 const COLOR_PROPOSER_SVOLTA: Color = Color(1.0, 0.85, 0.5)
 const COLOR_PROPOSER_MISTERO: Color = Color(0.78, 0.6, 1.0)
+
+# colori distinti per accoppiare ogni opzione al consigliere bersaglio (card <-> zona)
+const ACCENT_PALETTE: Array[Color] = [
+	Color(0.95, 0.78, 0.4),
+	Color(0.5, 0.8, 0.95),
+	Color(0.72, 0.92, 0.6),
+	Color(0.95, 0.62, 0.56),
+]
 
 const PREFISSO_TIPO: Dictionary = {
 	"catastrofe": "CATASTROFE — ",
@@ -79,6 +88,7 @@ var rapporti_box: VBoxContainer = null
 var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
+var _decision_accents: Dictionary = {}
 var processing_drop: bool = false
 var ledger_screen_instance: CanvasLayer = null
 var ending_instance: CanvasLayer = null
@@ -89,7 +99,7 @@ var in_transizione_era: bool = false
 
 
 func _ready() -> void:
-	help_label.text = "Trascina l'icona sul consigliere proponente. Opzioni grigie = prerequisito non soddisfatto (hover per dettagli). L = Ledger, ESC = pausa."
+	help_label.text = "Scegli come rispondere: trascina un'opzione sul consigliere che la sostiene (si illumina di verde). Opzioni grigie = bloccate, passa il mouse per il requisito. L = Ledger, ESC = pausa."
 	help_label.add_theme_font_size_override("font_size", 19)
 	help_label.add_theme_color_override("font_color", Color(0.92, 0.86, 0.72))
 	help_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
@@ -328,7 +338,18 @@ func _entra_era2() -> void:
 	if bg != null and not GameState.mystery_attiva:
 		var t: Tween = create_tween()
 		t.tween_property(bg, "color", COLOR_BG_ERA2, 1.0)
-	_avvia_prossima_quest()
+	_mostra_mappa_mondo(
+		1, 2,
+		"Il mondo cambia",
+		"Dal Paleolitico al Regno Mitico: confini, regni e province prendono forma sulla terra."
+	)
+
+
+func _mostra_mappa_mondo(da_era: int, a_era: int, titolo: String, sottotitolo: String) -> void:
+	var mappa: CanvasLayer = WORLD_MAP_SCENE.instantiate()
+	mappa.configura(da_era, a_era, titolo, sottotitolo)
+	mappa.chiuso.connect(_avvia_prossima_quest, CONNECT_ONE_SHOT)
+	add_child(mappa)
 
 
 func _show_ending() -> void:
@@ -466,9 +487,15 @@ func _setup_consiglieri_for_decision(decision: Decision) -> void:
 		var sid: String = opt.strategia.id if opt.strategia != null else ""
 		if sid != "" and sid not in targets_accepts[cid]:
 			targets_accepts[cid].append(sid)
+	_decision_accents.clear()
+	var idx: int = 0
 	for cid in targets_accepts.keys():
 		var zone: Control = DROP_ZONE_SCENE.instantiate()
 		zone.zone_id = cid
+		var accent: Color = ACCENT_PALETTE[idx % ACCENT_PALETTE.size()]
+		_decision_accents[cid] = accent
+		zone.accent_color = accent
+		idx += 1
 		var pers: Personaggio = personaggi_db.get(cid)
 		if pers != null:
 			zone.label_text = "%s\n%s" % [pers.nome, pers.archetipo]
@@ -491,6 +518,12 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		var sid: String = opt.strategia.id if opt.strategia != null else ""
 		item.item_id = sid
 		item.label_text = opt.label_text
+		var tgt: Personaggio = personaggi_db.get(opt.target_consigliere_id)
+		if tgt != null:
+			var nome_tgt: String = tgt.nome.split(" ")[0]
+			item.target_text = "→ %s" % nome_tgt
+			item.hint_text = "Trascina su %s" % nome_tgt
+			item.target_color = _decision_accents.get(opt.target_consigliere_id, item.target_color)
 		item.icon_texture = opt.icona_drag
 		item.feedback_text = opt.feedback_testo
 		decision_panel_row.add_child(item)
@@ -504,19 +537,23 @@ func _on_item_dropped(data: Dictionary) -> void:
 		return
 	processing_drop = true
 	AudioManager.play_sfx("drop_success")
-	var source: Variant = data.get("source")
-	var option: DecisionOption = null
-	if source != null and source is Control and source.has_meta("option"):
-		option = source.get_meta("option") as DecisionOption
+	var source_node: Control = data.get("source") as Control
+	if source_node == null or not source_node.has_meta("option"):
+		processing_drop = false
+		return
+	var option: DecisionOption = source_node.get_meta("option") as DecisionOption
 	if option == null:
 		processing_drop = false
 		return
 	GameState.apply_effect(option.effetto)
 	SaveSystem.save_run()
 	_show_narrative(option.feedback_testo)
-	if source.has_method("consume"):
-		source.consume()
+	if source_node.has_method("consume"):
+		source_node.consume()
 	await get_tree().create_timer(FEEDBACK_PAUSE_SEC).timeout
+	if not is_inside_tree():
+		processing_drop = false
+		return
 	current_step += 1
 	_show_current_decision()
 	processing_drop = false

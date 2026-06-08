@@ -7,6 +7,7 @@ extends Control
 @export var hover_color: Color = Color(0.4, 0.75, 0.4, 0.55)
 @export var fail_flash_color: Color = Color(0.85, 0.25, 0.25, 0.55)
 @export var accepted_item_ids: Array[String] = []
+@export var accent_color: Color = Color(0.5, 0.38, 0.22, 0.9)
 
 @onready var bg: Panel = $Background
 @onready var hover: ColorRect = $HoverHighlight
@@ -16,6 +17,7 @@ extends Control
 signal item_dropped(data: Dictionary)
 
 var _is_hovering: bool = false
+var _last_can_drop: bool = false
 
 
 func _ready() -> void:
@@ -26,7 +28,7 @@ func _refresh() -> void:
 	if bg != null:
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
 		sb.bg_color = bg_color
-		sb.border_color = Color(0.5, 0.38, 0.22, 0.9)
+		sb.border_color = accent_color
 		sb.set_border_width_all(2)
 		sb.set_corner_radius_all(6)
 		bg.add_theme_stylebox_override("panel", sb)
@@ -49,6 +51,7 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 	if not data is Dictionary:
 		return false
 	var ok: bool = _accepts(data.get("item_id", ""))
+	_last_can_drop = ok
 	if ok and not _is_hovering:
 		_is_hovering = true
 		_animate_hover(true)
@@ -64,9 +67,14 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_DRAG_END and _is_hovering:
-		_is_hovering = false
-		_animate_hover(false)
+	if what == NOTIFICATION_DRAG_END:
+		if _is_hovering:
+			_is_hovering = false
+			_animate_hover(false)
+		# drop rilasciato sopra questa zona ma rifiutato -> feedback rosso
+		if not _last_can_drop and get_global_rect().has_point(get_global_mouse_position()):
+			flash_fail()
+		_last_can_drop = false
 
 
 func _accepts(item_id: String) -> bool:
