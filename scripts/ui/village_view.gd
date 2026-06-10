@@ -19,9 +19,9 @@ const EDIFICI_ERA: Dictionary = {
 
 # Slot lungo la linea di terra (x normalizzato). Distribuiti su tutta la larghezza
 # cosi' molti spuntano nei margini e nei varchi tra i pannelli.
-const SLOT_X: Array[float] = [0.5, 0.34, 0.66, 0.20, 0.80, 0.46]
-const BASE_Y: float = 0.66        # linea di terra (normalizzata)
-const SCALA_EDIFICIO: float = 0.62
+const SLOT_X: Array[float] = [0.5, 0.39, 0.61, 0.30, 0.70, 0.45]
+const BASE_Y: float = 0.34        # linea di terra (palco villaggio in alto)
+const SCALA_EDIFICIO: float = 1.0
 
 # Effetto + tinta per tipo di conseguenza.
 const FX_CONSEGUENZA: Dictionary = {
