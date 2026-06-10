@@ -32,6 +32,16 @@ const MAP_NATIVE: Vector2 = Vector2(1264, 848)
 
 const TRANSFORM_PATH: String = "res://Assets/art/map/map_transformation/%02d.png"
 const FEEDBACK_PATH: String = "res://Assets/art/map/live_feedback/%02d.png"
+const DL_PATH: String = "res://Assets/art/map/dynamic_lines/%s.png"
+
+# Civilta' rivali: zona d'influenza colorata vicino al bordo + rotta dalla capitale.
+# La rotta e' commerciale (oro) o di guerra (rossa) a seconda del rapporto in
+# GameState.rapporti_civilta. popolo_nebbie compare solo a mystery attiva.
+const CIV_ZONES: Array[Dictionary] = [
+	{"civ": "impero_sole", "pos": Vector2(0.82, 0.23), "zona": "zone_red", "scala": 1.05},
+	{"civ": "lega_coste", "pos": Vector2(0.16, 0.74), "zona": "zone_green", "scala": 1.0},
+	{"civ": "popolo_nebbie", "pos": Vector2(0.87, 0.74), "zona": "zone_purple", "scala": 0.9, "solo_mystery": true},
+]
 
 # Insediamenti: posizione normalizzata sul continente (0-1, ancorati in basso-centro),
 # sprite primitivo (Era 1) -> evoluto (Era 2), scala. Posizioni scelte sulla terraferma
@@ -64,6 +74,8 @@ var _pronto: bool = false
 
 # {sito_index: {"primitivo": TextureRect, "evoluto": TextureRect, "fx": TextureRect|null}}
 var _markers: Array[Dictionary] = []
+# Zone d'influenza + rotte da far comparire con l'emergere della politica (Era 2).
+var _diplomazia_nodi: Array[Control] = []
 
 @onready var root: Control = $Root
 @onready var terrain: TextureRect = $Root/MapRoot/Terrain
@@ -176,6 +188,9 @@ func _crea_markers() -> void:
 	map_root.add_child(contenitore)
 
 	var rect: Rect2 = _fitted_rect()
+	# zone d'influenza + rotte vanno DIETRO gli insediamenti (aggiunte per prime)
+	if _a_era >= 2:
+		_crea_diplomazia(contenitore, rect)
 	for sito in MARKER_SITES:
 		var punto: Vector2 = rect.position + sito["pos"] * rect.size
 		var primitivo: TextureRect = _crea_sprite(sito["era1"], sito["scala"], punto)
@@ -192,6 +207,70 @@ func _crea_markers() -> void:
 		if evoluto != null:
 			contenitore.add_child(evoluto)
 		_markers.append({"primitivo": primitivo, "evoluto": evoluto, "fx": fx})
+
+
+func _crea_diplomazia(contenitore: Control, rect: Rect2) -> void:
+	var mapscala: float = rect.size.x / MAP_NATIVE.x
+	var capitale: Vector2 = rect.position + MARKER_SITES[0]["pos"] * rect.size
+	for civ in CIV_ZONES:
+		if civ.get("solo_mystery", false) and not GameState.mystery_attiva:
+			continue
+		var centro: Vector2 = rect.position + civ["pos"] * rect.size
+		var rapporto: int = int(GameState.rapporti_civilta.get(civ["civ"], 0))
+		# rotta dalla capitale verso la civilta' (sotto la zona)
+		var rotta: TextureRect = _crea_rotta(capitale, centro, rapporto, mapscala)
+		if rotta != null:
+			contenitore.add_child(rotta)
+			_diplomazia_nodi.append(rotta)
+		# zona d'influenza colorata
+		var zona: TextureRect = _crea_zona(civ["zona"], centro, civ.get("scala", 1.0), mapscala)
+		if zona != null:
+			contenitore.add_child(zona)
+			_diplomazia_nodi.append(zona)
+
+
+func _crea_zona(nome: String, centro: Vector2, scala: float, mapscala: float) -> TextureRect:
+	var path: String = DL_PATH % nome
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var dim: Vector2 = Vector2(tex.get_size()) * mapscala * scala
+	tr.size = dim
+	tr.pivot_offset = dim * 0.5
+	tr.position = centro - dim * 0.5
+	tr.modulate = Color(1, 1, 1, 0.0)
+	tr.set_meta("alpha_target", 0.5)
+	return tr
+
+
+func _crea_rotta(da: Vector2, a: Vector2, rapporto: int, mapscala: float) -> TextureRect:
+	var nome: String = "route_war" if rapporto < 0 else "route_trade"
+	var path: String = DL_PATH % nome
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	var aspetto: float = float(tex.get_height()) / float(tex.get_width())
+	var dist: float = da.distance_to(a)
+	# la rotta-texture e' un arco orizzontale: larghezza = distanza, altezza proporzionale (appiattita)
+	var larghezza: float = dist
+	var altezza: float = larghezza * aspetto * 0.55
+	tr.size = Vector2(larghezza, altezza)
+	tr.pivot_offset = Vector2(0, altezza * 0.5)  # ancora a sinistra-centro (sulla capitale)
+	tr.position = da - Vector2(0, altezza * 0.5)
+	tr.rotation = (a - da).angle()
+	tr.modulate = Color(1, 1, 1, 0.0)
+	tr.set_meta("alpha_target", 0.75)
+	return tr
 
 
 func _crea_sprite(idx: int, scala: float, punto_base: Vector2) -> TextureRect:
@@ -262,6 +341,19 @@ func _cresci_insediamenti() -> void:
 			ritardo += 0.18
 		if fx != null:
 			_avvia_pulse(fx)
+	_mostra_diplomazia()
+
+
+func _mostra_diplomazia() -> void:
+	# Zone d'influenza e rotte emergono con la politica (alpha diversi: zone tenui,
+	# rotte piu' marcate). Le rotte sono TextureRect ruotate -> niente tween su scale.
+	var ritardo: float = 0.2
+	for nodo in _diplomazia_nodi:
+		var bersaglio: float = float(nodo.get_meta("alpha_target", 0.5))
+		var t: Tween = create_tween()
+		t.tween_interval(ritardo)
+		t.tween_property(nodo, "modulate:a", bersaglio, 0.9).set_trans(Tween.TRANS_SINE)
+		ritardo += 0.15
 
 
 func _avvia_pulse(fx: TextureRect) -> void:

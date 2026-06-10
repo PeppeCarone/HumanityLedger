@@ -48,6 +48,8 @@ func _run() -> void:
 	# world map: serve configura() + attesa lunga per il crossfade/crescita insediamenti
 	GameState.reset_run()
 	GameState.militare = 70
+	GameState.rapporti_civilta = {"impero_sole": -3, "lega_coste": 2}
+	GameState.mystery_attiva = true
 	var wm: Node = load("res://scenes/world_map.tscn").instantiate()
 	wm.configura(1, 2, "Il mondo cambia", "Dal Paleolitico al Regno Mitico.")
 	get_tree().root.add_child(wm)
