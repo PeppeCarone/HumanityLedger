@@ -82,6 +82,7 @@ const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 @onready var village: VillageView = $UI/VillageView
 @onready var call_button: Button = $UI/CallButton
 @onready var decision_dim: ColorRect = $UI/DecisionDim
+@onready var arriving_portrait: TextureRect = $UI/ArrivingPortrait
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
@@ -159,8 +160,20 @@ func _set_decision_visible(mostra: bool) -> void:
 			n.visible = mostra
 
 
-func _consigliere_in_arrivo(nome: String) -> void:
-	# Un consigliere "arriva": il pulsante lampeggia come segno d'urgenza.
+func _consigliere_in_arrivo(nome: String, ritratto: Texture2D = null) -> void:
+	# Un consigliere "arriva": il ritratto scivola in scena e il pulsante lampeggia.
+	if ritratto != null:
+		arriving_portrait.texture = ritratto
+		arriving_portrait.visible = true
+		var home_x: float = 470.0
+		arriving_portrait.position.x = home_x - 520.0
+		arriving_portrait.modulate.a = 0.0
+		var st: Tween = create_tween()
+		st.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		st.tween_property(arriving_portrait, "position:x", home_x, 0.55)
+		st.parallel().tween_property(arriving_portrait, "modulate:a", 1.0, 0.45)
+	else:
+		arriving_portrait.visible = false
 	call_button.text = "%s attende il tuo parere\n[ Decidi ]" % nome
 	call_button.visible = true
 	call_button.modulate.a = 1.0
@@ -178,6 +191,7 @@ func _apri_decisione() -> void:
 		if t != null and t.is_valid():
 			t.kill()
 	call_button.visible = false
+	arriving_portrait.visible = false
 	AudioManager.play_sfx("quest_complete")
 	_set_decision_visible(true)
 	decision_dim.modulate.a = 0.0
@@ -531,7 +545,10 @@ func _show_current_decision() -> void:
 	# La decisione e' pronta ma nascosta: il consigliere "arriva" e il pulsante
 	# lampeggia. Si entra nella view-decisione solo cliccando.
 	_set_decision_visible(false)
-	_consigliere_in_arrivo(proposer.nome if proposer != null else "Un consigliere")
+	_consigliere_in_arrivo(
+		proposer.nome if proposer != null else "Un consigliere",
+		proposer.ritratto if proposer != null else null
+	)
 
 
 func _imposta_event_image(illustrazione_id: String) -> void:
