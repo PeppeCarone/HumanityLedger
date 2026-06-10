@@ -80,6 +80,8 @@ const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 @onready var proposer_text_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerText
 @onready var event_image: TextureRect = $UI/ConsigliereProposer/HBox/EventImage
 @onready var village: VillageView = $UI/VillageView
+@onready var call_button: Button = $UI/CallButton
+@onready var decision_dim: ColorRect = $UI/DecisionDim
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
@@ -115,7 +117,72 @@ func _ready() -> void:
 	GameState.popolazione_changed.connect(_on_popolazione_changed)
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
+	call_button.pressed.connect(_apri_decisione)
+	_stile_call_button()
+	_set_decision_visible(false)
+	call_button.visible = false
 	_start_era1()
+
+
+# --- Due view: villaggio (default) <-> decisione (overlay) -------------------
+
+func _stile_call_button() -> void:
+	var titolo_font: Font = _font_titoli()
+	if titolo_font != null:
+		call_button.add_theme_font_override("font", titolo_font)
+	call_button.add_theme_color_override("font_color", Color(0.97, 0.9, 0.7))
+	call_button.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	call_button.add_theme_constant_override("outline_size", 5)
+	for stato in ["normal", "hover", "pressed", "focus"]:
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
+		sb.bg_color = Color(0.16, 0.11, 0.07, 0.94) if stato == "hover" else Color(0.12, 0.085, 0.06, 0.92)
+		sb.border_color = Color(0.78, 0.55, 0.28)
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(10)
+		sb.shadow_color = Color(0, 0, 0, 0.5)
+		sb.shadow_size = 8
+		sb.set_content_margin_all(14)
+		call_button.add_theme_stylebox_override(stato, sb)
+
+
+# Nodi che compongono la view-decisione: si mostrano/nascondono come gruppo.
+func _decision_nodes() -> Array:
+	return [
+		$UI/ConsigliereProposer, $UI/ConsiglieriRow,
+		$UI/DecisionPanel, help_label, decision_dim,
+	]
+
+
+func _set_decision_visible(mostra: bool) -> void:
+	for n in _decision_nodes():
+		if n != null:
+			n.visible = mostra
+
+
+func _consigliere_in_arrivo(nome: String) -> void:
+	# Un consigliere "arriva": il pulsante lampeggia come segno d'urgenza.
+	call_button.text = "%s attende il tuo parere\n[ Decidi ]" % nome
+	call_button.visible = true
+	call_button.modulate.a = 1.0
+	var t: Tween = create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE)
+	t.tween_property(call_button, "modulate:a", 0.45, 0.7)
+	t.tween_property(call_button, "modulate:a", 1.0, 0.7)
+	call_button.set_meta("blink", t)
+
+
+func _apri_decisione() -> void:
+	if call_button.has_meta("blink"):
+		var t: Tween = call_button.get_meta("blink")
+		if t != null and t.is_valid():
+			t.kill()
+	call_button.visible = false
+	AudioManager.play_sfx("quest_complete")
+	_set_decision_visible(true)
+	decision_dim.modulate.a = 0.0
+	var tw: Tween = create_tween()
+	tw.tween_property(decision_dim, "modulate:a", 1.0, 0.35)
 
 
 func _font_titoli() -> Font:
@@ -461,6 +528,10 @@ func _show_current_decision() -> void:
 	_imposta_event_image(decision.illustrazione_id)
 	_setup_consiglieri_for_decision(decision)
 	_setup_decision_panel_for_decision(decision)
+	# La decisione e' pronta ma nascosta: il consigliere "arriva" e il pulsante
+	# lampeggia. Si entra nella view-decisione solo cliccando.
+	_set_decision_visible(false)
+	_consigliere_in_arrivo(proposer.nome if proposer != null else "Un consigliere")
 
 
 func _imposta_event_image(illustrazione_id: String) -> void:
@@ -551,6 +622,8 @@ func _on_item_dropped(data: Dictionary) -> void:
 		return
 	GameState.apply_effect(option.effetto)
 	var tipo_cons: String = _tipo_conseguenza(option.effetto)
+	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
+	_set_decision_visible(false)
 	if village != null:
 		village.applica_conseguenza(tipo_cons)
 		if tipo_cons == "costruzione":

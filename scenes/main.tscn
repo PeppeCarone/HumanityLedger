@@ -29,6 +29,26 @@ color = Color(0.06, 0.05, 0.08, 0.42)
 
 [node name="VillageView" parent="UI" instance=ExtResource("2_village")]
 
+[node name="DecisionDim" type="ColorRect" parent="UI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0.03, 0.025, 0.045, 0.74)
+
+[node name="CallButton" type="Button" parent="UI"]
+visible = false
+offset_left = 610.0
+offset_top = 600.0
+offset_right = 1310.0
+offset_bottom = 760.0
+theme_override_font_sizes/font_size = 30
+text = "Un consigliere attende il tuo parere
+[ Decidi ]"
+
 [node name="VersionLabel" type="Label" parent="UI"]
 offset_left = 60.0
 offset_top = 12.0

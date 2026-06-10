@@ -36,6 +36,10 @@ func _run() -> void:
 		if inst.village != null:
 			inst.village.applica_conseguenza("alleanza"))
 	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 4)
+	await _shot("res://scenes/main.tscn", "shot_era1_decision", Callable(), func(inst: Node) -> void:
+		inst._apri_decisione())
+	GameState.reset_run()
 	GameState.era_corrente = 2
 	GameState.set_flag("era1_completata", true)
 	GameState.rapporti_civilta = {"impero_sole": 3, "lega_coste": -2}
