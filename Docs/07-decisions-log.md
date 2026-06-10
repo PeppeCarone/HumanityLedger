@@ -353,9 +353,89 @@ Decisioni emerse dall'intervista strutturata del 2026-06-01 in cui il team ha de
 
 ---
 
+---
+
+## Decisioni di sviluppo (2026-06-03 → 2026-06-10)
+
+Decisioni emerse durante l'implementazione, dopo che il gioco era già completo end-to-end. Documentano evoluzioni rispetto ai doc 0.2 e vanno citate nella relazione come "come il design è cambiato a contatto con la realizzazione".
+
+### D036 — Pipeline asset: AI generativa esterna + slicing/integrazione automatizzata
+
+- **Data**: 2026-06-10
+- **Status**: attiva (precisa D013)
+- **Decisione**: gli asset si generano con strumenti AI esterni (Nano-Banana, Lovable) seguendo prompt mirati; vengono consegnati grezzi in `Assets/` e poi ritagliati/ripuliti/organizzati con tool Python dedicati (`tools/slice_*.py`, `tools/recrop_portraits.py`) e integrati nel gioco via `load("res://...")` (mai per uid nei .tscn).
+- **Motivazione**: D013 fissava "AI + post-produzione" ma non il flusso operativo. Gli sheet AI hanno spesso checkerboard cotto, etichette incise, figure che sconfinano: serve un passo di pulizia ripetibile. Il pattern uid-free evita problemi di import-order.
+- **Implicazioni**: ogni nuovo asset passa per un tool di slicing verificato a vista (contact sheet) prima del wiring. `CREDITS.md` da tenere aggiornato. Ritratti ricavati da `consiglieri.png` ripuliti dai vicini con filtro a componente centrale.
+- **Alternative considerate**: integrazione manuale caso per caso (non ripetibile), referenziare per uid (fragile all'import).
+
+### D037 — World map dipinta tra le ere (sostituto arricchito della mini-mappa)
+
+- **Data**: 2026-06-10
+- **Status**: attiva (evolve D021)
+- **Decisione**: alla transizione d'era compare una mappa-mondo dipinta a 4 layer (terreno→regioni→confini in crossfade) con insediamenti isometrici che crescono, zone d'influenza colorate per civiltà rivale e rotte commerciali/di guerra derivate da `rapporti_civilta`.
+- **Motivazione**: D021 prevedeva una "mini-mappa diplomatica" come pannello HUD; gli asset mappa generati (continente dipinto + sprite) permettono qualcosa di molto più evocativo e coerente col tono. Rende visibile la dimensione geopolitica.
+- **Implicazioni**: `scenes/world_map.tscn` riusabile; la mini-mappa HUD cliccabile spec'ata in D021 NON è stata costruita (i rapporti restano mostrati come ambasciatori nell'HUD). Da valutare se serve ancora la minimap puntuale.
+- **Alternative considerate**: mini-mappa HUD a blocchi (D021 originale, meno evocativa), nessuna mappa (perde la dimensione spaziale).
+
+### D038 — Villaggio sempre in scena + animazione conseguenza a ogni decisione
+
+- **Data**: 2026-06-10
+- **Status**: attiva (realizza 02-game-design §"feedback narrativo realtime")
+- **Decisione**: il villaggio del popolo è un fondale vivo (sprite isometrici che si accumulano e migliorano per era). A ogni decisione, l'`Effect` viene classificato (guerra/alleanza/costruzione/scienza/ricchezza/neutro) e la conseguenza si anima sul villaggio: edificio che sorge, burst d'effetto tinto.
+- **Motivazione**: il GDD specificava "2-3s: se la decisione ha conseguenze visive (nuovo edificio appare...), animazione" ma non era implementato. È il pilastro 2 (feedback immediato) reso finalmente tangibile, e richiesta esplicita dell'utente ("è fondamentale che ogni decisione mostri un'animazione della conseguenza").
+- **Implicazioni**: `VillageView` (scene+script); persistenza edifici via flag `villaggio_n`; riuso asset `map_transformation`/`live_feedback`. Da estendere con più tipi di conseguenza (strumenti, scene guerra/alleanza, migliorie).
+- **Alternative considerate**: solo cambio numerico stat (povero), overlay cinematografico a schermo separato (meno persistente del villaggio vivo).
+
+### D039 — Due view: villaggio (default) ↔ decisione (overlay)
+
+- **Data**: 2026-06-10
+- **Status**: attiva (modifica la scena unica di 04-architecture)
+- **Decisione**: il villaggio è la view principale a tutto schermo. Quando una decisione è pronta, un consigliere "arriva" (ritratto con slide-in) e un pulsante a cornice bronzo lampeggia ("X attende il tuo parere — Decidi"); cliccandolo si apre la view-decisione (velo + proposer + carte + opzioni). Decisa l'opzione, si torna al villaggio dove si vede la conseguenza.
+- **Motivazione**: separare villaggio e decisione evita la schermata sovraffollata e dà ritmo (attesa→urgenza→scelta→conseguenza), in stile Reigns/Frostpunk. Richiesta dell'utente.
+- **Implicazioni**: `04-architecture` descriveva tutto su una `game.tscn` con consiglieri in scena + pannello decisione insieme; ora sono due stati alternati nella stessa scena (`main.tscn`, albero invariato, toggle di visibilità). Le scene `minimap.tscn`/`ambasciatore.tscn` dei doc non esistono come tali.
+- **Alternative considerate**: villaggio come fascia in alto con decisione sotto (provato: spazio troppo stretto), tutto insieme (sovraffollato).
+
+### D040 — Elevazione narrativa + regole di chiarezza e anti-AI
+
+- **Data**: 2026-06-10
+- **Status**: attiva (precisa le linee guida di 03-narrative)
+- **Decisione**: i testi delle decisioni vengono elevati con scrittura letteraria a voci distinte (agente narrativo), rispettando: (a) ogni prompt termina con una domanda esplicita per chiarezza; (b) le `label_text` sono azioni imperative SENZA tag-stat; (c) mai rivelare quale approccio/stat rinforza un'opzione prima di sceglierla; (d) mystery seminato per sottrazione.
+- **Motivazione**: i playtest mostravano prompt poco chiari; e l'utente vuole prosa che "non sembri fatta con l'AI". Le regole bilanciano chiarezza meccanica e qualità letteraria.
+- **Implicazioni**: Era 1 (12 decisioni) riscritta; Era 2 e finali da fare. Accenti italiani veri (no apostrofi). Vincolo: non mostrare l'effetto-stat in anticipo (l'hint via artefatto richiederebbe prima cablare l'equip).
+- **Alternative considerate**: mostrare i delta-stat sulle opzioni (più leggibile ma toglie il dilemma), prosa più asciutta (meno evocativa del tono mitico).
+
+### D041 — Audio originale sintetizzato
+
+- **Data**: 2026-06-03
+- **Status**: attiva (precisa D032)
+- **Decisione**: musica e SFX sono sintetizzati da zero con `tools/gen_audio.py` (numpy/scipy → OGG), opera originale.
+- **Motivazione**: D032 prevedeva CC0/Pixabay/licenze, difficili da trovare coerenti e senza vincoli. La sintesi originale azzera i problemi di licenza ed è perfettamente documentabile per l'esame.
+- **Implicazioni**: 9 SFX + 4 brani ambient in `Assets/audio/`. Qualità "soft/consonante", non orchestrale piena; se serve più epicità si regolano i parametri o si affianca materiale licenziato.
+- **Alternative considerate**: Pixabay/ccMixter (licenze e coerenza incerte), librerie a pagamento (costo, fuori contesto universitario).
+
+### D042 — Font: Cinzel (titoli) + Alegreya (corpo)
+
+- **Data**: 2026-06-03
+- **Status**: attiva (precisa 05-art-audio)
+- **Decisione**: Cinzel per titoli/nomi proponenti/finali (via FontVariation), Alegreya come font di corpo di default del progetto. Entrambi OFL da Google Fonts.
+- **Motivazione**: 05-art-audio proponeva Cinzel + IM Fell English; Alegreya è più leggibile a corpo testo mantenendo il carattere serif arcaico, e si sposa con Cinzel.
+- **Implicazioni**: `Assets/fonts/` con licenze OFL; `project.godot` imposta il theme font.
+- **Alternative considerate**: IM Fell English (meno leggibile a piccoli corpi), EB Garamond (fallback).
+
+### D043 — Cornici pannelli: StyleBoxFlat bronzo invece di texture 9-slice
+
+- **Data**: 2026-06-07
+- **Status**: attiva
+- **Decisione**: i pannelli UI usano `StyleBoxFlat` (fondo caldo semi-trasparente, bordo bronzo, angoli arrotondati, ombra), non le cornici-texture incise in 9-slice.
+- **Motivazione**: le cornici runiche incise si spalmano se stirate su pannelli larghi (~1540px). Lo StyleBoxFlat resta nitido a ogni dimensione e mantiene il tono caldo.
+- **Implicazioni**: gli asset cornice (`panel_frame.png`/`panel_border.png`) restano inutilizzati. Stile applicato a HUD/proposer/decision/drop-zone/draggable e al pulsante-chiamata.
+- **Alternative considerate**: 9-slice texture (stretching), cornici per-dimensione (ingestibile).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D036**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D044**.
 
 ```
 ### D036 — ...
