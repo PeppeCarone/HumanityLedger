@@ -433,9 +433,20 @@ Decisioni emerse durante l'implementazione, dopo che il gioco era già completo 
 
 ---
 
+### D044 — Implementazione 8 strategie + prerequisiti (attua D017)
+
+- **Data**: 2026-06-10
+- **Status**: attiva (attua D017)
+- **Decisione**: portate le strategie da 4 a 8 (aggiunte Piano Economico, Decreto Reale, Missione Spionaggio, Azione Rivoluzionaria) con prerequisiti-stat che disabilitano le opzioni non disponibili (desaturate + tooltip col motivo). Le opzioni delle decisioni sono state rimappate perché l'approccio combaci col dominio del consigliere-bersaglio.
+- **Motivazione**: D017 era specificata ma mai realizzata (le 4 strategie esistenti avevano prerequisiti vuoti). Le icone delle 4 nuove strategie sono state ricavate da `oggetti_decisioni.png` (forziere, tavoletta runica, faretra con lama, totem-torcia).
+- **Implicazioni**: aggiunta una guardia anti-softlock (se in una decisione tutte le opzioni sono bloccate, vengono riabilitate: coerente con D024 "no game over"). Semplificazioni rispetto a D017: il requisito OR di Azione Rivoluzionaria (popolo >=25 OPPURE <=15) è ridotto al solo `popolo >= 25` (la valutazione fa solo AND di minimi); l'icona Spionaggio (faretra con lama) è provvisoria. La strategia speciale `voce` (gate mystery) resta intatta.
+- **Alternative considerate**: gating invisibile (frustra, escluso da D017), nessun prerequisito (sandbox piatto), estendere `soddisfa_prerequisiti` con logica OR (rimandato, non necessario per l'MVP).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D044**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D045**.
 
 ```
 ### D036 — ...
