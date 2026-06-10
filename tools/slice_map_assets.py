@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import ndimage
 
-SRC = "Assets"
+SRC = "Assets/art/_sheets"
 OUT = "Assets/art/map"
 DBG = "tools/_preview"
 

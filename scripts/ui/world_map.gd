@@ -3,15 +3,18 @@ extends CanvasLayer
 # Schermata "stato del mondo" mostrata nei momenti chiave (transizione d'era).
 # Impila i 4 layer-mappa e anima un crossfade da `_da_era` a `_a_era`:
 # i confini e le regioni emergono sulla terra mentre la civilta' cresce.
+# Sopra i layer compaiono gli INSEDIAMENTI (sprite isometrici di map_transformation):
+# in Era 1 sono primitivi, nella transizione crescono in citta'/regni con un pulse
+# d'energia (live_feedback) sulla capitale, tinto dall'approccio dominante della run.
 # Chiamare `configura()` PRIMA di add_child() (gli @onready si risolvono in _ready).
 
 signal chiuso
 
 const LAYER_PATHS: Dictionary = {
-	"terrain": "res://Assets/terrain_layer.png",
-	"base": "res://Assets/base_continent.png",
-	"regions": "res://Assets/region_and_province.png",
-	"political": "res://Assets/political_overlay.png",
+	"terrain": "res://Assets/art/map/layers/terrain_layer.png",
+	"base": "res://Assets/art/map/layers/base_continent.png",
+	"regions": "res://Assets/art/map/layers/region_and_province.png",
+	"political": "res://Assets/art/map/layers/political_overlay.png",
 }
 
 # Alpha di ogni layer per era: il mondo "cresce" politicamente avanzando.
@@ -23,17 +26,51 @@ const ALPHA_PER_ERA: Dictionary = {
 const FADE_LAYER_SEC: float = 1.6
 const CINZEL_PATH: String = "res://Assets/fonts/Cinzel.ttf"
 
+# Aspetto reale del continente dipinto: serve per fittare i marker sulla terra
+# qualunque sia la risoluzione (i TextureRect usano KEEP_ASPECT_CENTERED).
+const MAP_NATIVE: Vector2 = Vector2(1264, 848)
+
+const TRANSFORM_PATH: String = "res://Assets/art/map/map_transformation/%02d.png"
+const FEEDBACK_PATH: String = "res://Assets/art/map/live_feedback/%02d.png"
+
+# Insediamenti: posizione normalizzata sul continente (0-1, ancorati in basso-centro),
+# sprite primitivo (Era 1) -> evoluto (Era 2), scala. Posizioni scelte sulla terraferma
+# della dorsale centrale, evitando i laghi.
+const MARKER_SITES: Array[Dictionary] = [
+	{"pos": Vector2(0.50, 0.42), "era1": 2, "era2": 0, "scala": 0.95, "capitale": true},
+	{"pos": Vector2(0.33, 0.34), "era1": 6, "era2": 1, "scala": 0.75, "capitale": false},
+	{"pos": Vector2(0.66, 0.31), "era1": 3, "era2": 1, "scala": 0.70, "capitale": false},
+	{"pos": Vector2(0.44, 0.63), "era1": 5, "era2": 3, "scala": 0.72, "capitale": false},
+	{"pos": Vector2(0.61, 0.58), "era1": 6, "era2": 1, "scala": 0.78, "capitale": false},
+]
+
+# Effetto-pulse sulla capitale, scelto dall'approccio dominante del giocatore.
+const FEEDBACK_PER_STAT: Dictionary = {
+	"militare": 0,      # fiamma
+	"tesoro": 1,        # spirale verde (crescita/ricchezza)
+	"diplomazia": 4,    # onda cyan (calma)
+	"scienza": 3,       # cristallo blu
+	"legge": 4,         # onda cyan
+	"spionaggio": 2,    # corruzione viola
+	"popolo": 1,        # spirale verde
+	"costruzione": 3,   # cristallo blu
+}
+
 var _da_era: int = 1
 var _a_era: int = 2
 var _titolo: String = ""
 var _sottotitolo: String = ""
 var _pronto: bool = false
 
+# {sito_index: {"primitivo": TextureRect, "evoluto": TextureRect, "fx": TextureRect|null}}
+var _markers: Array[Dictionary] = []
+
 @onready var root: Control = $Root
 @onready var terrain: TextureRect = $Root/MapRoot/Terrain
 @onready var base: TextureRect = $Root/MapRoot/Base
 @onready var regions: TextureRect = $Root/MapRoot/Regions
 @onready var political: TextureRect = $Root/MapRoot/Political
+@onready var map_root: Control = $Root/MapRoot
 @onready var titolo_label: Label = $Root/Header/Titolo
 @onready var sottotitolo_label: Label = $Root/Header/Sottotitolo
 @onready var footer_label: Label = $Root/Footer
@@ -87,26 +124,156 @@ func _ready() -> void:
 	for nome in LAYER_PATHS:
 		_layer_node(nome).modulate.a = da.get(nome, 0.0)
 
+	_crea_markers()
+
 	var t: Tween = create_tween()
 	# fase 1: sfondo + titoli appaiono insieme
 	t.tween_property(background, "modulate:a", 1.0, 0.6)
 	t.parallel().tween_property(titolo_label, "modulate:a", 1.0, 0.8)
 	t.parallel().tween_property(sottotitolo_label, "modulate:a", 1.0, 1.0)
+	# gli insediamenti primitivi compaiono con i titoli
+	t.parallel().tween_callback(_mostra_markers_iniziali)
 	# fase 2: il mondo si trasforma - i layer fanno crossfade in parallelo tra loro,
 	# ma come blocco sequenziale DOPO la fase 1
 	var primo: bool = true
 	for nome in LAYER_PATHS:
 		if is_equal_approx(da.get(nome, 0.0), a.get(nome, 0.0)):
 			continue  # alpha invariato: niente tween inutile
-		var tw: PropertyTweener = t.tween_property(
+		var step: Tween = t if primo else t.parallel()
+		step.tween_property(
 			_layer_node(nome), "modulate:a", a.get(nome, 0.0), FADE_LAYER_SEC
 		).set_trans(Tween.TRANS_SINE)
-		if not primo:
-			tw.set_parallel(true)
 		primo = false
+	# fase 2b: gli insediamenti crescono mentre emergono i confini
+	t.tween_callback(_cresci_insediamenti)
 	# fase 3: prompt
+	t.tween_interval(0.3)
 	t.tween_property(footer_label, "modulate:a", 1.0, 0.5)
 	t.tween_callback(func() -> void: _pronto = true)
+
+
+# --- Insediamenti -----------------------------------------------------------
+
+func _fitted_rect() -> Rect2:
+	# Rettangolo effettivo del continente dentro MapRoot (KEEP_ASPECT_CENTERED).
+	var avail: Vector2 = get_viewport().get_visible_rect().size
+	var scala: float = minf(avail.x / MAP_NATIVE.x, avail.y / MAP_NATIVE.y)
+	var dim: Vector2 = MAP_NATIVE * scala
+	var off: Vector2 = (avail - dim) * 0.5
+	return Rect2(off, dim)
+
+
+func _tex_transform(idx: int) -> Texture2D:
+	var path: String = TRANSFORM_PATH % idx
+	return load(path) if ResourceLoader.exists(path) else null
+
+
+func _crea_markers() -> void:
+	var contenitore: Control = Control.new()
+	contenitore.name = "Markers"
+	contenitore.set_anchors_preset(Control.PRESET_FULL_RECT)
+	contenitore.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_root.add_child(contenitore)
+
+	var rect: Rect2 = _fitted_rect()
+	for sito in MARKER_SITES:
+		var punto: Vector2 = rect.position + sito["pos"] * rect.size
+		var primitivo: TextureRect = _crea_sprite(sito["era1"], sito["scala"], punto)
+		var evoluto: TextureRect = _crea_sprite(sito["era2"], sito["scala"], punto)
+		evoluto.modulate.a = 0.0
+		var fx: TextureRect = null
+		if sito.get("capitale", false):
+			fx = _crea_fx(punto, sito["scala"])
+		# ordine di disegno: glow (fx) DIETRO, poi insediamento sopra
+		if fx != null:
+			contenitore.add_child(fx)
+		if primitivo != null:
+			contenitore.add_child(primitivo)
+		if evoluto != null:
+			contenitore.add_child(evoluto)
+		_markers.append({"primitivo": primitivo, "evoluto": evoluto, "fx": fx})
+
+
+func _crea_sprite(idx: int, scala: float, punto_base: Vector2) -> TextureRect:
+	var tex: Texture2D = _tex_transform(idx)
+	if tex == null:
+		return null
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var dim: Vector2 = Vector2(tex.get_size()) * scala
+	tr.size = dim
+	tr.pivot_offset = Vector2(dim.x * 0.5, dim.y)  # ancora basso-centro
+	# posiziona la base dello sprite sul punto-terra
+	tr.position = punto_base - Vector2(dim.x * 0.5, dim.y)
+	return tr
+
+
+func _crea_fx(punto_base: Vector2, scala: float) -> TextureRect:
+	var stat: String = GameState.stat_dominante()
+	var idx: int = FEEDBACK_PER_STAT.get(stat, 4)
+	var path: String = FEEDBACK_PATH % idx
+	if not ResourceLoader.exists(path):
+		return null
+	var tex: Texture2D = load(path)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var dim: Vector2 = Vector2(tex.get_size()) * scala * 0.55
+	tr.size = dim
+	tr.pivot_offset = dim * 0.5
+	# glow centrato sul corpo dell'insediamento (sopra la base), non occludente
+	tr.position = punto_base - Vector2(dim.x * 0.5, dim.y * 0.5 + 60.0)
+	tr.modulate = Color(1, 1, 1, 0.0)
+	return tr
+
+
+func _mostra_markers_iniziali() -> void:
+	# Gli insediamenti primitivi sfumano in vista insieme ai titoli.
+	for m in _markers:
+		var primitivo: TextureRect = m["primitivo"]
+		if primitivo == null:
+			continue
+		primitivo.modulate.a = 0.0
+		var t: Tween = create_tween()
+		t.tween_interval(randf() * 0.3)
+		t.tween_property(primitivo, "modulate:a", 1.0, 0.6)
+
+
+func _cresci_insediamenti() -> void:
+	# Crossfade primitivo -> evoluto solo se l'era di arrivo e' >= 2.
+	var cresce: bool = _a_era >= 2
+	var ritardo: float = 0.0
+	for m in _markers:
+		var primitivo: TextureRect = m["primitivo"]
+		var evoluto: TextureRect = m["evoluto"]
+		var fx: TextureRect = m["fx"]
+		if cresce and evoluto != null:
+			var t: Tween = create_tween()
+			t.tween_interval(ritardo)
+			t.tween_property(evoluto, "modulate:a", 1.0, 0.7).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			t.parallel().tween_property(evoluto, "scale", Vector2.ONE * 1.06, 0.7).from(Vector2.ONE * 0.85)
+			if primitivo != null:
+				t.parallel().tween_property(primitivo, "modulate:a", 0.0, 0.5)
+			ritardo += 0.18
+		if fx != null:
+			_avvia_pulse(fx)
+
+
+func _avvia_pulse(fx: TextureRect) -> void:
+	var t: Tween = create_tween()
+	t.tween_property(fx, "modulate:a", 0.6, 0.8)
+	var loop: Tween = create_tween()
+	loop.set_loops()
+	loop.set_trans(Tween.TRANS_SINE)
+	loop.tween_property(fx, "scale", Vector2.ONE * 1.12, 1.4)
+	loop.parallel().tween_property(fx, "modulate:a", 0.4, 1.4)
+	loop.tween_property(fx, "scale", Vector2.ONE * 0.96, 1.4)
+	loop.parallel().tween_property(fx, "modulate:a", 0.62, 1.4)
 
 
 func _unhandled_input(event: InputEvent) -> void:

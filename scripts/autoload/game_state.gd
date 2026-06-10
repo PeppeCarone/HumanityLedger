@@ -56,6 +56,17 @@ func get_stat(nome: String) -> int:
 			return 0
 
 
+func stat_dominante() -> String:
+	var migliore: String = STAT_NAMES[0]
+	var valore_max: int = -1
+	for nome in STAT_NAMES:
+		var v: int = get_stat(nome)
+		if v > valore_max:
+			valore_max = v
+			migliore = nome
+	return migliore
+
+
 func set_stat(nome: String, valore: int) -> void:
 	var clamped: int = clampi(valore, STAT_MIN, STAT_MAX)
 	var vecchio: int = get_stat(nome)

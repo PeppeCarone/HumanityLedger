@@ -45,4 +45,16 @@ func _run() -> void:
 	var fin: Finale = load("res://data/finali/fine_prosperita.tres") as Finale
 	await _shot("res://scenes/ending_screen.tscn", "shot_ending", func(inst: Node) -> void:
 		inst.finale = fin)
+	# world map: serve configura() + attesa lunga per il crossfade/crescita insediamenti
+	GameState.reset_run()
+	GameState.militare = 70
+	var wm: Node = load("res://scenes/world_map.tscn").instantiate()
+	wm.configura(1, 2, "Il mondo cambia", "Dal Paleolitico al Regno Mitico.")
+	get_tree().root.add_child(wm)
+	await get_tree().create_timer(5.5).timeout
+	var wimg: Image = get_viewport().get_texture().get_image()
+	wimg.save_png(OUT + "shot_worldmap.png")
+	print("SHOT shot_worldmap ", wimg.get_size())
+	wm.queue_free()
+	await get_tree().process_frame
 	get_tree().quit()
