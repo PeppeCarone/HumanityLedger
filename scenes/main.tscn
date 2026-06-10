@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bxnh1ujkprmqr"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/ui/village_view.tscn" id="2_village"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -24,7 +25,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.06, 0.05, 0.08, 0.55)
+color = Color(0.06, 0.05, 0.08, 0.42)
+
+[node name="VillageView" parent="UI" instance=ExtResource("2_village")]
 
 [node name="VersionLabel" type="Label" parent="UI"]
 offset_left = 60.0

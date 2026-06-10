@@ -31,7 +31,10 @@ func _run() -> void:
 	GameState.reset_run()
 	await _shot("res://scenes/main_menu.tscn", "shot_menu")
 	GameState.reset_run()
-	await _shot("res://scenes/main.tscn", "shot_era1")
+	GameState.set_flag("villaggio_n", 4)
+	await _shot("res://scenes/main.tscn", "shot_era1", Callable(), func(inst: Node) -> void:
+		if inst.village != null:
+			inst.village.applica_conseguenza("alleanza"))
 	GameState.reset_run()
 	GameState.era_corrente = 2
 	GameState.set_flag("era1_completata", true)

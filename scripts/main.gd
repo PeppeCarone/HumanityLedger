@@ -79,6 +79,7 @@ const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 @onready var proposer_name_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerName
 @onready var proposer_text_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerText
 @onready var event_image: TextureRect = $UI/ConsigliereProposer/HBox/EventImage
+@onready var village: VillageView = $UI/VillageView
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
@@ -234,6 +235,9 @@ func _aggiorna_sfondo_era() -> void:
 	if ResourceLoader.exists(path):
 		scene_bg.texture = load(path)
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
+	if village != null:
+		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
+		village.sincronizza(GameState.era_corrente, n)
 
 
 func _avvia_prossima_quest() -> void:
@@ -546,6 +550,12 @@ func _on_item_dropped(data: Dictionary) -> void:
 		processing_drop = false
 		return
 	GameState.apply_effect(option.effetto)
+	var tipo_cons: String = _tipo_conseguenza(option.effetto)
+	if village != null:
+		village.applica_conseguenza(tipo_cons)
+		if tipo_cons == "costruzione":
+			var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1)) + 1
+			GameState.set_flag("villaggio_n", n)
 	SaveSystem.save_run()
 	_show_narrative(option.feedback_testo)
 	if source_node.has_method("consume"):
@@ -557,6 +567,28 @@ func _on_item_dropped(data: Dictionary) -> void:
 	current_step += 1
 	_show_current_decision()
 	processing_drop = false
+
+
+func _tipo_conseguenza(eff: Effect) -> String:
+	# Deduce il tipo di conseguenza da mostrare sul villaggio.
+	if eff == null:
+		return "neutro"
+	var sd: Dictionary = eff.stat_delta
+	for civ in eff.rapporti_civilta:
+		if int(eff.rapporti_civilta[civ]) < 0:
+			return "guerra"
+	if int(sd.get("militare", 0)) >= 8:
+		return "guerra"
+	for civ in eff.rapporti_civilta:
+		if int(eff.rapporti_civilta[civ]) > 0:
+			return "alleanza"
+	if int(sd.get("costruzione", 0)) > 0 or eff.popolazione_delta > 0:
+		return "costruzione"
+	if int(sd.get("scienza", 0)) > 0:
+		return "scienza"
+	if int(sd.get("tesoro", 0)) > 0:
+		return "ricchezza"
+	return "neutro"
 
 
 func _complete_quest() -> void:

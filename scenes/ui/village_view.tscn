@@ -1,0 +1,25 @@
+[gd_scene load_steps=2 format=3 uid="uid://dvillageview01"]
+
+[ext_resource type="Script" path="res://scripts/ui/village_view.gd" id="1_village"]
+
+[node name="VillageView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_village")
+
+[node name="Suolo" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Fx" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
