@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+[ext_resource type="Resource" path="res://data/strategie/economico.tres" id="s_economico"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/economico.png" id="t_economico"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 12
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 3
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Scava un pozzo fin dove l'acqua si nasconde"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_0")
+feedback_testo = "Tev scende nella terra fino a dove il fango si fa freddo. Quando l'acqua sgorga, il popolo esulta come dopo una caccia. In fondo, è la stessa cosa: hanno strappato la vita alla terra."
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"tesoro": 11,
+"popolo": -2
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_economico")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_economico")
+label_text = "Raziona ogni sorso e fai scorta"
+target_consigliere_id = "era1_vesha"
+effetto = SubResource("eff_1")
+feedback_testo = "Vesha mette un guardiano alla sorgente e conta i secchi due volte al giorno. \"L'acqua adesso vale più della carne,\" dice. La sete non uccide nessuno, ma nessuno la ringrazia."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 11
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Leggi il cielo per trovare altra acqua"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_2")
+feedback_testo = "Lyssa segue il volo degli uccelli all'alba e indica un avvallamento tra le colline. Là trovano una pozza nascosta. \"L'acqua chiama l'acqua,\" dice. \"Basta ascoltare chi ha già bevuto.\""
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_06_acqua"
+era = 1
+testo_consigliere = "La sorgente vicino all'accampamento si è fatta sottile, un filo d'acqua tra i sassi. Con il caldo che arriva non basterà per tutti. Possiamo muoverci ora, prima che diventi un problema di lance invece che di secchi. Da dove partiamo per non restare a secco?"
+personaggio_id = "era1_tev"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "proposta_consigliere"

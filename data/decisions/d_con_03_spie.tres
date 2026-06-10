@@ -1,0 +1,96 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/spionaggio.tres" id="s_spionaggio"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/spionaggio.png" id="t_spionaggio"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"spionaggio": 13
+}
+set_flags = {
+"bisonte_spiato": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_spionaggio")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_spionaggio")
+label_text = "Manda l'ombra a contarli di notte"
+target_consigliere_id = "era1_kael"
+effetto = SubResource("eff_0")
+feedback_testo = "Kael torna prima dell'alba con la mappa delle loro tende disegnata nel fango del palmo. \"Più lance che bocche,\" dice. \"Un popolo che si arma più di quanto mangia ha già deciso qualcosa.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 12,
+"diplomazia": -3
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"clan_bisonte": -5
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Schiera gli uomini in vista, alla luce"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_1")
+feedback_testo = "Brann porta i cacciatori sulla riva, lance al sole, perché il Bisonte veda. Il messaggio è chiaro: non ci faremo sorprendere. Ma una mano alzata si può leggere anche come un pugno."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 11
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"clan_bisonte": 4
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Manda parole prima delle ombre"
+target_consigliere_id = "era1_orm"
+effetto = SubResource("eff_2")
+feedback_testo = "Orm va al fiume disarmato e parla a lungo con un loro anziano. Torna senza patti ma senza ferite. \"Hanno paura di noi quanto noi di loro,\" dice. \"E la paura, a volte, è una porta.\""
+
+[resource]
+script = ExtResource("dec")
+id = "d_con_03_spie"
+era = 1
+testo_consigliere = "Il Clan del Bisonte si muove lungo il fiume più del solito. Posso avvicinarmi alle loro tende, contare le bocche e le lance, capire se preparano la caccia o la guerra. Ma se mi prendono, la guerra arriva di sicuro. Mando l'ombra avanti, o restiamo alla luce?"
+personaggio_id = "era1_kael"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "proposta_consigliere"

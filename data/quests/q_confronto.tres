@@ -1,9 +1,12 @@
-[gd_resource type="Resource" script_class="Quest" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="Quest" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
 [ext_resource type="Resource" path="res://data/decisions/d_con_01_bisonte.tres" id="3"]
 [ext_resource type="Resource" path="res://data/decisions/d_con_02_pietra.tres" id="4"]
+[ext_resource type="Resource" path="res://data/decisions/d_con_03_spie.tres" id="5"]
+[ext_resource type="Resource" path="res://data/decisions/d_con_05_minaccia.tres" id="6"]
+[ext_resource type="Resource" path="res://data/decisions/d_con_04_rito.tres" id="7"]
 
 [sub_resource type="Resource" id="eff_complete"]
 script = ExtResource("2")
@@ -28,7 +31,7 @@ era = 1
 tipo = "principale"
 precondizioni_flag = ["accampamento_completato"]
 precondizioni_stat = {}
-passi = [ExtResource("3"), ExtResource("4")]
+passi = [ExtResource("3"), ExtResource("5"), ExtResource("6"), ExtResource("4"), ExtResource("7")]
 effetto_completamento = SubResource("eff_complete")
 flag_di_completamento = "confronto_completato"
 visibile_nel_log = true

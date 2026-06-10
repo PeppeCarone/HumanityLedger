@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 13
+}
+set_flags = {
+"rito_corale": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 4
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Guida un canto che unisca tutte le voci"
+target_consigliere_id = "era1_aru"
+effetto = SubResource("eff_0")
+feedback_testo = "Aru intona una nota sola e il popolo la raccoglie, voce su voce, finché la caverna stessa sembra cantare. Per un istante nessuno ha più freddo, nessuno ha più paura. Poi il canto tace, e sulla parete il volto sembra sorridere."
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 12
+}
+set_flags = {
+"pittura_ascoltata": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Lascia che Lyssa interroghi la pittura"
+target_consigliere_id = "era1_lyssa"
+effetto = SubResource("eff_1")
+feedback_testo = "Lyssa appoggia la fronte alla parete dipinta e resta immobile a lungo. Quando si stacca, ha gli occhi lucidi. \"Non chiede di essere temuto,\" dice piano. \"Chiede di essere ricordato. E noi stiamo per dargli una pietra in cui abitare.\""
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12,
+"popolo": -2
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Fissa il rito nelle regole degli avi"
+target_consigliere_id = "era1_murr"
+effetto = SubResource("eff_2")
+feedback_testo = "Murr stabilisce ogni gesto del rito come legge: chi sta davanti, chi porta il fuoco, quando si tace. Tutto è ordinato, tutto è giusto. E qualcosa, nel troppo ordine, si raffredda."
+
+[resource]
+script = ExtResource("dec")
+id = "d_con_04_rito"
+era = 1
+testo_consigliere = "Prima di alzare l'Idolo il popolo vuole un rito che lo leghi alla pietra. Ma Lyssa dice che la pittura sulla parete è cambiata ancora: il volto senza nome ora guarda dritto al punto dove sorgerà l'Idolo. Facciamo comunque il rito? E in che forma?"
+personaggio_id = "era1_aru"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "mistero"

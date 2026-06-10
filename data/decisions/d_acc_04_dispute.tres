@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12
+}
+set_flags = {
+"prima_legge": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Incidi una regola che valga per tutti"
+target_consigliere_id = "era1_murr"
+effetto = SubResource("eff_0")
+feedback_testo = "Murr incide tre tacche sulla pietra: una per chi caccia, una per chi cuce, una per chi divide. \"Adesso non decido io,\" dice. \"Decide il segno. E il segno non ha fame.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 12,
+"legge": -3
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Lascia che sia il popolo a gridare la sentenza"
+target_consigliere_id = "era1_aru"
+effetto = SubResource("eff_1")
+feedback_testo = "Aru fa decidere il cerchio a voce alta. La pelle va a chi grida più forte. Stasera il popolo si sente padrone di sé; domani qualcuno ricorderà chi ha gridato contro di lui."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 9,
+"popolo": -4
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Spegni la lite con il pugno più forte"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_2")
+feedback_testo = "Brann mette la pelle sotto il piede e fissa i due contendenti finché abbassano gli occhi. Nessuno la reclama più. Il silenzio che resta non è pace: è paura, e la paura ha buona memoria."
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_04_dispute"
+era = 1
+testo_consigliere = "Due famiglie reclamano la stessa pelle di cervo, e le voci si alzano fino a coprire il fuoco. Non è la prima lite, e non sarà l'ultima. Finora ho deciso io, da solo. Ma il popolo cresce. Su cosa fondiamo il giudizio, d'ora in avanti?"
+personaggio_id = "era1_murr"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "proposta_consigliere"
