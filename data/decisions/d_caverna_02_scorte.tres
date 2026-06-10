@@ -54,36 +54,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Raziona con la mano dura"
+label_text = "Imponi razioni a mano dura"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_razionare")
-feedback_testo = "Brann sorveglia il fuoco. Le bocche si chiudono."
+feedback_testo = "Brann si siede accanto alla cesta e non si muove. Nessuno allunga la mano. Nessuno lo ringrazia."
 
 [sub_resource type="Resource" id="opt_studio"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Studia il territorio per nuove risorse"
+label_text = "Cerca cibo oltre le colline note"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_studio")
-feedback_testo = "Lyssa indica colline nuove. Le scorte trovano un volto diverso."
+feedback_testo = "Lyssa indica colline che nessuno ha mai battuto. \"La terra nutre,\" mormora, \"chi ha il coraggio di guardarla negli occhi.\""
 
 [sub_resource type="Resource" id="opt_trattare"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Tratta col Popolo delle Nebbie"
+label_text = "Baratta col Popolo delle Nebbie"
 target_consigliere_id = "era1_orm"
 effetto = SubResource("eff_trattare")
-feedback_testo = "Orm porta segni di pietra agli stranieri. Tornano con sale e silenzio."
+feedback_testo = "Orm scende alla bruma con pietre dipinte. Torna con sale, e con un'osso intagliato che nessuno gli ha visto chiedere."
 
 [resource]
 script = ExtResource("dec")
 id = "d_caverna_02_scorte"
 era = 1
-testo_consigliere = "Vesha: sette pelli per sei lune, e il fondo della cesta è vicino. Le scorte non bastano all'inverno. Come le facciamo durare?"
+testo_consigliere = "Ho contato di nuovo. Sette pelli, sei lune di freddo davanti, e già si vede il fondo della cesta. I numeri non mentono come i sogni. Cosa diciamo alle pance, quando il fondo arriva?"
 personaggio_id = "era1_vesha"
 opzioni = [SubResource("opt_razionare"), SubResource("opt_studio"), SubResource("opt_trattare")]
 tipo_decisione = "proposta_consigliere"

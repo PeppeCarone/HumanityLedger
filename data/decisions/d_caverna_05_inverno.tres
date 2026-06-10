@@ -62,36 +62,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_ascia")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_ascia")
-label_text = "Scava un riparo profondo"
+label_text = "Scava in fondo alla roccia"
 target_consigliere_id = "era1_tev"
 effetto = SubResource("eff_riparo")
-feedback_testo = "Tev scava nella roccia viva. Il clan si stringe al caldo della pietra. Nessuno si perde."
+feedback_testo = "Tev apre la roccia viva con le unghie spaccate e l'ascia. Il clan si schiaccia là dove la pietra trattiene il poco caldo. Al settimo giorno si contano, e ci sono tutti."
 
 [sub_resource type="Resource" id="opt_caccia"]
 script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Tenta una caccia nel gelo"
+label_text = "Manda i cacciatori nella tormenta"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_caccia")
-feedback_testo = "Brann guida i cacciatori nella tormenta. Tornano con carne e due posti vuoti attorno al fuoco."
+feedback_testo = "Brann esce nel bianco con sei uomini e torna con quattro e una carcassa di cervo. Mangiano tutti. Per due posti vuoti attorno al fuoco, nessuno mangia parlando."
 
 [sub_resource type="Resource" id="opt_sapienza"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Leggi il cielo e raziona con metodo"
+label_text = "Conta le notti e dosa tutto"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_sapienza")
-feedback_testo = "Lyssa conta le notti sulle dita. Razioni piccole, fuoco vivo. Il freddo passa, lento."
+feedback_testo = "Lyssa segna le notti con tacche sul bastone e divide il cibo in bocconi che sembrano un insulto alla fame. Ma al bastone le tacche finiscono, e il sole torna. Aveva contato giusto."
 
 [resource]
 script = ExtResource("dec")
 id = "d_caverna_05_inverno"
 era = 1
-testo_consigliere = "Murr: il Grande Freddo è tornato, come nelle storie antiche. Il fuoco non basta, sette notti senza sole. Come salviamo il popolo dal gelo?"
+testo_consigliere = "Le storie vecchie hanno un nome per questo: il Grande Freddo. Le ho sentite da bambino, non credevo di vederlo. Sette notti che il sole non sorge, e il fuoco non arriva più alle dita. Il popolo guarda noi. Cosa gli diciamo di fare?"
 personaggio_id = "era1_murr"
 opzioni = [SubResource("opt_riparo"), SubResource("opt_caccia"), SubResource("opt_sapienza")]
 tipo_decisione = "catastrofe"

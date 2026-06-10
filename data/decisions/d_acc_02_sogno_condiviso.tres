@@ -57,36 +57,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Ascolta e interpreta il sogno"
+label_text = "Da' ascolto alla voce sotto la pietra"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_ascolta")
-feedback_testo = "Lyssa e Murr raccontano la stessa visione, parola per parola. Il popolo tace. Qualcosa li ha sognati entrambi."
+feedback_testo = "Lyssa siede col vecchio Murr e insieme ridicono il sogno a una sola voce, senza inciampare. Quando tacciono, il fuoco si abbassa da solo, come ad ascoltare anche lui."
 
 [sub_resource type="Resource" id="opt_archivia"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Annota e archivia il presagio"
+label_text = "Incidilo tra le leggi e mettilo a tacere"
 target_consigliere_id = "era1_murr"
 effetto = SubResource("eff_archivia")
-feedback_testo = "Murr incide il sogno tra le regole vecchie. Catalogato, perde i denti. Forse era meglio così."
+feedback_testo = "Murr incide il sogno sulla tavoletta delle regole, accanto a quelle dei padri. Messo in fila con le altre, smette di far paura. \"Ciò che ha un posto,\" mormora, \"non ti viene a cercare di notte.\""
 
 [sub_resource type="Resource" id="opt_ignora"]
 script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Ignora: è solo la fame"
+label_text = "Liquidalo: è soltanto la fame"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_ignora")
-feedback_testo = "Brann ride forte. Sogni vuoti riempiono pance vuote, dice. Tornino tutti al lavoro."
+feedback_testo = "Brann scoppia a ridere e la tensione si spezza come un ramo secco. \"Due vecchi affamati sognano lo stesso osso. Grande mistero.\" Tutti tornano al lavoro, e va bene così. Quasi tutti."
 
 [resource]
 script = ExtResource("dec")
 id = "d_acc_02_sogno_condiviso"
 era = 1
-testo_consigliere = "Lyssa: questa notte Murr ha sognato il mio stesso sogno - il volto senza nome, la voce sotto la pietra. Non è un caso. Come trattiamo questo presagio?"
+testo_consigliere = "Murr non sogna da trent'anni. Stanotte ha sognato il mio sogno: lo stesso volto chino, senza nome, la stessa voce che sale da sotto la pietra. Parola per parola, come se l'avessimo dormito insieme. Non chiedermi cosa significa. Chiedimi cosa ne facciamo."
 personaggio_id = "era1_lyssa"
 opzioni = [SubResource("opt_ascolta"), SubResource("opt_archivia"), SubResource("opt_ignora")]
 tipo_decisione = "mistero"

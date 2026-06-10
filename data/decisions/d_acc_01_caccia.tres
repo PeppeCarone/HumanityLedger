@@ -55,36 +55,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Carica la preda di petto"
+label_text = "Caricale addosso di petto"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_forza")
-feedback_testo = "Brann conduce la muta degli uomini. Tornano carichi, ma qualcuno mormora per la fatica."
+feedback_testo = "Brann lancia il branco contro la mandria come una valanga. Carne a volontà, e tre uomini che zoppicano per una luna. \"Carne costa carne,\" sputa per terra."
 
 [sub_resource type="Resource" id="opt_battuta"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Organizza una battuta coordinata"
+label_text = "Disponi i cacciatori in cerchio"
 target_consigliere_id = "era1_orm"
 effetto = SubResource("eff_battuta")
-feedback_testo = "Orm divide i ruoli con gesti calmi. La caccia diventa danza, e nessuno resta indietro."
+feedback_testo = "Orm assegna ogni posto con un cenno, senza una parola di troppo. La preda finisce nel cerchio prima di capire che il cerchio esisteva."
 
 [sub_resource type="Resource" id="opt_tracce"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Leggi le tracce e tendi agguati"
+label_text = "Segui le orme fino alla tana"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_tracce")
-feedback_testo = "Lyssa china la testa sulle orme. Sa dove la preda dormirà prima ancora che vi arrivi."
+feedback_testo = "Lyssa appoggia il palmo su un'orma e chiude gli occhi. \"Dormirà presso l'acqua bassa, al calare,\" dice. La trovano lì, addormentata, come promesso."
 
 [resource]
 script = ExtResource("dec")
 id = "d_acc_01_caccia"
 era = 1
-testo_consigliere = "Brann: fuori dalla caverna la selvaggina è più grande e più sveglia. La prima caccia dirà se il popolo mangia o teme. Come la guidiamo?"
+testo_consigliere = "Qui fuori le bestie sono grosse e sveglie. Non come i topi della caverna. La prima caccia all'aperto dice tutto: o il branco mangia, o il branco trema. Come la conduco?"
 personaggio_id = "era1_brann"
 opzioni = [SubResource("opt_forza"), SubResource("opt_battuta"), SubResource("opt_tracce")]
 tipo_decisione = "proposta_consigliere"

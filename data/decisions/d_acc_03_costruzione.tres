@@ -54,36 +54,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_ascia")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_ascia")
-label_text = "Alza capanne di pietra"
+label_text = "Posa per primi i muri delle case"
 target_consigliere_id = "era1_tev"
 effetto = SubResource("eff_capanna")
-feedback_testo = "Tev alza il primo muro fuori dalla caverna. Per la prima volta il popolo costruisce invece di rifugiarsi."
+feedback_testo = "Tev incastra pietra su pietra finché un muro sta in piedi da solo. Lo guarda a lungo. \"La caverna l'avevamo trovata,\" dice. \"Questa l'abbiamo fatta.\""
 
 [sub_resource type="Resource" id="opt_astri"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Orienta il campo con gli astri"
+label_text = "Allinea il campo alle stelle"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_astri")
-feedback_testo = "Lyssa allinea le capanne alle stelle. Il villaggio nasce con un disegno che nessuno sa spiegare del tutto."
+feedback_testo = "Lyssa pianta paletti seguendo astri che solo lei sembra vedere. Visto dall'alto, il campo forma un segno. Lo stesso inciso sulle ossa delle Nebbie."
 
 [sub_resource type="Resource" id="opt_scorte"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Costruisci prima il magazzino"
+label_text = "Scava per primo il deposito"
 target_consigliere_id = "era1_vesha"
 effetto = SubResource("eff_scorte")
-feedback_testo = "Vesha pretende un deposito prima delle case. Pance piene oggi, dice, o non ci sarà nessun domani da costruire."
+feedback_testo = "Vesha non cede: prima il deposito, poi i tetti sulla testa. \"Si dorme male anche sotto un buon tetto,\" taglia corto, \"con la pancia che brontola. Si muore peggio.\""
 
 [resource]
 script = ExtResource("dec")
 id = "d_acc_03_costruzione"
 era = 1
-testo_consigliere = "Tev: la terra qui regge il peso. Possiamo costruire qualcosa che resti più di noi. Da dove partiamo a fondare l'accampamento?"
+testo_consigliere = "Ho battuto il terreno col tallone tutta la mattina. Regge il peso, non cede all'acqua. Su una terra così si posa qualcosa che ci sopravvive. La prima cosa che alziamo dice chi vogliamo essere: cosa alziamo?"
 personaggio_id = "era1_tev"
 opzioni = [SubResource("opt_capanna"), SubResource("opt_astri"), SubResource("opt_scorte")]
 tipo_decisione = "proposta_consigliere"

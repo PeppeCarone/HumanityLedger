@@ -55,36 +55,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Torna alle regole degli avi"
+label_text = "Tieni fede alle regole degli avi"
 target_consigliere_id = "era1_murr"
 effetto = SubResource("eff_tradizione")
-feedback_testo = "Murr ripete la formula di sempre. La caverna resta uguale a se stessa."
+feedback_testo = "Murr recita la formula che recitavano i padri dei padri. La caverna resta uguale a se stessa, e in questo c'è una specie di pace."
 
 [sub_resource type="Resource" id="opt_visione"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Affidati alla visione del sogno"
+label_text = "Segui dove conduce la visione"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_visione")
-feedback_testo = "Lyssa fissa la fiamma. Qualcosa la fissa di rimando. Il popolo trattiene il respiro."
+feedback_testo = "Lyssa fissa la fiamma finché non smette di battere le palpebre. Qualcosa, dentro la fiamma, la fissa di rimando."
 
 [sub_resource type="Resource" id="opt_altare"]
 script = ExtResource("opt")
 strategia = ExtResource("s_ascia")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_ascia")
-label_text = "Erigi un altare al presagio"
+label_text = "Alza una pietra al presagio"
 target_consigliere_id = "era1_tev"
 effetto = SubResource("eff_altare")
-feedback_testo = "Tev solleva la pietra. Per la prima volta il clan ha un centro che non è solo il fuoco."
+feedback_testo = "Tev incastra una pietra ritta nel fondo della caverna. Pesa, regge, dura. Per la prima volta il clan ha un centro che non scalda."
 
 [resource]
 script = ExtResource("dec")
 id = "d_caverna_03_sogno"
 era = 1
-testo_consigliere = "Murr: il sogno bussa di nuovo. Le ossa antiche dicono una cosa, il fuoco un'altra. A chi diamo retta prima di lasciare la caverna?"
+testo_consigliere = "Il sogno è tornato a bussare, e non bussa due volte per niente. Le ossa antiche dicono: resta dove i padri sono rimasti. Il fuoco dice un'altra cosa, e Lyssa la ascolta. Prima che la caverna ci sputi fuori, chi seguiamo?"
 personaggio_id = "era1_murr"
 opzioni = [SubResource("opt_tradizione"), SubResource("opt_visione"), SubResource("opt_altare")]
 tipo_decisione = "proposta_consigliere"

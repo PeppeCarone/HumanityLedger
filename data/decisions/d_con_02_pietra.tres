@@ -56,36 +56,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_ascia")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_ascia")
-label_text = "Cava la grande pietra"
+label_text = "Stacca il masso più alto della valle"
 target_consigliere_id = "era1_tev"
 effetto = SubResource("eff_pietra")
-feedback_testo = "Tev sceglie il masso più alto della valle. Ci vorranno molte mani, ma reggerà mille inverni."
+feedback_testo = "Tev sceglie il masso che domina la valle e ci appoggia la fronte. \"Questo,\" dice. \"Vedrà mille inverni dopo l'ultimo di noi.\" Servono cento mani, ma nessuno discute la scelta."
 
 [sub_resource type="Resource" id="opt_raduna"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Raduna la gente attorno all'impresa"
+label_text = "Chiama tutto il popolo alle braccia"
 target_consigliere_id = "era1_aru"
 effetto = SubResource("eff_raduna")
-feedback_testo = "Aru canta il lavoro che verrà. Le mani arrivano da sole: nessuno vuole mancare alla nascita del simbolo."
+feedback_testo = "Aru intona il canto del lavoro che verrà, e il canto fa quel che le lance non sanno fare: le braccia arrivano da sole. Nessuno vuole essere quello che mancava il giorno della pietra."
 
 [sub_resource type="Resource" id="opt_pittura"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Indaga la pittura mutata da sola"
+label_text = "Interroga la pittura che è mutata"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_pittura")
-feedback_testo = "Lyssa indica la parete: la figura dipinta ieri ora guarda altrove. Nessuno l'ha toccata. Il volto senza nome torna."
+feedback_testo = "Lyssa porta una torcia alla parete. La figura che ieri guardava il fuoco, oggi guarda la soglia. Nessuna mano l'ha toccata. \"Non lo dipingiamo noi,\" sussurra. \"Lui aspetta che lo dipingiamo.\""
 
 [resource]
 script = ExtResource("dec")
 id = "d_con_02_pietra"
 era = 1
-testo_consigliere = "Aru: il popolo vuole un centro, qualcosa che dica chi siamo. Prima di erigere l'Idolo servono la pietra e le mani. Da dove partiamo?"
+testo_consigliere = "Il popolo canta la sera, ma sotto le canzoni c'è una domanda: chi siamo, ora che non siamo più la caverna? Vogliono un centro, una cosa ritta che lo dica per loro. Per l'Idolo servono la pietra e le braccia. Da dove cominciamo a darglielo?"
 personaggio_id = "era1_aru"
 opzioni = [SubResource("opt_pietra"), SubResource("opt_raduna"), SubResource("opt_pittura")]
 tipo_decisione = "proposta_consigliere"

@@ -64,36 +64,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Offrigli un patto"
+label_text = "Siedi con lui e offrigli il sale"
 target_consigliere_id = "era1_orm"
 effetto = SubResource("eff_tratta")
-feedback_testo = "Orm scambia sale e parole con l'inviato. Il Clan del Bisonte abbassa le lance, per ora."
+feedback_testo = "Orm divide il sale con l'inviato e parla a lungo, piano. L'uomo riparte annuendo. \"Le lance restano abbassate,\" dice Orm. \"Finché conviene a entrambi.\""
 
 [sub_resource type="Resource" id="opt_lance"]
 script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Mostragli le lance"
+label_text = "Schiera gli uomini davanti a lui"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_lance")
-feedback_testo = "Brann schiera gli uomini in fila. L'inviato del Bisonte se ne va in silenzio. Tornerà con più di parole."
+feedback_testo = "Brann mette in fila ogni uomo che regge una lancia. L'inviato li conta con gli occhi, sorride appena, e se ne va senza una parola. Ha visto tutto quello che voleva vedere."
 
 [sub_resource type="Resource" id="opt_spia"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Fingi accordo e seguine le tracce"
+label_text = "Annuisci, poi seguilo nell'ombra"
 target_consigliere_id = "era1_kael"
 effetto = SubResource("eff_spia")
-feedback_testo = "Kael segue l'inviato fino al fiume. Conta le tende, le bocche, le lance. Sapere è già mezza difesa."
+feedback_testo = "Kael lo lascia andare contento, poi gli sta dietro fino al fiume. Tende: quaranta. Lance: il doppio delle bocche. Torna e non promette niente. \"Adesso sappiamo. E loro non sanno che sappiamo.\""
 
 [resource]
 script = ExtResource("dec")
 id = "d_con_01_bisonte"
 era = 1
-testo_consigliere = "Kael: un inviato del Clan del Bisonte è alle capanne. Sono più numerosi di noi e tengono il fiume. Vuole parlare. Come lo riceviamo?"
+testo_consigliere = "Un inviato del Clan del Bisonte è alle capanne. Uno solo, disarmato. Dietro di lui: tre volte le nostre bocche, e il fiume in pugno. Dice di voler parlare. Chi manda un solo uomo, sa di poterne perdere uno. Come lo accogliamo?"
 personaggio_id = "era1_kael"
 opzioni = [SubResource("opt_tratta"), SubResource("opt_lance"), SubResource("opt_spia")]
 tipo_decisione = "incontro"

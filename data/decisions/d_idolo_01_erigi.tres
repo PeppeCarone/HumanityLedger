@@ -26,16 +26,16 @@ script = ExtResource("opt")
 strategia = ExtResource("s_ascia")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_ascia")
-label_text = "Erigi l'Idolo del Fuoco"
+label_text = "Alza l'Idolo del Fuoco"
 target_consigliere_id = "era1_tev"
 effetto = SubResource("eff_erigi")
-feedback_testo = "Tev solleva la grande pietra. Il fuoco trova il suo altare. Il popolo ha un centro che non è solo calore: è memoria."
+feedback_testo = "Cento mani spingono, la pietra si erge, e per un istante l'ombra dell'Idolo copre tutto il popolo insieme. Tev arretra ansante. Non hanno più solo un fuoco da scaldarsi: hanno qualcosa a cui tornare."
 
 [resource]
 script = ExtResource("dec")
 id = "d_idolo_01_erigi"
 era = 1
-testo_consigliere = "Aru: Costruzione e Popolo sono pronti, la pietra attende le mani di Tev. Diamo al popolo il suo primo simbolo eterno?"
+testo_consigliere = "La pietra è cavata, le braccia sono pronte, e attorno c'è un silenzio che non avevo mai sentito. Le mani di Tev aspettano solo un cenno. Spirito: è il momento. Diamo al popolo la prima cosa che lo ricorderà anche quando noi saremo polvere?"
 personaggio_id = "era1_aru"
 opzioni = [SubResource("opt_erigi")]
 tipo_decisione = "svolta"

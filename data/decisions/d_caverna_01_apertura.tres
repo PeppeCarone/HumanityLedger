@@ -51,36 +51,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Prepara la caccia"
+label_text = "Affila le lance per la caccia"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_scudo")
-feedback_testo = "Brann afferra il bastone. Il clan si stringe attorno al fuoco."
+feedback_testo = "Brann pesa il bastone in mano, una volta, due. \"I sogni non sfamano,\" dice, e tutti gli si stringono attorno."
 
 [sub_resource type="Resource" id="opt_libro"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Studia i segni"
+label_text = "Leggi i segni nella cenere"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_libro")
-feedback_testo = "Lyssa traccia un cerchio nella cenere. Le ombre cominciano a parlare."
+feedback_testo = "Lyssa traccia un cerchio nella cenere fredda. Le ombre sulla parete si muovono prima del fuoco."
 
 [sub_resource type="Resource" id="opt_pergamena"]
 script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Cerca un patto coi vicini"
+label_text = "Tendi una mano ai vicini"
 target_consigliere_id = "era1_orm"
 effetto = SubResource("eff_pergamena")
-feedback_testo = "Orm apre le mani. Il vento porterà la nostra voce."
+feedback_testo = "Orm apre le mani vuote verso l'imbocco della caverna. \"Chi non minaccia,\" dice piano, \"può ancora scegliere gli amici.\""
 
 [resource]
 script = ExtResource("dec")
 id = "d_caverna_01_apertura"
 era = 1
-testo_consigliere = "Lyssa: ho sognato pietra, pioggia e un volto senza nome - un presagio di tempi duri. Su cosa puntiamo per superarli?"
+testo_consigliere = "Stanotte ho sognato la pioggia battere su una pietra che non avevamo ancora posato. E un volto, chino su di noi, senza nome. Vengono giorni magri, spirito. Dove appoggiamo la prima forza del popolo?"
 personaggio_id = "era1_lyssa"
 opzioni = [SubResource("opt_scudo"), SubResource("opt_libro"), SubResource("opt_pergamena")]
 tipo_decisione = "proposta_consigliere"

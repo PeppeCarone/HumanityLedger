@@ -63,36 +63,36 @@ script = ExtResource("opt")
 strategia = ExtResource("s_pergamena")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_pergamena")
-label_text = "Scambia segni e doni"
+label_text = "Posa un dono sul muschio"
 target_consigliere_id = "era1_orm"
 effetto = SubResource("eff_scambio")
-feedback_testo = "Orm posa pietre dipinte sul muschio. Gli stranieri rispondono con un canto basso. Un patto senza parole."
+feedback_testo = "Orm posa pietre dipinte sul muschio e arretra. Gli stranieri rispondono con un canto basso, nella loro lingua: eppure Lyssa, più indietro, muove le labbra sulle stesse note."
 
 [sub_resource type="Resource" id="opt_scaccia"]
 script = ExtResource("opt")
 strategia = ExtResource("s_scudo")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_scudo")
-label_text = "Scaccia gli intrusi"
+label_text = "Cacciali oltre il bosco"
 target_consigliere_id = "era1_brann"
 effetto = SubResource("eff_scaccia")
-feedback_testo = "Brann alza la lancia. Le nebbie si ritirano. Resta un freddo che non è solo del vento."
+feedback_testo = "Brann avanza di tre passi, lancia alta, e le sei ombre si sciolgono nella bruma senza voltarsi. Restano le ossa intagliate, lasciate sul muschio. Nessuno ha il coraggio di toccarle."
 
 [sub_resource type="Resource" id="opt_osserva"]
 script = ExtResource("opt")
 strategia = ExtResource("s_libro")
 oggetto_drag = "icona_strategia"
 icona_drag = ExtResource("t_libro")
-label_text = "Osservali in silenzio prima di agire"
+label_text = "Resta immobile e osservali"
 target_consigliere_id = "era1_lyssa"
 effetto = SubResource("eff_osserva")
-feedback_testo = "Lyssa segue ogni gesto. I segni degli stranieri somigliano al suo sogno. Troppo."
+feedback_testo = "Lyssa non stacca gli occhi dalle ossa intagliate. I segni incisi sono quelli che lei traccia nella cenere da bambina. Nessuno gliel'ha insegnati. Nessuno glieli ha visti imparare."
 
 [resource]
 script = ExtResource("dec")
 id = "d_caverna_04_nebbie"
 era = 1
-testo_consigliere = "Kael: ombre al limite del bosco - non bestie. Portano ossa intagliate e tengono abbassata la lancia. Il Popolo delle Nebbie ci osserva. Cosa offriamo allo straniero?"
+testo_consigliere = "Sei ombre al limite del bosco. Non bestie. Lance abbassate, ossa intagliate in mano, ferme da prima dell'alba. Il Popolo delle Nebbie. Aspettano che siamo noi a muoverci. Cosa mettiamo tra noi e loro?"
 personaggio_id = "era1_kael"
 opzioni = [SubResource("opt_scambio"), SubResource("opt_scaccia"), SubResource("opt_osserva")]
 tipo_decisione = "incontro"
