@@ -603,6 +603,7 @@ func _setup_consiglieri_for_decision(decision: Decision) -> void:
 
 
 func _setup_decision_panel_for_decision(decision: Decision) -> void:
+	var items_creati: Array = []
 	for opt in decision.opzioni:
 		if opt == null:
 			continue
@@ -622,6 +623,17 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		item.set_meta("option", opt)
 		if not opt.is_disponibile():
 			item.set_disabled(true, opt.motivo_indisponibilita())
+		items_creati.append(item)
+	# Anti-softlock: nessuna decisione deve restare senza opzioni giocabili.
+	var tutte_bloccate: bool = not items_creati.is_empty()
+	for it in items_creati:
+		if not it.is_disabled():
+			tutte_bloccate = false
+			break
+	if tutte_bloccate:
+		push_warning("Tutte le opzioni bloccate dai prerequisiti: riabilito per evitare il vicolo cieco")
+		for it in items_creati:
+			it.set_disabled(false)
 
 
 func _on_item_dropped(data: Dictionary) -> void:

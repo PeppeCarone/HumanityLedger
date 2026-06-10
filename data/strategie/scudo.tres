@@ -6,10 +6,12 @@
 [resource]
 script = ExtResource("1_strat")
 id = "scudo"
-nome = "Scudo"
+nome = "Azione Militare"
 icona = ExtResource("2_tex")
 descrizione_breve = "Forza che parla per sé"
-prerequisiti_stat = {}
+prerequisiti_stat = {
+"militare": 20
+}
 prerequisiti_flag = []
 gesto_tipo = "icona_su_consigliere"
 target_tag = "consigliere_militare"

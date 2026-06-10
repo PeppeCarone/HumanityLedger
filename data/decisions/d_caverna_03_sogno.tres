@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="Decision" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
 [ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
 
 [sub_resource type="Resource" id="eff_tradizione"]
 script = ExtResource("eff")
@@ -52,9 +54,9 @@ popolazione_delta = 0
 
 [sub_resource type="Resource" id="opt_tradizione"]
 script = ExtResource("opt")
-strategia = ExtResource("s_scudo")
+strategia = ExtResource("s_decreto")
 oggetto_drag = "icona_strategia"
-icona_drag = ExtResource("t_scudo")
+icona_drag = ExtResource("t_decreto")
 label_text = "Tieni fede alle regole degli avi"
 target_consigliere_id = "era1_murr"
 effetto = SubResource("eff_tradizione")

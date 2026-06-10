@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="Decision" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
 [ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Resource" path="res://data/strategie/spionaggio.tres" id="s_spionaggio"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/spionaggio.png" id="t_spionaggio"]
 
 [sub_resource type="Resource" id="eff_tributo"]
 script = ExtResource("eff")
@@ -77,9 +79,9 @@ feedback_testo = "Calden rimanda l'emissario a mani vuote. L'Impero del Sole non
 
 [sub_resource type="Resource" id="opt_infiltra"]
 script = ExtResource("opt")
-strategia = ExtResource("s_libro")
+strategia = ExtResource("s_spionaggio")
 oggetto_drag = "icona_strategia"
-icona_drag = ExtResource("t_libro")
+icona_drag = ExtResource("t_spionaggio")
 label_text = "Infiltra la loro corte"
 target_consigliere_id = "era2_saekh"
 effetto = SubResource("eff_infiltra")

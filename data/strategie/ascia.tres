@@ -6,10 +6,12 @@
 [resource]
 script = ExtResource("1_strat")
 id = "ascia"
-nome = "Ascia"
+nome = "Piano Costruzione"
 icona = ExtResource("2_tex")
 descrizione_breve = "Strumenti che plasmano la pietra"
-prerequisiti_stat = {}
+prerequisiti_stat = {
+"costruzione": 15
+}
 prerequisiti_flag = []
 gesto_tipo = "icona_su_consigliere"
 target_tag = "consigliere_costruzione"

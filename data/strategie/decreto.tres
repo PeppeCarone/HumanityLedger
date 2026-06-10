@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="Strategia" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/strategia.gd" id="1_strat"]
-[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="2_tex"]
 
 [resource]
 script = ExtResource("1_strat")
-id = "libro"
-nome = "Progetto Scientifico"
+id = "decreto"
+nome = "Decreto Reale"
 icona = ExtResource("2_tex")
-descrizione_breve = "Memoria che si tramanda"
+descrizione_breve = "La regola incisa nella pietra"
 prerequisiti_stat = {
-"scienza": 15
+"legge": 20
 }
 prerequisiti_flag = []
 gesto_tipo = "icona_su_consigliere"
-target_tag = "consigliere_scienza"
+target_tag = "consigliere_legge"

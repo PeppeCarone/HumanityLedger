@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="Decision" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
 [ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
 
 [sub_resource type="Resource" id="eff_mura"]
 script = ExtResource("eff")
@@ -61,9 +63,9 @@ feedback_testo = "Lena fonda il regno sulla pietra: prima la difesa, poi tutto i
 
 [sub_resource type="Resource" id="opt_piazza"]
 script = ExtResource("opt")
-strategia = ExtResource("s_pergamena")
+strategia = ExtResource("s_rivoluzionaria")
 oggetto_drag = "icona_strategia"
-icona_drag = ExtResource("t_pergamena")
+icona_drag = ExtResource("t_rivoluzionaria")
 label_text = "Fondalo sulla piazza e sulla gente"
 target_consigliere_id = "era2_karro"
 effetto = SubResource("eff_piazza")

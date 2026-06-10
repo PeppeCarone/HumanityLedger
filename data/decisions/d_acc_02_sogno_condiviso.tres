@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Decision" load_steps=15 format=3]
+[gd_resource type="Resource" script_class="Decision" load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
 [ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
 [ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
 
 [sub_resource type="Resource" id="eff_ascolta"]
 script = ExtResource("eff")
@@ -64,9 +66,9 @@ feedback_testo = "Lyssa siede col vecchio Murr e insieme ridicono il sogno a una
 
 [sub_resource type="Resource" id="opt_archivia"]
 script = ExtResource("opt")
-strategia = ExtResource("s_pergamena")
+strategia = ExtResource("s_decreto")
 oggetto_drag = "icona_strategia"
-icona_drag = ExtResource("t_pergamena")
+icona_drag = ExtResource("t_decreto")
 label_text = "Incidilo tra le leggi e mettilo a tacere"
 target_consigliere_id = "era1_murr"
 effetto = SubResource("eff_archivia")

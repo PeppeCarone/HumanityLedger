@@ -69,6 +69,10 @@ func set_disabled(value: bool, reason: String = "") -> void:
 	_refresh()
 
 
+func is_disabled() -> bool:
+	return _disabled
+
+
 func _get_drag_data(_at_position: Vector2) -> Variant:
 	if _consumed or _disabled:
 		return null

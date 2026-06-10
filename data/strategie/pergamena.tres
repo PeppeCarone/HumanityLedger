@@ -6,11 +6,11 @@
 [resource]
 script = ExtResource("1_strat")
 id = "pergamena"
-nome = "Pergamena"
+nome = "Piano Diplomatico"
 icona = ExtResource("2_tex")
 descrizione_breve = "Parole che legano e dividono"
 prerequisiti_stat = {
-"scienza": 35
+"diplomazia": 15
 }
 prerequisiti_flag = []
 gesto_tipo = "icona_su_consigliere"
