@@ -68,11 +68,12 @@ const STAT_LABELS: Dictionary = {
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
 # Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
 # Finche' il terreno non esiste si usa come fallback la scena dipinta.
-const TERRENO_ERA: String = "res://Assets/art/terreni/era%d.png"
+const TERRENO_ERA: String = "res://Assets/art/terreni/era%d.jpg"
 # Vista decisione: scene dipinte d'atmosfera dietro il consigliere.
 const BG_CAVERNA: String = "res://Assets/art/backgrounds/era1_caverna.jpg"
 const BG_ACCAMPAMENTO: String = "res://Assets/art/backgrounds/era1_accampamento.jpg"
 const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
+const BG_ERA2_NOTTE: String = "res://Assets/art/backgrounds/era2_citta_notte.jpg"
 
 @onready var scene_bg: TextureRect = $UI/SceneBg
 @onready var hud_container: VBoxContainer = $UI/HUDPanel/VBoxContainer
@@ -343,6 +344,10 @@ func _start_era1() -> void:
 # Scena dipinta d'atmosfera per la vista decisione, in base a era e quest.
 func _scena_corrente() -> String:
 	if GameState.era_corrente >= 2:
+		# Atto finale: la citta' di notte, vigilia della scelta.
+		if current_quest != null and current_quest.id == "q_scelta_finale" \
+				and ResourceLoader.exists(BG_ERA2_NOTTE):
+			return BG_ERA2_NOTTE
 		return BG_ERA2
 	# Era 1: caverna solo durante il tutorial, poi il popolo esce all'aperto.
 	if current_quest != null and current_quest.id != "q_caverna_tutorial":

@@ -92,3 +92,4 @@ testo_consigliere = "Prima di alzare l'Idolo il popolo vuole un rito che lo legh
 personaggio_id = "era1_aru"
 opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
 tipo_decisione = "mistero"
+illustrazione_id = "era1_trance"

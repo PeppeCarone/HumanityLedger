@@ -120,6 +120,12 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 - **Contenuto**: 6+6 edifici isometrici trasparenti (Era 1 paleolitica: tenda, capanna, totem, focolare, essiccatoio, palizzata; Era 2 mitica: tempio, mercato, torre, fonderia, mura, archivio).
 - **Sliced in**: `art/villaggio/era1/00-05.png`, `era2/00-05.png` via `tools/slice_villaggio.py`
 
+### `batch2_*` (terreni, città notturna, eventi Era 1, fx, icona spionaggio)
+- **Autore**: AI Generated (Lovable, prompt in `Docs/08-asset-prompts.md` §P0/P1.3/P3/P4/P5, 2026-06-11)
+- **Licenza**: AI-generated, uso interno
+- **Contenuto**: 2 terreni-tabellone (radura tribale, spianata del regno) → `art/terreni/era<N>.jpg`; città Era 2 notturna (firma sfumata) → `art/backgrounds/era2_citta_notte.jpg`; 4 illustrazioni eventi paleolitici → `art/eventi/era1_*.png`; 3 effetti conseguenza con alpha (vortice braci, nebbia viola, alone dorato) → `art/fx/00-02.png` (il 4° del prompt, anello di fiamme, è uscito con alpha vuota: scartato); icona Spionaggio (pugnale+maschera) → `art/strategie/spionaggio.png`.
+- **Tool**: `tools/slice_batch2.py`
+
 ### `bg_era1_caverna_src.jpg`, `bg_era1_accampamento_src.jpg`
 - **Autore**: AI Generated (Lovable, prompt in `Docs/08-asset-prompts.md` §P1, 2026-06-11)
 - **Licenza**: AI-generated, uso interno

@@ -93,3 +93,4 @@ testo_consigliere = "Il Popolo delle Nebbie ha lasciato altri doni sul muschio: 
 personaggio_id = "era1_kael"
 opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
 tipo_decisione = "incontro"
+illustrazione_id = "era1_doni"

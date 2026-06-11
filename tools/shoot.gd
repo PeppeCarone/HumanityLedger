@@ -37,8 +37,7 @@ func _run() -> void:
 			inst.village.applica_conseguenza("alleanza"))
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 6)
-	await _shot("res://scenes/main.tscn", "shot_era1_campo", Callable(), func(inst: Node) -> void:
-		inst.scene_bg.texture = load("res://Assets/art/backgrounds/era1_accampamento.jpg"))
+	await _shot("res://scenes/main.tscn", "shot_era1_campo")
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	GameState.scienza = 9   # sotto il prereq di Progetto Scientifico (15): opzione bloccata

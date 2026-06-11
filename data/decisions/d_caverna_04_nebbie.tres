@@ -96,4 +96,4 @@ testo_consigliere = "Sei ombre al limite del bosco. Non bestie. Lance abbassate,
 personaggio_id = "era1_kael"
 opzioni = [SubResource("opt_scambio"), SubResource("opt_scaccia"), SubResource("opt_osserva")]
 tipo_decisione = "incontro"
-illustrazione_id = "summit"
+illustrazione_id = "era1_doni"

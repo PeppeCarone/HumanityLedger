@@ -9,7 +9,8 @@ class_name VillageView
 
 const VILLAGGIO: String = "res://Assets/art/villaggio/era%d/%02d.png"
 const FEEDBACK: String = "res://Assets/art/map/live_feedback/%02d.png"
-const TERRENO: String = "res://Assets/art/terreni/era%d.png"
+const FX: String = "res://Assets/art/fx/%02d.png"
+const TERRENO: String = "res://Assets/art/terreni/era%d.jpg"
 
 # Sequenza di edifici per era (indici dei sprite in Assets/art/villaggio/era<N>/):
 # era1: 0 tenda, 1 capanna, 2 totem, 3 focolare, 4 essiccatoio, 5 palizzata
@@ -55,14 +56,15 @@ const SLOTS_BOARD: Array[Dictionary] = [
 	{"x": 0.50, "y": 0.820, "s": 1.08},
 ]
 
-# Effetto + tinta per tipo di conseguenza.
+# Effetto + tinta per tipo di conseguenza (sprite painterly in art/fx:
+# 0 = vortice di braci, 1 = nebbia viola, 2 = alone dorato).
 const FX_CONSEGUENZA: Dictionary = {
-	"guerra":      {"idx": 0, "col": Color(1.0, 0.5, 0.35)},
-	"alleanza":    {"idx": 1, "col": Color(0.6, 1.0, 0.7)},
-	"scienza":     {"idx": 3, "col": Color(0.6, 0.85, 1.0)},
-	"costruzione": {"idx": 4, "col": Color(1.0, 0.92, 0.7)},
-	"ricchezza":   {"idx": 1, "col": Color(1.0, 0.88, 0.5)},
-	"neutro":      {"idx": 4, "col": Color(0.9, 0.85, 1.0)},
+	"guerra":      {"idx": 0, "col": Color(1.0, 0.85, 0.8)},
+	"alleanza":    {"idx": 2, "col": Color(0.75, 1.0, 0.8)},
+	"scienza":     {"idx": 1, "col": Color(0.65, 0.85, 1.0)},
+	"costruzione": {"idx": 2, "col": Color(1.0, 0.92, 0.7)},
+	"ricchezza":   {"idx": 2, "col": Color(1.0, 0.9, 0.55)},
+	"neutro":      {"idx": 1, "col": Color(1.0, 0.95, 1.0)},
 }
 
 var _era: int = 1
@@ -105,7 +107,7 @@ func sincronizza(era: int, n: int) -> void:
 func _fuoco_centrale() -> void:
 	if _slot_usati == 0:
 		return
-	var p: String = FEEDBACK % 4
+	var p: String = FX % 2
 	if not ResourceLoader.exists(p):
 		return
 	var slot: Dictionary = _slots()[0]
@@ -245,7 +247,7 @@ func applica_conseguenza(tipo: String) -> void:
 	if tipo == "costruzione":
 		costruisci()
 		return
-	var p: String = FEEDBACK % int(dati["idx"])
+	var p: String = FX % int(dati["idx"])
 	if not ResourceLoader.exists(p):
 		return
 	var s: Vector2 = _baseline()
@@ -255,7 +257,8 @@ func applica_conseguenza(tipo: String) -> void:
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var dim: Vector2 = Vector2(tex.get_size()) * 0.9
+	# normalizza l'altezza (gli sprite fx hanno dimensioni native diverse)
+	var dim: Vector2 = Vector2(tex.get_size()) * minf(1.0, 340.0 / float(tex.get_height()))
 	tr.size = dim
 	tr.pivot_offset = dim * 0.5
 	tr.position = Vector2(s.x * 0.5 - dim.x * 0.5, _base_y() * s.y - dim.y * 0.62)
