@@ -112,6 +112,7 @@ func _ready() -> void:
 	if titolo_font != null:
 		proposer_name_label.add_theme_font_override("font", titolo_font)
 	_applica_cornici()
+	_crea_vignette()
 	_setup_hud()
 	_load_personaggi()
 	GameState.stat_changed.connect(_on_stat_changed)
@@ -161,17 +162,18 @@ func _set_decision_visible(mostra: bool) -> void:
 
 
 func _consigliere_in_arrivo(nome: String, ritratto: Texture2D = null) -> void:
-	# Un consigliere "arriva": il ritratto scivola in scena e il pulsante lampeggia.
+	# Un consigliere "arriva": la figura sale dal bordo inferiore (a filo schermo,
+	# stile visual novel) e il pulsante-dialogo accanto lampeggia.
 	if ritratto != null:
 		arriving_portrait.texture = ritratto
 		arriving_portrait.visible = true
-		var home_x: float = 470.0
-		arriving_portrait.position.x = home_x - 520.0
+		var home: Vector2 = Vector2(390.0, 600.0)
+		arriving_portrait.position = home + Vector2(0.0, 110.0)
 		arriving_portrait.modulate.a = 0.0
 		var st: Tween = create_tween()
 		st.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		st.tween_property(arriving_portrait, "position:x", home_x, 0.55)
-		st.parallel().tween_property(arriving_portrait, "modulate:a", 1.0, 0.45)
+		st.tween_property(arriving_portrait, "position:y", home.y, 0.6)
+		st.parallel().tween_property(arriving_portrait, "modulate:a", 1.0, 0.5)
 	else:
 		arriving_portrait.visible = false
 	call_button.text = "%s attende il tuo parere\n[ Decidi ]" % nome
@@ -197,6 +199,29 @@ func _apri_decisione() -> void:
 	decision_dim.modulate.a = 0.0
 	var tw: Tween = create_tween()
 	tw.tween_property(decision_dim, "modulate:a", 1.0, 0.35)
+
+
+func _crea_vignette() -> void:
+	# Vignettatura cinematografica: angoli scuriti, centro pulito. Sta sopra tutta
+	# la UI di scena (i CanvasLayer di pausa/ledger restano comunque sopra).
+	var grad: Gradient = Gradient.new()
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.36)])
+	grad.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 1.25)
+	tex.width = 512
+	tex.height = 512
+	var tr: TextureRect = TextureRect.new()
+	tr.name = "Vignette"
+	tr.texture = tex
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	$UI.add_child(tr)
 
 
 func _font_titoli() -> Font:

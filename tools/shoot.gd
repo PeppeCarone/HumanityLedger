@@ -9,7 +9,7 @@ func _ready() -> void:
 	await _run()
 
 
-func _shot(path: String, name: String, setup: Callable = Callable(), post: Callable = Callable()) -> void:
+func _shot(path: String, name: String, setup: Callable = Callable(), post: Callable = Callable(), attesa: float = 0.6) -> void:
 	var inst: Node = load(path).instantiate()
 	if setup.is_valid():
 		setup.call(inst)
@@ -18,7 +18,7 @@ func _shot(path: String, name: String, setup: Callable = Callable(), post: Calla
 	await get_tree().process_frame
 	if post.is_valid():
 		post.call(inst)
-	await get_tree().create_timer(0.6).timeout
+	await get_tree().create_timer(attesa).timeout
 	var img: Image = get_viewport().get_texture().get_image()
 	img.save_png(OUT + name + ".png")
 	print("SHOT ", name, " ", img.get_size())
@@ -51,8 +51,8 @@ func _run() -> void:
 	var dec: Decision = load("res://data/decisions/d_caverna_05_inverno.tres") as Decision
 	print("CHECK inverno illustrazione_id=", dec.illustrazione_id if dec else "NULL")
 	var fin: Finale = load("res://data/finali/fine_prosperita.tres") as Finale
-	await _shot("res://scenes/ending_screen.tscn", "shot_ending", func(inst: Node) -> void:
-		inst.finale = fin)
+	var set_fin: Callable = func(inst: Node) -> void: inst.finale = fin
+	await _shot("res://scenes/ending_screen.tscn", "shot_ending", set_fin, Callable(), 3.5)
 	# world map: serve configura() + attesa lunga per il crossfade/crescita insediamenti
 	GameState.reset_run()
 	GameState.militare = 70

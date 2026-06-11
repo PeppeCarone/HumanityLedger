@@ -37,24 +37,24 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
-color = Color(0.03, 0.025, 0.045, 0.74)
+color = Color(0.03, 0.025, 0.045, 0.62)
 
 [node name="ArrivingPortrait" type="TextureRect" parent="UI"]
 visible = false
-offset_left = 470.0
-offset_top = 330.0
-offset_right = 810.0
-offset_bottom = 940.0
+offset_left = 390.0
+offset_top = 600.0
+offset_right = 720.0
+offset_bottom = 1080.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
 [node name="CallButton" type="Button" parent="UI"]
 visible = false
-offset_left = 850.0
-offset_top = 560.0
-offset_right = 1480.0
-offset_bottom = 720.0
+offset_left = 760.0
+offset_top = 880.0
+offset_right = 1380.0
+offset_bottom = 1020.0
 theme_override_font_sizes/font_size = 30
 text = "Un consigliere attende il tuo parere
 [ Decidi ]"

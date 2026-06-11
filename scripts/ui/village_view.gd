@@ -92,8 +92,11 @@ func _posa_edificio(animato: bool) -> TextureRect:
 	var px: float = SLOT_X[_slot_usati] * s.x
 	var py: float = BASE_Y * s.y
 	tr.position = Vector2(px - dim.x * 0.5, py - dim.y)
+	var ombra: TextureRect = _ombra(px, py, dim.x, animato)
 	_suolo.add_child(tr)
 	_edifici_nodi.append(tr)
+	if ombra != null:
+		_edifici_nodi.append(ombra)
 	_slot_usati += 1
 	if animato:
 		tr.modulate.a = 0.0
@@ -103,6 +106,34 @@ func _posa_edificio(animato: bool) -> TextureRect:
 		t.parallel().tween_property(tr, "scale", Vector2.ONE, 0.7) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_polvere(Vector2(px, py))
+	return tr
+
+
+# Ombra di contatto ellittica sotto l'edificio: lo ancora al terreno.
+func _ombra(px: float, py: float, larghezza: float, animata: bool) -> TextureRect:
+	var grad: Gradient = Gradient.new()
+	grad.colors = PackedColorArray([Color(0, 0, 0, 0.42), Color(0, 0, 0, 0.0)])
+	grad.offsets = PackedFloat32Array([0.0, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 128
+	tex.height = 128
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_SCALE
+	var dim: Vector2 = Vector2(larghezza * 1.05, larghezza * 0.34)
+	tr.size = dim
+	tr.position = Vector2(px - dim.x * 0.5, py - dim.y * 0.58)
+	_suolo.add_child(tr)
+	if animata:
+		tr.modulate.a = 0.0
+		var t: Tween = create_tween()
+		t.tween_property(tr, "modulate:a", 1.0, 0.6)
 	return tr
 
 

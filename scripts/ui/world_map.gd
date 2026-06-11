@@ -244,7 +244,7 @@ func _crea_zona(nome: String, centro: Vector2, scala: float, mapscala: float) ->
 	tr.pivot_offset = dim * 0.5
 	tr.position = centro - dim * 0.5
 	tr.modulate = Color(1, 1, 1, 0.0)
-	tr.set_meta("alpha_target", 0.5)
+	tr.set_meta("alpha_target", 0.3)
 	return tr
 
 

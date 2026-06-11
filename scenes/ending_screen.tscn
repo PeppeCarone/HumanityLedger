@@ -10,53 +10,61 @@ script = ExtResource("1_ending")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.04, 0.03, 0.05, 1)
+color = Color(0.02, 0.015, 0.03, 1)
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="Immagine" type="TextureRect" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(1200, 700)
-layout_mode = 2
+[node name="ScrimTop" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
 
-[node name="Margin" type="MarginContainer" parent="Center/Panel"]
-layout_mode = 2
-theme_override_constants/margin_left = 80
-theme_override_constants/margin_top = 70
-theme_override_constants/margin_right = 80
-theme_override_constants/margin_bottom = 70
+[node name="ScrimBottom" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
 
-[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
-layout_mode = 2
-theme_override_constants/separation = 36
-
-[node name="Titolo" type="Label" parent="Center/Panel/Margin/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 56
+[node name="Titolo" type="Label" parent="."]
+anchor_right = 1.0
+offset_top = 84.0
+offset_bottom = 196.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 66
 text = "Finale"
 horizontal_alignment = 1
 
-[node name="Immagine" type="TextureRect" parent="Center/Panel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 300)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Testo" type="Label" parent="Center/Panel/Margin/VBox"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_font_sizes/font_size = 24
+[node name="Testo" type="Label" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 380.0
+offset_top = -396.0
+offset_right = -380.0
+offset_bottom = -128.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 25
 text = ""
 horizontal_alignment = 1
-vertical_alignment = 1
+vertical_alignment = 2
 autowrap_mode = 3
 
-[node name="Footer" type="Label" parent="Center/Panel/Margin/VBox"]
-layout_mode = 2
+[node name="Footer" type="Label" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -84.0
+offset_bottom = -46.0
+mouse_filter = 2
 theme_override_font_sizes/font_size = 18
 text = "Premi R per ricominciare"
 horizontal_alignment = 1

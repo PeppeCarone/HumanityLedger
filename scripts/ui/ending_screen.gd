@@ -1,5 +1,8 @@
 extends CanvasLayer
 
+# Schermata epilogo cinematografica: illustrazione a tutto schermo con lento
+# zoom (Ken Burns), scrim alto/basso per leggibilita', titolo Cinzel nel tono
+# del finale, testo dell'epilogo in basso.
 # Impostare `finale` PRIMA di add_child() (i nodi @onready si risolvono in _ready).
 var finale: Finale = null
 
@@ -12,46 +15,94 @@ const TONI: Dictionary = {
 	"fine_futura": Color(0.8, 0.6, 1.0),
 }
 
-@onready var background: ColorRect = $Background
-@onready var titolo_label: Label = $Center/Panel/Margin/VBox/Titolo
-@onready var immagine: TextureRect = $Center/Panel/Margin/VBox/Immagine
-@onready var testo_label: Label = $Center/Panel/Margin/VBox/Testo
-@onready var footer_label: Label = $Center/Panel/Margin/VBox/Footer
+@onready var immagine: TextureRect = $Immagine
+@onready var scrim_top: TextureRect = $ScrimTop
+@onready var scrim_bottom: TextureRect = $ScrimBottom
+@onready var titolo_label: Label = $Titolo
+@onready var testo_label: Label = $Testo
+@onready var footer_label: Label = $Footer
 
 
 func _ready() -> void:
+	_crea_scrims()
+	_stile_testi()
 	if finale == null:
 		titolo_label.text = "Nessun finale"
 		testo_label.text = "(finale non determinato)"
 		return
-	var tono: Color = TONI.get(finale.id, Color.WHITE)
 	titolo_label.text = finale.nome
-	titolo_label.modulate = tono
+	titolo_label.add_theme_color_override("font_color", TONI.get(finale.id, Color.WHITE))
+	testo_label.text = finale.testo
+	footer_label.text = "Premi R per ricominciare, L per il Ledger"
+	_imposta_illustrazione()
+	AudioManager.play_music_id("ending")
+	_anima_ingresso()
+
+
+func _stile_testi() -> void:
 	var cinzel_path: String = "res://Assets/fonts/Cinzel.ttf"
 	if ResourceLoader.exists(cinzel_path):
 		var fv: FontVariation = FontVariation.new()
 		fv.base_font = load(cinzel_path)
 		fv.variation_opentype = {"wght": 700}
 		titolo_label.add_theme_font_override("font", fv)
-	_imposta_illustrazione()
-	testo_label.text = finale.testo
-	footer_label.text = "Premi R per ricominciare, L per il Ledger"
-	background.color = Color(0.04, 0.03, 0.05, 1.0)
-	AudioManager.play_music_id("ending")
-	titolo_label.modulate.a = 0.0
-	testo_label.modulate.a = 0.0
-	var tween: Tween = create_tween()
-	tween.tween_property(titolo_label, "modulate:a", 1.0, 1.0)
-	tween.tween_property(testo_label, "modulate:a", 1.0, 1.2)
+	titolo_label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.85))
+	titolo_label.add_theme_constant_override("shadow_offset_y", 3)
+	titolo_label.add_theme_constant_override("shadow_outline_size", 10)
+	testo_label.add_theme_color_override("font_color", Color(0.94, 0.9, 0.82))
+	testo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	testo_label.add_theme_constant_override("outline_size", 5)
+	testo_label.add_theme_constant_override("line_spacing", 7)
+
+
+func _crea_scrims() -> void:
+	# Gradienti verticali: scuriscono alto (titolo) e basso (testo) senza pannelli.
+	scrim_top.texture = _gradiente_verticale(
+		[Color(0, 0, 0, 0.62), Color(0, 0, 0, 0.0)], [0.0, 0.32])
+	scrim_bottom.texture = _gradiente_verticale(
+		[Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.88)], [0.48, 1.0])
+
+
+func _gradiente_verticale(colori: Array, offsets: Array) -> GradientTexture2D:
+	var grad: Gradient = Gradient.new()
+	grad.colors = PackedColorArray(colori)
+	grad.offsets = PackedFloat32Array(offsets)
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill_from = Vector2(0.5, 0.0)
+	tex.fill_to = Vector2(0.5, 1.0)
+	tex.width = 16
+	tex.height = 256
+	return tex
 
 
 func _imposta_illustrazione() -> void:
-	if finale.illustrazione != null:
-		immagine.texture = finale.illustrazione
-		return
-	var nome: String = finale.id.trim_prefix("fine_")
-	var path: String = "res://Assets/art/finali/%s.png" % nome
-	if ResourceLoader.exists(path):
-		immagine.texture = load(path)
-	else:
+	var tex: Texture2D = finale.illustrazione
+	if tex == null:
+		var nome: String = finale.id.trim_prefix("fine_")
+		var path: String = "res://Assets/art/finali/%s.png" % nome
+		if ResourceLoader.exists(path):
+			tex = load(path)
+	if tex == null:
 		immagine.visible = false
+		return
+	immagine.texture = tex
+
+
+func _anima_ingresso() -> void:
+	# Fade dal nero + lento zoom dell'illustrazione, poi titolo e testo a cascata.
+	immagine.modulate.a = 0.0
+	titolo_label.modulate.a = 0.0
+	testo_label.modulate.a = 0.0
+	footer_label.modulate.a = 0.0
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	immagine.pivot_offset = vp * 0.5
+	immagine.scale = Vector2.ONE
+	var kb: Tween = create_tween()
+	kb.tween_property(immagine, "scale", Vector2.ONE * 1.07, 18.0) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	var t: Tween = create_tween()
+	t.tween_property(immagine, "modulate:a", 1.0, 1.6).set_trans(Tween.TRANS_SINE)
+	t.parallel().tween_property(titolo_label, "modulate:a", 1.0, 1.2).set_delay(0.7)
+	t.parallel().tween_property(testo_label, "modulate:a", 1.0, 1.2).set_delay(1.5)
+	t.parallel().tween_property(footer_label, "modulate:a", 0.55, 0.8).set_delay(2.4)
