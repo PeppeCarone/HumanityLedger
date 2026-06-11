@@ -455,9 +455,20 @@ Decisioni emerse durante l'implementazione, dopo che il gioco era già completo 
 
 ---
 
+### D046 — Villaggio come tabellone dedicato (stile board di strategia)
+
+- **Data**: 2026-06-11
+- **Status**: attiva (evolve D038/D039)
+- **Decisione**: la vista-villaggio diventa un tabellone dedicato: un *terreno* dipinto per era (radura tribale / spianata del regno, generato vuoto via Lovable) su cui gli edifici del giocatore sono gli unici edifici visibili, disposti su piazzole fisse (`SLOTS_BOARD`). Le scene dipinte d'atmosfera (caverna, accampamento, città) passano alla vista-decisione come fondale dietro il consigliere. Evoluzione edifici: per era (gli stessi slot si trasformano da tende a edifici in pietra alla transizione) + segni di vita (fuoco centrale pulsante).
+- **Motivazione**: feedback esplicito dell'utente: "mi aspettavo un villaggio alla Clash of Clans dove si vede crescere gli edifici; gli asset sopra gli sfondi non si capiscono". Il problema era reale: i fondali dipinti contenevano già un villaggio (tende, città), quindi gli sprite sovrapposti erano un secondo villaggio illeggibile.
+- **Implicazioni**: servono 2 asset terreno (prompt in `08-asset-prompts.md` §P0). Il codice ha fallback: finché `Assets/art/terreni/era<N>.png` non esiste si usano le scene dipinte col layout pre-D046; al drop del file il tabellone si attiva da solo. `DecisionBg` nuovo nodo in main.tscn. Upgrade per-edificio a stadi (legati a Costruzione) rimandati a un batch Lovable successivo se ci sarà tempo.
+- **Alternative considerate**: rigenerare i fondali vuoti mantenendo l'impianto (meno leggibile come "gioco da tavolo"), upgrade per-edificio subito (3 stadi × 6 edifici × 2 ere = troppo lavoro asset adesso).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D046**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D047**.
 
 ```
 ### D036 — ...

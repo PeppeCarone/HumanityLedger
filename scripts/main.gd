@@ -66,6 +66,10 @@ const STAT_LABELS: Dictionary = {
 }
 
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
+# Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
+# Finche' il terreno non esiste si usa come fallback la scena dipinta.
+const TERRENO_ERA: String = "res://Assets/art/terreni/era%d.png"
+# Vista decisione: scene dipinte d'atmosfera dietro il consigliere.
 const BG_CAVERNA: String = "res://Assets/art/backgrounds/era1_caverna.jpg"
 const BG_ACCAMPAMENTO: String = "res://Assets/art/backgrounds/era1_accampamento.jpg"
 const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
@@ -83,6 +87,7 @@ const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 @onready var village: VillageView = $UI/VillageView
 @onready var call_button: Button = $UI/CallButton
 @onready var decision_dim: ColorRect = $UI/DecisionDim
+@onready var decision_bg: TextureRect = $UI/DecisionBg
 @onready var arriving_portrait: TextureRect = $UI/ArrivingPortrait
 
 var quest_log_label: Label = null
@@ -152,7 +157,7 @@ func _stile_call_button() -> void:
 func _decision_nodes() -> Array:
 	return [
 		$UI/ConsigliereProposer, $UI/ConsiglieriRow,
-		$UI/DecisionPanel, help_label, decision_dim,
+		$UI/DecisionPanel, help_label, decision_dim, decision_bg,
 	]
 
 
@@ -335,7 +340,8 @@ func _start_era1() -> void:
 	_avvia_prossima_quest()
 
 
-func _sfondo_corrente() -> String:
+# Scena dipinta d'atmosfera per la vista decisione, in base a era e quest.
+func _scena_corrente() -> String:
 	if GameState.era_corrente >= 2:
 		return BG_ERA2
 	# Era 1: caverna solo durante il tutorial, poi il popolo esce all'aperto.
@@ -344,24 +350,40 @@ func _sfondo_corrente() -> String:
 	return BG_CAVERNA
 
 
+# Sfondo della vista villaggio: il terreno-tabellone (fallback: scena dipinta).
+func _terreno_corrente() -> String:
+	var path: String = TERRENO_ERA % GameState.era_corrente
+	return path if ResourceLoader.exists(path) else _scena_corrente()
+
+
 func _aggiorna_sfondo_era() -> void:
 	if scene_bg == null:
 		return
-	var path: String = _sfondo_corrente()
+	var path: String = _terreno_corrente()
 	if ResourceLoader.exists(path):
 		scene_bg.texture = load(path)
 		scene_bg.set_meta("bg_path", path)
+	_aggiorna_scena_decisione()
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
 	if village != null:
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
 
 
+func _aggiorna_scena_decisione() -> void:
+	if decision_bg == null:
+		return
+	var path: String = _scena_corrente()
+	if ResourceLoader.exists(path):
+		decision_bg.texture = load(path)
+
+
 # Cambio sfondo morbido quando la quest sposta la scena (es. caverna -> accampamento).
 func _aggiorna_sfondo_quest() -> void:
+	_aggiorna_scena_decisione()
 	if scene_bg == null:
 		return
-	var path: String = _sfondo_corrente()
+	var path: String = _terreno_corrente()
 	if str(scene_bg.get_meta("bg_path", "")) == path or not ResourceLoader.exists(path):
 		return
 	scene_bg.set_meta("bg_path", path)

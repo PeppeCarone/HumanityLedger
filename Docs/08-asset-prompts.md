@@ -10,6 +10,40 @@
 
 ---
 
+## P0 — Terreni-tabellone del villaggio (D046 — PRIORITÀ ASSOLUTA)
+
+> Il villaggio è un board stile Clash of Clans: il terreno deve essere VUOTO,
+> gli edifici li piazza il gioco. Vista rialzata a tre quarti.
+
+### 0a. Terreno Era 1 — radura tribale
+
+```
+Epic painterly dark-fantasy digital painting, 1920x1080, view from an elevated
+three-quarter angle like a strategy game board. A large EMPTY dirt-and-grass
+clearing prepared for a tribal village: worn footpaths crossing the open ground,
+a stone-ringed bare patch at the center, scattered rocks and tufts of grass,
+a stream on one side. Forest edge and mountains only at the top 20% as horizon,
+dusk light with warm tones. COMPLETELY EMPTY of buildings, tents, people or fires:
+it is a game board waiting for buildings to be placed. No text, no watermark.
+```
+
+### 0b. Terreno Era 2 — spianata del regno
+
+```
+Epic painterly dark-fantasy digital painting, 1920x1080, view from an elevated
+three-quarter angle like a strategy game board. A large EMPTY paved stone plateau
+inside a mythic kingdom: a wide flagstone plaza with a circular emblem at the
+center, low stone boundary walls at the edges, stairs on one side, braziers
+unlit. City rooftops and mountains only at the top 20% as horizon, golden-hour
+light. COMPLETELY EMPTY of buildings, market stalls or people: it is a game board
+waiting for buildings to be placed. No text, no watermark.
+```
+
+> Integrazione: i file vanno (rinominati da me) in `Assets/art/terreni/era1.png` e
+> `era2.png`; il codice li aggancia automaticamente (fallback attivo fino ad allora).
+
+---
+
 ## P1 — Sfondi di scena (impatto massimo)
 
 ### 1. Accampamento Era 1 (MANCANTE — atti 2-3 si svolgono all'aperto ma si vede ancora la caverna)

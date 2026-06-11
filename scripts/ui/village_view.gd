@@ -9,6 +9,7 @@ class_name VillageView
 
 const VILLAGGIO: String = "res://Assets/art/villaggio/era%d/%02d.png"
 const FEEDBACK: String = "res://Assets/art/map/live_feedback/%02d.png"
+const TERRENO: String = "res://Assets/art/terreni/era%d.png"
 
 # Sequenza di edifici per era (indici dei sprite in Assets/art/villaggio/era<N>/):
 # era1: 0 tenda, 1 capanna, 2 totem, 3 focolare, 4 essiccatoio, 5 palizzata
@@ -41,6 +42,18 @@ const SLOTS_ERA: Dictionary = {
 	],
 }
 const SCALA_EDIFICIO: float = 0.78
+
+# Tabellone (D046): quando esiste il terreno dedicato dell'era, gli edifici si
+# dispongono sulle piazzole della radura/spianata come in un board di strategia.
+# Il fronte-centro resta libero per il CallButton (x 0.40-0.72, y > 0.81).
+const SLOTS_BOARD: Array[Dictionary] = [
+	{"x": 0.50, "y": 0.560, "s": 0.90},
+	{"x": 0.33, "y": 0.620, "s": 0.95},
+	{"x": 0.67, "y": 0.620, "s": 0.95},
+	{"x": 0.25, "y": 0.780, "s": 1.05},
+	{"x": 0.75, "y": 0.780, "s": 1.05},
+	{"x": 0.50, "y": 0.820, "s": 1.08},
+]
 
 # Effetto + tinta per tipo di conseguenza.
 const FX_CONSEGUENZA: Dictionary = {
@@ -84,9 +97,46 @@ func sincronizza(era: int, n: int) -> void:
 	var quanti: int = mini(n, _slots().size())
 	for i in quanti:
 		_posa_edificio(false)
+	_fuoco_centrale()
+
+
+# Bagliore caldo pulsante dietro l'edificio centrale (focolare/tempio): il segno
+# che il villaggio e' vivo. Si rigenera a ogni sincronizza.
+func _fuoco_centrale() -> void:
+	if _slot_usati == 0:
+		return
+	var p: String = FEEDBACK % 4
+	if not ResourceLoader.exists(p):
+		return
+	var slot: Dictionary = _slots()[0]
+	var s: Vector2 = _baseline()
+	var tex: Texture2D = load(p)
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var dim: Vector2 = Vector2(tex.get_size()) * 0.65
+	tr.size = dim
+	tr.pivot_offset = dim * 0.5
+	tr.position = Vector2(float(slot["x"]) * s.x - dim.x * 0.5,
+		float(slot["y"]) * s.y - dim.y * 0.72)
+	tr.modulate = Color(1.0, 0.85, 0.55, 0.3)
+	_suolo.add_child(tr)
+	_suolo.move_child(tr, 0)
+	_edifici_nodi.append(tr)
+	var t: Tween = tr.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE)
+	t.tween_property(tr, "modulate:a", 0.5, 1.4)
+	t.tween_property(tr, "modulate:a", 0.25, 1.4)
 
 
 func _slots() -> Array:
+	# Col terreno-tabellone si usano le piazzole; senza, il layout adattato
+	# alle scene dipinte (fallback pre-D046).
+	if ResourceLoader.exists(TERRENO % _era):
+		return SLOTS_BOARD
 	return SLOTS_ERA.get(_era, SLOTS_ERA[1])
 
 
