@@ -173,6 +173,12 @@ func mystery_punti() -> int:
 		punti += 1
 	if has_flag("pittura_ascoltata"):
 		punti += 1
+	if has_flag("voce_bosco_ascoltata"):
+		punti += 1
+	if has_flag("tempio_vuoto_studiato"):
+		punti += 1
+	if has_flag("canti_trascritti"):
+		punti += 1
 	if artefatto_equipaggiato == "lacrima_di_lyssa":
 		punti += 1
 	return punti

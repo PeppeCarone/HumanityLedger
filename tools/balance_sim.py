@@ -37,7 +37,8 @@ FINALI = {
 }
 
 MYSTERY_FLAGS = ["accolto_popolo_nebbie", "nebbie_osservati", "sogno_accolto",
-                 "ascolta_sogno_condiviso", "pittura_ascoltata"]
+                 "ascolta_sogno_condiviso", "pittura_ascoltata",
+                 "voce_bosco_ascoltata", "tempio_vuoto_studiato", "canti_trascritti"]
 MYSTERY_SOGLIA = 2
 
 

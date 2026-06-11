@@ -1,0 +1,92 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/libro.tres" id="s_libro"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/libro.png" id="t_libro"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"scienza": 12
+}
+set_flags = {
+"canti_trascritti": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_libro")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_libro")
+label_text = "Trascrivi il canto e cercane la misura"
+target_consigliere_id = "era2_iove"
+effetto = SubResource("eff_0")
+feedback_testo = "Iove annota il canto in cifre e intervalli, nota dopo nota, e impallidisce sulle proporzioni. \"Le voci salgono come le stelle d'inverno,\" dice. \"Esatte. Questa melodia non è nata in una gola umana.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12,
+"popolo": -4
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Vieta i raduni dopo il tramonto"
+target_consigliere_id = "era2_maren"
+effetto = SubResource("eff_1")
+feedback_testo = "Maren pesa il divieto parola per parola e lo fa affiggere alle porte. La notte torna silenziosa e ordinata. Ma nelle case, sottovoce, con le imposte chiuse, il canto continua."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 12
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 2
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Scendi in piazza e canta con loro"
+target_consigliere_id = "era2_karro"
+effetto = SubResource("eff_2")
+feedback_testo = "Karro canta con i pellegrini fino all'alba, la voce roca in mezzo alle altre. \"Non so cosa dica il canto,\" ammette poi. \"Ma so che la piazza non era mai stata così unita. E questo, di solito, lo so usare.\""
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_14_pellegrini"
+era = 2
+testo_consigliere = "Ogni notte la gente si raduna al tempio che nessuno ha costruito. Cantano una nenia che nessuno ricorda di avere imparato, e i bambini la cantano meglio dei vecchi. Ho cercato nei codici: la legge non ha una riga su questo. Cosa facciamo dei pellegrini del tempio?"
+personaggio_id = "era2_maren"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "mistero"

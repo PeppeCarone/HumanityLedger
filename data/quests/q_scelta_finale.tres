@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="Quest" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="Quest" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
 [ext_resource type="Resource" path="res://data/decisions/d_corte_08_destino.tres" id="3"]
 [ext_resource type="Resource" path="res://data/decisions/d_corte_09_convergenza.tres" id="4"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_15_memoria.tres" id="5"]
+[ext_resource type="Resource" path="res://data/decisions/d_corte_16_vigilia.tres" id="6"]
 
 [sub_resource type="Resource" id="eff_complete"]
 script = ExtResource("2")
@@ -25,7 +27,7 @@ era = 2
 tipo = "chiave"
 precondizioni_flag = ["era2_atto2_completato"]
 precondizioni_stat = {}
-passi = [ExtResource("3"), ExtResource("4")]
+passi = [ExtResource("5"), ExtResource("6"), ExtResource("3"), ExtResource("4")]
 effetto_completamento = SubResource("eff_complete")
 flag_di_completamento = "era2_completata"
 visibile_nel_log = true

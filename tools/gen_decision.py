@@ -116,9 +116,127 @@ def genera(spec):
     print("scritto", path, "(%d opzioni, %d strategie)" % (len(opts), len(strats)))
 
 
-# --- Batch nuove decisioni Era 1 -------------------------------------------
+# --- Batch nuove decisioni Era 2 (2026-06-11) ------------------------------
+# Espansione 9->16 per avvicinarsi al target D031 (~20-25 decisioni/era).
+# Valorizza Vorrik/Saekh/Maren; intreccia Impero del Sole, Lega delle Coste e
+# il mystery (canti_trascritti conta in mystery_punti). Batch precedente
+# (Era 1, commit ecc2796) rimosso: i .tres sono gia' generati.
 
 DECISIONI = [
+    # === q_corte_si_forma (atto 1): +2 ===
+    {
+        "id": "d_corte_10_moneta", "era": 2, "personaggio": "era2_vorrik", "tipo": "proposta_consigliere",
+        "testo": "I mercanti barattano sale con ferro e pelli con grano, e ogni scambio finisce in lite. Un regno che conta in dieci misure diverse non conta niente: lo dico da quando avevamo una sola bilancia. Possiamo battere moneta con il sigillo del regno, o mettere ordine in altro modo. Come ordiniamo la ricchezza del regno?",
+        "opzioni": [
+            {"strat": "economico", "target": "era2_vorrik", "label": "Batti moneta con il sigillo del regno",
+             "stat": {"tesoro": 13, "scienza": 2}, "flags": {"moneta_regno": True},
+             "feedback": "Vorrik pesa il primo conio sul palmo come fosse un figlio. \"Da oggi il regno sa quanto vale,\" dice freddo. \"E sa quanto gli si deve. Sono due cose diverse, e le voglio scritte entrambe.\""},
+            {"strat": "decreto", "target": "era2_maren", "label": "Fissa per legge pesi e misure uguali per tutti",
+             "stat": {"legge": 12, "tesoro": 3},
+             "feedback": "Maren detta la tavola delle misure e la fa incidere alle porte del mercato. \"Una bilancia truccata,\" sentenzia, \"ruba due volte: il grano oggi, la fiducia per sempre.\""},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Lascia che la piazza fissi i suoi prezzi",
+             "stat": {"popolo": 11, "tesoro": -3},
+             "feedback": "Karro porta la decisione al mercato e la piazza si regola da sé, a voce alta, come ha sempre fatto. I conti di Vorrik ne escono storti, ma la gente sorride contando il resto."},
+        ],
+    },
+    {
+        "id": "d_corte_11_strade", "era": 2, "personaggio": "era2_lena", "tipo": "proposta_consigliere",
+        "testo": "La collina di pietra è forte, ma un regno non è la sua capitale: è la strada che la lega ai campi. Dopo le piogge i carri affondano fino al mozzo e i villaggi restano soli per intere lune. Ho squadre, pietra e braccia per un solo grande cantiere. Dove poso la prossima pietra?",
+        "opzioni": [
+            {"strat": "ascia", "target": "era2_lena", "label": "Lastrica le strade verso i villaggi",
+             "stat": {"costruzione": 13, "popolo": 3}, "pop": 2,
+             "feedback": "Lena posa il lastricato miglio dopo miglio, e dietro le sue squadre i villaggi si avvicinano alla capitale senza muoversi di un passo. \"Le mura difendono,\" dice. \"Le strade uniscono. Servivano prima queste.\""},
+            {"strat": "economico", "target": "era2_vorrik", "label": "Metti pedaggi su ponti e valichi",
+             "stat": {"tesoro": 12, "popolo": -3},
+             "feedback": "Vorrik piazza gabellieri a ogni ponte e conta ciò che passa. Le casse si gonfiano a vista. Sui valichi, i carrettieri imparano una nuova bestemmia con il suo nome dentro."},
+            {"strat": "pergamena", "target": "era2_sereth", "label": "Apri una via maestra verso le corti vicine",
+             "stat": {"diplomazia": 11, "tesoro": 2}, "rapporti": {"lega_coste": 4},
+             "feedback": "Sereth fa tracciare la via verso ovest e manda inviti lungo tutto il percorso. Le prime carovane della Lega arrivano con stoffe, spezie e domande cortesi su quanto siamo ricchi davvero."},
+        ],
+    },
+    # === q_pressione_imperi (atto 2): +3 ===
+    {
+        "id": "d_corte_12_corvo", "era": 2, "personaggio": "era2_saekh", "tipo": "proposta_consigliere",
+        "testo": "Un uomo. Preso stanotte, sulle mura. Copiava i camminamenti su un rotolo... e nella fodera, cucito, il sigillo del Sole. Nessuno sa che lo abbiamo noi. Nemmeno l'Impero. Per ora. Cosa ne facciamo del corvo dell'Impero?",
+        "opzioni": [
+            {"strat": "spionaggio", "target": "era2_saekh", "label": "Rigiralo e rimandalo a casa con notizie false",
+             "stat": {"spionaggio": 13, "militare": 2}, "flags": {"corvo_doppio": True},
+             "feedback": "Saekh parla con il prigioniero una notte intera, da solo. All'alba l'uomo riparte verso est, con il suo rotolo... ridisegnato. \"Ora le nostre mura,\" sussurra Saekh, \"sono alte il doppio. Sulla carta.\""},
+            {"strat": "decreto", "target": "era2_maren", "label": "Processalo alla luce, davanti al regno",
+             "stat": {"legge": 12, "diplomazia": -3}, "rapporti": {"impero_sole": -8},
+             "feedback": "Maren istruisce il processo nella piazza grande, atto per atto, senza alzare mai la voce. La sentenza è esilio. Il regno impara che la legge vale anche per le ombre. L'Impero impara che li prendiamo."},
+            {"strat": "pergamena", "target": "era2_sereth", "label": "Restituiscilo all'Impero con una scorta d'onore",
+             "stat": {"diplomazia": 12}, "rapporti": {"impero_sole": 8},
+             "feedback": "Sereth riconsegna l'uomo al confine con doni e una lettera squisita che non nomina mai la parola spia. L'Impero capisce tre cose: sappiamo, non temiamo, e preferiamo parlare."},
+        ],
+    },
+    {
+        "id": "d_corte_13_granai", "era": 2, "personaggio": "era2_vorrik", "tipo": "catastrofe",
+        "illustrazione": "crisi_economica",
+        "testo": "I conti sono questi: le piogge lunghe hanno marcito il raccolto, i granai sono a un terzo e i mercanti chiedono il triplo per il grano che resta. L'inverno non aspetta i nostri bilanci. Da dove prendiamo il pane che manca?",
+        "opzioni": [
+            {"strat": "economico", "target": "era2_vorrik", "label": "Compra il grano della Lega a qualunque prezzo",
+             "stat": {"tesoro": -8, "diplomazia": 4, "popolo": 4}, "rapporti": {"lega_coste": 10}, "pop": 2,
+             "feedback": "Vorrik firma il contratto con la mascella serrata: le navi della Lega scaricano grano per tutto l'autunno. \"Pago,\" dice. \"Ma che sia scritto: quando le parti si invertiranno, ricorderò il prezzo che hanno fatto.\""},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Apri le riserve del regno alla piazza",
+             "stat": {"popolo": 13, "tesoro": -5}, "pop": 3,
+             "feedback": "Karro spalanca i granai del regno e distribuisce con le sue mani, un sacco per famiglia, davanti a tutti. \"Il regno siete voi,\" grida. \"Quello che era suo era già vostro.\" La piazza non lo dimenticherà."},
+            {"strat": "spionaggio", "target": "era2_saekh", "label": "Sottrai i convogli diretti all'Impero",
+             "stat": {"spionaggio": 12, "tesoro": 5}, "rapporti": {"impero_sole": -10},
+             "feedback": "Saekh non racconta come, e nessuno chiede. I carri arrivano di notte, senza insegne, pieni di grano con il marchio del Sole raschiato via. Il popolo mangia. Da est, prima o poi, qualcuno verrà a contare i carri."},
+        ],
+    },
+    {
+        "id": "d_corte_14_pellegrini", "era": 2, "personaggio": "era2_maren", "tipo": "mistero",
+        "testo": "Ogni notte la gente si raduna al tempio che nessuno ha costruito. Cantano una nenia che nessuno ricorda di avere imparato, e i bambini la cantano meglio dei vecchi. Ho cercato nei codici: la legge non ha una riga su questo. Cosa facciamo dei pellegrini del tempio?",
+        "opzioni": [
+            {"strat": "libro", "target": "era2_iove", "label": "Trascrivi il canto e cercane la misura",
+             "stat": {"scienza": 12}, "flags": {"canti_trascritti": True},
+             "feedback": "Iove annota il canto in cifre e intervalli, nota dopo nota, e impallidisce sulle proporzioni. \"Le voci salgono come le stelle d'inverno,\" dice. \"Esatte. Questa melodia non è nata in una gola umana.\""},
+            {"strat": "decreto", "target": "era2_maren", "label": "Vieta i raduni dopo il tramonto",
+             "stat": {"legge": 12, "popolo": -4},
+             "feedback": "Maren pesa il divieto parola per parola e lo fa affiggere alle porte. La notte torna silenziosa e ordinata. Ma nelle case, sottovoce, con le imposte chiuse, il canto continua."},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Scendi in piazza e canta con loro",
+             "stat": {"popolo": 12}, "pop": 2,
+             "feedback": "Karro canta con i pellegrini fino all'alba, la voce roca in mezzo alle altre. \"Non so cosa dica il canto,\" ammette poi. \"Ma so che la piazza non era mai stata così unita. E questo, di solito, lo so usare.\""},
+        ],
+    },
+    # === q_scelta_finale (atto 3): +2 ===
+    {
+        "id": "d_corte_15_memoria", "era": 2, "personaggio": "era2_maren", "tipo": "svolta",
+        "testo": "Gli scribi hanno riempito la prima sala dell'archivio: trattati, sentenze, conti, e le storie che i vecchi giurano di avere vissuto. Lo spazio non basta per tutto, e ciò che non viene tramandato muore con chi lo ricorda. Pronuncio raramente parole solenni, ma questa lo è: cosa tramandiamo di ciò che siamo stati?",
+        "opzioni": [
+            {"strat": "decreto", "target": "era2_maren", "label": "Incidi leggi e sentenze nella pietra",
+             "stat": {"legge": 13, "costruzione": 2},
+             "feedback": "Maren sceglie le cento sentenze che hanno retto il regno e le fa incidere nel granito dell'archivio. \"Le storie consolano,\" dice. \"Le leggi proteggono. Chi verrà dopo capirà chi eravamo da come giudicavamo.\""},
+            {"strat": "libro", "target": "era2_iove", "label": "Salva i numeri, le mappe e le misure",
+             "stat": {"scienza": 12, "tesoro": 2},
+             "feedback": "Iove copia mappe, conteggi e proporzioni su pergamena trattata per durare. \"Le opinioni invecchiano,\" dice. \"Le misure no. Chi saprà quanto pesava il nostro grano saprà rifare tutto il resto.\""},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Affida le storie alla voce del popolo",
+             "stat": {"popolo": 12, "legge": -2},
+             "feedback": "Karro raduna i cantastorie e affida loro le vicende del regno, da ripetere a ogni fuoco e a ogni fiera. Qualche dettaglio cambierà a ogni racconto. Ma una storia che cammina vive più a lungo di una che sta ferma."},
+        ],
+    },
+    {
+        "id": "d_corte_16_vigilia", "era": 2, "personaggio": "era2_calden", "tipo": "proposta_consigliere",
+        "testo": "Lo sento come si sente un temporale dietro i monti. L'Impero arma le legioni, la Lega ritira le navi dai porti lontani, e le fonderie di Lena scaldano metalli giorno e notte. Qualunque strada il consiglio sceglierà, il regno deve arrivarci in piedi. Come usiamo il tempo che resta?",
+        "opzioni": [
+            {"strat": "scudo", "target": "era2_calden", "label": "Richiama ogni lancia e presidia i passi",
+             "stat": {"militare": 13, "tesoro": -3},
+             "feedback": "Calden richiama i veterani e mette guarnigioni su ogni valico. \"Le ferite peggiori,\" dice brusco, \"le ho viste su chi pensava di avere ancora tempo. Noi saremo già in piedi quando busseranno.\""},
+            {"strat": "economico", "target": "era2_vorrik", "label": "Riempi granai e casse fino all'orlo",
+             "stat": {"tesoro": 12, "popolo": 2},
+             "feedback": "Vorrik compra, accumula, sigilla. Granai pieni, casse piene, debiti riscossi fino all'ultimo conio. \"Le guerre,\" dice freddo, \"le vince chi può permettersi di perderne un pezzo.\""},
+            {"strat": "pergamena", "target": "era2_sereth", "label": "Manda messi a ogni corte, anche nemica",
+             "stat": {"diplomazia": 12}, "rapporti": {"impero_sole": 4, "lega_coste": 4},
+             "feedback": "Sereth spedisce messi in ogni direzione, con parole cucite su misura per ciascuna corte. \"Quando il temporale arriva,\" osserva, \"conviene che tutti ricordino di averci stretto la mano. Anche chi sperava di no.\""},
+        ],
+    },
+]
+
+# --- Batch Era 1 (gia' generato, commit ecc2796) -----------------------------
+
+_DECISIONI_ERA1_ARCHIVIO = [
     # === q_accampamento: +3 ===
     {
         "id": "d_acc_04_dispute", "era": 1, "personaggio": "era1_murr", "tipo": "proposta_consigliere",

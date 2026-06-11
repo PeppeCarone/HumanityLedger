@@ -444,9 +444,20 @@ Decisioni emerse durante l'implementazione, dopo che il gioco era già completo 
 
 ---
 
+### D045 — Espansione Era 2 (9→16 decisioni) + mystery alimentabile dall'Era 2
+
+- **Data**: 2026-06-11
+- **Status**: attiva (avanza D031, estende D022)
+- **Decisione**: aggiunte 7 decisioni Era 2 via `tools/gen_decision.py` (atto 1: moneta, strade; atto 2: corvo dell'Impero, crisi dei granai, pellegrini del tempio; atto 3: memoria dell'archivio, vigilia). Inoltre `GameState.mystery_punti()` ora conta anche i flag Era 2 (`voce_bosco_ascoltata`, `tempio_vuoto_studiato`, `canti_trascritti`).
+- **Motivazione**: l'Era 2 era ferma a 9 decisioni contro le 18 dell'Era 1 (target D031: ~20-25/era) e sottoutilizzava Vorrik, Saekh e Maren. I flag mystery Era 2 esistevano ma erano meccanicamente morti: chi ignorava il mystery nell'Era 1 non poteva più raggiungere il finale Futura, contro lo spirito di D022 ("attivabile tramite decisioni specifiche" in entrambe le ere).
+- **Implicazioni**: Era 2 a 16 decisioni (totale 34), terza catastrofe attivata (Crisi Economica, D020). Il finale Futura è ora raggiungibile anche con una run incentrata sull'Era 2 (voce del bosco + tempio o canti = soglia 2). `balance_sim.py` aggiornato (MYSTERY_FLAGS) e verificato: 6/6 finali raggiungibili.
+- **Alternative considerate**: portare l'Era 2 a 20+ in un colpo solo (meglio iterare dopo playtest), lasciare il mystery solo-Era-1 (vicolo cieco narrativo), abbassare MYSTERY_SOGLIA (snaturerebbe l'Era 1).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D045**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D046**.
 
 ```
 ### D036 — ...

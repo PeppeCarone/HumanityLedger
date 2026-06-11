@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/economico.tres" id="s_economico"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/economico.png" id="t_economico"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"tesoro": 13,
+"scienza": 2
+}
+set_flags = {
+"moneta_regno": true
+}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_economico")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_economico")
+label_text = "Batti moneta con il sigillo del regno"
+target_consigliere_id = "era2_vorrik"
+effetto = SubResource("eff_0")
+feedback_testo = "Vorrik pesa il primo conio sul palmo come fosse un figlio. \"Da oggi il regno sa quanto vale,\" dice freddo. \"E sa quanto gli si deve. Sono due cose diverse, e le voglio scritte entrambe.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12,
+"tesoro": 3
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Fissa per legge pesi e misure uguali per tutti"
+target_consigliere_id = "era2_maren"
+effetto = SubResource("eff_1")
+feedback_testo = "Maren detta la tavola delle misure e la fa incidere alle porte del mercato. \"Una bilancia truccata,\" sentenzia, \"ruba due volte: il grano oggi, la fiducia per sempre.\""
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 11,
+"tesoro": -3
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Lascia che la piazza fissi i suoi prezzi"
+target_consigliere_id = "era2_karro"
+effetto = SubResource("eff_2")
+feedback_testo = "Karro porta la decisione al mercato e la piazza si regola da sé, a voce alta, come ha sempre fatto. I conti di Vorrik ne escono storti, ma la gente sorride contando il resto."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_10_moneta"
+era = 2
+testo_consigliere = "I mercanti barattano sale con ferro e pelli con grano, e ogni scambio finisce in lite. Un regno che conta in dieci misure diverse non conta niente: lo dico da quando avevamo una sola bilancia. Possiamo battere moneta con il sigillo del regno, o mettere ordine in altro modo. Come ordiniamo la ricchezza del regno?"
+personaggio_id = "era2_vorrik"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "proposta_consigliere"

@@ -1,0 +1,98 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/economico.tres" id="s_economico"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/economico.png" id="t_economico"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+[ext_resource type="Resource" path="res://data/strategie/spionaggio.tres" id="s_spionaggio"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/spionaggio.png" id="t_spionaggio"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"tesoro": -8,
+"diplomazia": 4,
+"popolo": 4
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"lega_coste": 10
+}
+popolazione_delta = 2
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_economico")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_economico")
+label_text = "Compra il grano della Lega a qualunque prezzo"
+target_consigliere_id = "era2_vorrik"
+effetto = SubResource("eff_0")
+feedback_testo = "Vorrik firma il contratto con la mascella serrata: le navi della Lega scaricano grano per tutto l'autunno. \"Pago,\" dice. \"Ma che sia scritto: quando le parti si invertiranno, ricorderò il prezzo che hanno fatto.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 13,
+"tesoro": -5
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 3
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Apri le riserve del regno alla piazza"
+target_consigliere_id = "era2_karro"
+effetto = SubResource("eff_1")
+feedback_testo = "Karro spalanca i granai del regno e distribuisce con le sue mani, un sacco per famiglia, davanti a tutti. \"Il regno siete voi,\" grida. \"Quello che era suo era già vostro.\" La piazza non lo dimenticherà."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"spionaggio": 12,
+"tesoro": 5
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"impero_sole": -10
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_spionaggio")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_spionaggio")
+label_text = "Sottrai i convogli diretti all'Impero"
+target_consigliere_id = "era2_saekh"
+effetto = SubResource("eff_2")
+feedback_testo = "Saekh non racconta come, e nessuno chiede. I carri arrivano di notte, senza insegne, pieni di grano con il marchio del Sole raschiato via. Il popolo mangia. Da est, prima o poi, qualcuno verrà a contare i carri."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_13_granai"
+era = 2
+testo_consigliere = "I conti sono questi: le piogge lunghe hanno marcito il raccolto, i granai sono a un terzo e i mercanti chiedono il triplo per il grano che resta. L'inverno non aspetta i nostri bilanci. Da dove prendiamo il pane che manca?"
+personaggio_id = "era2_vorrik"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "catastrofe"
+illustrazione_id = "crisi_economica"
