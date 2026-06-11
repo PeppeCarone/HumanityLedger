@@ -56,6 +56,9 @@ func _run() -> void:
 	var fin: Finale = load("res://data/finali/fine_prosperita.tres") as Finale
 	var set_fin: Callable = func(inst: Node) -> void: inst.finale = fin
 	await _shot("res://scenes/ending_screen.tscn", "shot_ending", set_fin, Callable(), 3.5)
+	GameState.reset_run()
+	var show_trans: Callable = func(inst: Node) -> void: inst._show_transizione_a_era2()
+	await _shot("res://scenes/main.tscn", "shot_transizione", Callable(), show_trans, 3.2)
 	# world map: serve configura() + attesa lunga per il crossfade/crescita insediamenti
 	GameState.reset_run()
 	GameState.militare = 70

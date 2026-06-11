@@ -104,14 +104,15 @@ var processing_drop: bool = false
 var ledger_screen_instance: CanvasLayer = null
 var ending_instance: CanvasLayer = null
 var pause_instance: CanvasLayer = null
+var era_card: CanvasLayer = null
 var stat_tweens: Dictionary = {}
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 
 
 func _ready() -> void:
-	help_label.text = "Scegli come rispondere: trascina un'opzione sul consigliere che la sostiene (si illumina di verde). Opzioni grigie = bloccate, passa il mouse per il requisito. L = Ledger, ESC = pausa."
-	help_label.add_theme_font_size_override("font_size", 19)
+	help_label.text = "Trascina un'azione sul consigliere che la sostiene."
+	help_label.add_theme_font_size_override("font_size", 20)
 	help_label.add_theme_color_override("font_color", Color(0.92, 0.86, 0.72))
 	help_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	help_label.add_theme_constant_override("outline_size", 4)
@@ -314,6 +315,15 @@ func _setup_hud() -> void:
 	rapporti_box.name = "RapportiBox"
 	rapporti_box.add_theme_constant_override("separation", 4)
 	hud_container.add_child(rapporti_box)
+	var spacer4: Control = Control.new()
+	spacer4.custom_minimum_size = Vector2(0, 14)
+	hud_container.add_child(spacer4)
+	var tasti: Label = Label.new()
+	tasti.name = "Tasti"
+	tasti.text = "L  Ledger      ESC  Pausa"
+	tasti.add_theme_font_size_override("font_size", 14)
+	tasti.modulate = Color(1, 1, 1, 0.45)
+	hud_container.add_child(tasti)
 	_refresh_rapporti()
 
 
@@ -482,19 +492,100 @@ func _show_transizione_a_era2() -> void:
 	in_transizione_era = true
 	_clear_children(consiglieri_row)
 	_clear_children(decision_panel_row)
+	_set_decision_visible(false)
+	call_button.visible = false
+	arriving_portrait.visible = false
 	proposer_portrait.texture = null
 	if event_image != null:
 		event_image.visible = false
-	proposer_name_label.modulate = COLOR_PROPOSER_SVOLTA
-	proposer_name_label.text = "Fine dell'Era Paleolitica"
-	proposer_text_label.text = "Le stagioni passano, le pietre crescono, i nomi cambiano. L'Idolo del Fuoco arde ancora, ma ora sopra un tempio. Il popolo è diventato un Regno Mitico."
-	quest_log_label.text = "Era 1 completata.\nPremi INVIO per entrare nell'Era 2.\n(le stat vengono trasferite)"
-	_show_narrative("Premi INVIO per attraversare le ere.")
+	quest_log_label.text = "Era 1 completata."
+	_mostra_era_card(
+		"Fine dell'Era Paleolitica",
+		"Le stagioni passano, le pietre crescono, i nomi cambiano.\nL'Idolo del Fuoco arde ancora, ma ora sopra un tempio.\nIl popolo è diventato un Regno Mitico.",
+		"Premi INVIO per attraversare le ere"
+	)
 	AudioManager.play_sfx("era_transition")
+
+
+# Title card cinematografica a schermo pieno per la transizione d'era.
+func _mostra_era_card(titolo: String, testo: String, footer: String) -> void:
+	_chiudi_era_card()
+	era_card = CanvasLayer.new()
+	era_card.layer = 15
+	var bg: ColorRect = ColorRect.new()
+	bg.color = Color(0.015, 0.01, 0.02, 1.0)
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	era_card.add_child(bg)
+	bg.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and in_transizione_era:
+			_entra_era2())
+	var titolo_lbl: Label = Label.new()
+	titolo_lbl.text = titolo
+	titolo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	titolo_lbl.add_theme_font_size_override("font_size", 58)
+	titolo_lbl.add_theme_color_override("font_color", Color(0.92, 0.8, 0.55))
+	var fnt: Font = _font_titoli()
+	if fnt != null:
+		titolo_lbl.add_theme_font_override("font", fnt)
+	titolo_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	titolo_lbl.offset_top = 330
+	titolo_lbl.offset_bottom = 430
+	era_card.add_child(titolo_lbl)
+	var testo_lbl: Label = Label.new()
+	testo_lbl.text = testo
+	testo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	testo_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	testo_lbl.add_theme_font_size_override("font_size", 26)
+	testo_lbl.add_theme_color_override("font_color", Color(0.9, 0.86, 0.78))
+	testo_lbl.add_theme_constant_override("line_spacing", 10)
+	testo_lbl.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	testo_lbl.offset_left = 420
+	testo_lbl.offset_right = -420
+	testo_lbl.offset_top = 480
+	testo_lbl.offset_bottom = 660
+	era_card.add_child(testo_lbl)
+	var footer_lbl: Label = Label.new()
+	footer_lbl.text = footer
+	footer_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	footer_lbl.add_theme_font_size_override("font_size", 19)
+	footer_lbl.add_theme_color_override("font_color", Color(0.75, 0.68, 0.55))
+	footer_lbl.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	footer_lbl.offset_top = -120
+	footer_lbl.offset_bottom = -80
+	era_card.add_child(footer_lbl)
+	add_child(era_card)
+	# fade-in del nero + testi a cascata, footer che respira
+	bg.modulate.a = 0.0
+	titolo_lbl.modulate.a = 0.0
+	testo_lbl.modulate.a = 0.0
+	footer_lbl.modulate.a = 0.0
+	var t: Tween = create_tween()
+	t.tween_property(bg, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE)
+	t.parallel().tween_property(titolo_lbl, "modulate:a", 1.0, 1.0).set_delay(0.6)
+	t.parallel().tween_property(testo_lbl, "modulate:a", 1.0, 1.0).set_delay(1.3)
+	t.parallel().tween_property(footer_lbl, "modulate:a", 0.9, 0.8).set_delay(2.0)
+	var blink: Tween = create_tween()
+	blink.set_loops()
+	blink.set_trans(Tween.TRANS_SINE)
+	blink.tween_interval(2.8)
+	blink.tween_property(footer_lbl, "modulate:a", 0.45, 0.9)
+	blink.tween_property(footer_lbl, "modulate:a", 0.9, 0.9)
+	era_card.set_meta("blink", blink)
+
+
+func _chiudi_era_card() -> void:
+	if era_card != null and is_instance_valid(era_card):
+		if era_card.has_meta("blink"):
+			var b: Tween = era_card.get_meta("blink")
+			if b != null and b.is_valid():
+				b.kill()
+		era_card.queue_free()
+	era_card = null
 
 
 func _entra_era2() -> void:
 	in_transizione_era = false
+	_chiudi_era_card()
 	GameState.avanza_era()
 	_aggiorna_sfondo_era()
 	var bg: ColorRect = $UI/Background
