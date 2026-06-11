@@ -66,7 +66,8 @@ const STAT_LABELS: Dictionary = {
 }
 
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
-const BG_ERA1: String = "res://Assets/art/backgrounds/era1_caverna.png"
+const BG_CAVERNA: String = "res://Assets/art/backgrounds/era1_caverna.jpg"
+const BG_ACCAMPAMENTO: String = "res://Assets/art/backgrounds/era1_accampamento.jpg"
 const BG_ERA2: String = "res://Assets/art/backgrounds/era2_citta.png"
 
 @onready var scene_bg: TextureRect = $UI/SceneBg
@@ -334,16 +335,40 @@ func _start_era1() -> void:
 	_avvia_prossima_quest()
 
 
+func _sfondo_corrente() -> String:
+	if GameState.era_corrente >= 2:
+		return BG_ERA2
+	# Era 1: caverna solo durante il tutorial, poi il popolo esce all'aperto.
+	if current_quest != null and current_quest.id != "q_caverna_tutorial":
+		return BG_ACCAMPAMENTO
+	return BG_CAVERNA
+
+
 func _aggiorna_sfondo_era() -> void:
 	if scene_bg == null:
 		return
-	var path: String = BG_ERA2 if GameState.era_corrente >= 2 else BG_ERA1
+	var path: String = _sfondo_corrente()
 	if ResourceLoader.exists(path):
 		scene_bg.texture = load(path)
+		scene_bg.set_meta("bg_path", path)
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
 	if village != null:
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
+
+
+# Cambio sfondo morbido quando la quest sposta la scena (es. caverna -> accampamento).
+func _aggiorna_sfondo_quest() -> void:
+	if scene_bg == null:
+		return
+	var path: String = _sfondo_corrente()
+	if str(scene_bg.get_meta("bg_path", "")) == path or not ResourceLoader.exists(path):
+		return
+	scene_bg.set_meta("bg_path", path)
+	var t: Tween = create_tween()
+	t.tween_property(scene_bg, "modulate:a", 0.15, 0.5).set_trans(Tween.TRANS_SINE)
+	t.tween_callback(func() -> void: scene_bg.texture = load(path))
+	t.tween_property(scene_bg, "modulate:a", 1.0, 0.7).set_trans(Tween.TRANS_SINE)
 
 
 func _avvia_prossima_quest() -> void:
@@ -360,6 +385,7 @@ func _avvia_prossima_quest() -> void:
 	current_quest = q
 	QuestManager.avvia_quest(q)
 	current_step = 0
+	_aggiorna_sfondo_quest()
 	_show_current_decision()
 
 

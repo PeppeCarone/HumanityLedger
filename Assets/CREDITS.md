@@ -114,6 +114,18 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 - **Licenza**: AI-generated, uso interno
 - **Contenuto**: dimostrazione 4 stati del drag (drag/hover/successful drop/failed drop). Riferimento implementativo per `drag_handler.gd`.
 
+### `villaggio_era1.png`, `villaggio_era2.png`
+- **Autore**: AI Generated (Lovable, prompt in `Docs/08-asset-prompts.md` §P2, 2026-06-11)
+- **Licenza**: AI-generated, uso interno
+- **Contenuto**: 6+6 edifici isometrici trasparenti (Era 1 paleolitica: tenda, capanna, totem, focolare, essiccatoio, palizzata; Era 2 mitica: tempio, mercato, torre, fonderia, mura, archivio).
+- **Sliced in**: `art/villaggio/era1/00-05.png`, `era2/00-05.png` via `tools/slice_villaggio.py`
+
+### `bg_era1_caverna_src.jpg`, `bg_era1_accampamento_src.jpg`
+- **Autore**: AI Generated (Lovable, prompt in `Docs/08-asset-prompts.md` §P1, 2026-06-11)
+- **Licenza**: AI-generated, uso interno
+- **Contenuto**: sfondi di scena Era 1 (caverna con pitture rupestri e volto senza nome; accampamento esterno al crepuscolo). Firma incisa sull'accampamento attenuata via blur in post (`slice_villaggio.py`).
+- **Processed in**: `art/backgrounds/era1_caverna.jpg`, `era1_accampamento.jpg`
+
 ---
 
 ## Asset di gioco (sliced / originali)

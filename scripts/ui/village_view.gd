@@ -7,21 +7,40 @@ class_name VillageView
 # animazione, le altre decisioni mostrano un effetto (guerra/alleanza/scienza...).
 # Riusa map_transformation (edifici) e live_feedback (effetti).
 
-const TRANSFORM: String = "res://Assets/art/map/map_transformation/%02d.png"
+const VILLAGGIO: String = "res://Assets/art/villaggio/era%d/%02d.png"
 const FEEDBACK: String = "res://Assets/art/map/live_feedback/%02d.png"
 
-# Sequenza di edifici per era (indici map_transformation): il villaggio si infittisce
-# e migliora man mano. Era 1 primitivo -> Era 2 cittadine/citta'.
+# Sequenza di edifici per era (indici dei sprite in Assets/art/villaggio/era<N>/):
+# era1: 0 tenda, 1 capanna, 2 totem, 3 focolare, 4 essiccatoio, 5 palizzata
+# era2: 0 tempio, 1 mercato, 2 torre, 3 fonderia, 4 mura, 5 archivio
 const EDIFICI_ERA: Dictionary = {
-	1: [6, 3, 2, 5, 3, 2],
-	2: [1, 0, 1, 0, 1, 0],
+	1: [3, 0, 1, 4, 2, 5],
+	2: [0, 1, 2, 5, 3, 4],
 }
 
-# Slot lungo la linea di terra (x normalizzato). Distribuiti su tutta la larghezza
-# cosi' molti spuntano nei margini e nei varchi tra i pannelli.
-const SLOT_X: Array[float] = [0.5, 0.39, 0.61, 0.30, 0.70, 0.45]
-const BASE_Y: float = 0.5         # linea di terra (villaggio eroe a tutto schermo)
-const SCALA_EDIFICIO: float = 1.15
+# Tableau del villaggio per era: slot con posizione normalizzata e scala relativa.
+# Le file dietro sono piu' in alto e piu' piccole (profondita'). Era 2 sta sulla
+# fascia bassa (lo sfondo e' un panorama: la "terra" utile e' il primo piano),
+# evitando la zona del CallButton (x 0.40-0.72, y > 0.81).
+const SLOTS_ERA: Dictionary = {
+	1: [
+		{"x": 0.50, "y": 0.620, "s": 0.85},
+		{"x": 0.36, "y": 0.660, "s": 0.92},
+		{"x": 0.65, "y": 0.660, "s": 0.92},
+		{"x": 0.24, "y": 0.740, "s": 1.00},
+		{"x": 0.78, "y": 0.740, "s": 1.00},
+		{"x": 0.58, "y": 0.780, "s": 1.05},
+	],
+	2: [
+		{"x": 0.47, "y": 0.800, "s": 0.82},
+		{"x": 0.34, "y": 0.840, "s": 0.90},
+		{"x": 0.66, "y": 0.840, "s": 0.90},
+		{"x": 0.22, "y": 0.910, "s": 1.00},
+		{"x": 0.80, "y": 0.910, "s": 1.00},
+		{"x": 0.33, "y": 0.960, "s": 1.02},
+	],
+}
+const SCALA_EDIFICIO: float = 0.78
 
 # Effetto + tinta per tipo di conseguenza.
 const FX_CONSEGUENZA: Dictionary = {
@@ -50,7 +69,7 @@ func _baseline() -> Vector2:
 
 
 func _tex(idx: int) -> Texture2D:
-	var p: String = TRANSFORM % idx
+	var p: String = VILLAGGIO % [_era, idx]
 	return load(p) if ResourceLoader.exists(p) else null
 
 
@@ -62,9 +81,17 @@ func sincronizza(era: int, n: int) -> void:
 			nodo.queue_free()
 	_edifici_nodi.clear()
 	_slot_usati = 0
-	var quanti: int = mini(n, SLOT_X.size())
+	var quanti: int = mini(n, _slots().size())
 	for i in quanti:
 		_posa_edificio(false)
+
+
+func _slots() -> Array:
+	return SLOTS_ERA.get(_era, SLOTS_ERA[1])
+
+
+func _base_y() -> float:
+	return 0.80 if _era >= 2 else 0.68
 
 
 # Aggiunge un edificio al prossimo slot. Se animato, sorge dal terreno con polvere.
@@ -73,24 +100,25 @@ func costruisci() -> void:
 
 
 func _posa_edificio(animato: bool) -> TextureRect:
-	if _slot_usati >= SLOT_X.size():
+	if _slot_usati >= _slots().size():
 		return null
 	var seq: Array = EDIFICI_ERA.get(_era, EDIFICI_ERA[1])
 	var idx: int = seq[_slot_usati % seq.size()]
 	var tex: Texture2D = _tex(idx)
 	if tex == null:
 		return null
+	var slot: Dictionary = _slots()[_slot_usati]
 	var s: Vector2 = _baseline()
 	var tr: TextureRect = TextureRect.new()
 	tr.texture = tex
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var dim: Vector2 = Vector2(tex.get_size()) * SCALA_EDIFICIO
+	var dim: Vector2 = Vector2(tex.get_size()) * SCALA_EDIFICIO * float(slot["s"])
 	tr.size = dim
 	tr.pivot_offset = Vector2(dim.x * 0.5, dim.y)
-	var px: float = SLOT_X[_slot_usati] * s.x
-	var py: float = BASE_Y * s.y
+	var px: float = float(slot["x"]) * s.x
+	var py: float = float(slot["y"]) * s.y
 	tr.position = Vector2(px - dim.x * 0.5, py - dim.y)
 	var ombra: TextureRect = _ombra(px, py, dim.x, animato)
 	_suolo.add_child(tr)
@@ -180,7 +208,7 @@ func applica_conseguenza(tipo: String) -> void:
 	var dim: Vector2 = Vector2(tex.get_size()) * 0.9
 	tr.size = dim
 	tr.pivot_offset = dim * 0.5
-	tr.position = Vector2(s.x * 0.5 - dim.x * 0.5, BASE_Y * s.y - dim.y * 0.62)
+	tr.position = Vector2(s.x * 0.5 - dim.x * 0.5, _base_y() * s.y - dim.y * 0.62)
 	tr.modulate = Color(dati["col"].r, dati["col"].g, dati["col"].b, 0.0)
 	_fx.add_child(tr)
 	var t: Tween = create_tween()
