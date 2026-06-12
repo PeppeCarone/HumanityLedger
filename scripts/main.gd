@@ -586,6 +586,7 @@ func _chiudi_era_card() -> void:
 func _entra_era2() -> void:
 	in_transizione_era = false
 	_chiudi_era_card()
+	Ledger.unlock_artefatto("pietra_del_fuoco")
 	GameState.avanza_era()
 	_aggiorna_sfondo_era()
 	var bg: ColorRect = $UI/Background
@@ -618,6 +619,9 @@ func _show_ending() -> void:
 	var finale: Finale = _valuta_finale()
 	if finale != null:
 		Ledger.unlock_lore("epilogo_" + finale.id)
+		Ledger.unlock_artefatto("occhio_dello_spirito")
+		if finale.id == "fine_guerra":
+			Ledger.unlock_artefatto("corno_adunata")
 		proposer_name_label.text = "Epilogo: %s" % finale.nome
 		quest_log_label.text = "Era 2 completata.\nPremi R per ricominciare."
 	else:
@@ -773,6 +777,7 @@ func _setup_consiglieri_for_decision(decision: Decision) -> void:
 
 func _setup_decision_panel_for_decision(decision: Decision) -> void:
 	var items_creati: Array = []
+	var hint_stat_attivo: bool = _artefatto_mostra_hint()
 	for opt in decision.opzioni:
 		if opt == null:
 			continue
@@ -780,6 +785,10 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		var sid: String = opt.strategia.id if opt.strategia != null else ""
 		item.item_id = sid
 		item.label_text = opt.label_text
+		if hint_stat_attivo:
+			var stat_p: String = _stat_principale(opt.effetto)
+			if stat_p != "":
+				item.stat_hint_text = "✦ %s" % stat_p.capitalize()
 		var tgt: Personaggio = personaggi_db.get(opt.target_consigliere_id)
 		if tgt != null:
 			var nome_tgt: String = tgt.nome.split(" ")[0]
@@ -803,6 +812,27 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		push_warning("Tutte le opzioni bloccate dai prerequisiti: riabilito per evitare il vicolo cieco")
 		for it in items_creati:
 			it.set_disabled(false)
+
+
+func _artefatto_mostra_hint() -> bool:
+	if GameState.artefatto_equipaggiato == "":
+		return false
+	var art: Artefatto = load("res://data/artefatti/%s.tres" % GameState.artefatto_equipaggiato) as Artefatto
+	return art != null and art.mostra_hint_stat
+
+
+func _stat_principale(eff: Effect) -> String:
+	# La stat col delta positivo maggiore: la "virtù" che l'azione rinforza.
+	if eff == null:
+		return ""
+	var migliore: String = ""
+	var valore_max: int = 0
+	for stat_name in eff.stat_delta:
+		var v: int = int(eff.stat_delta[stat_name])
+		if v > valore_max:
+			valore_max = v
+			migliore = stat_name
+	return migliore
 
 
 func _on_item_dropped(data: Dictionary) -> void:
@@ -922,6 +952,7 @@ func _on_mystery_attivata() -> void:
 		t.tween_property(bg, "color", COLOR_BG_MYSTERY, 1.5)
 	Ledger.unlock_evento("fiume_rosso")
 	Ledger.unlock_lore("lore_fiume_rosso")
+	Ledger.unlock_artefatto("lacrima_di_lyssa")
 	AudioManager.play_sfx("quest_complete")
 	_show_narrative("Il fuoco arde di un rosso che non conosce. Oltre la fiamma, qualcosa ascolta.")
 

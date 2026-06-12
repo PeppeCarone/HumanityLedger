@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Artefatto" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/artefatto.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
+[ext_resource type="Texture2D" path="res://Assets/art/stats/spionaggio.png" id="3"]
+
+[sub_resource type="Resource" id="eff_occhio"]
+script = ExtResource("2")
+stat_delta = {
+"spionaggio": 4
+}
+set_flags = {}
+unlock_lore = []
+add_decisione_chiave = ""
+add_to_log = "L'Occhio si apre. Le intenzioni hanno un colore."
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[resource]
+script = ExtResource("1")
+id = "occhio_dello_spirito"
+nome = "L'Occhio dello Spirito"
+descrizione = "Iride di vetro che ha visto una storia intera. Rivela quale virtù ogni azione rinforza, prima di sceglierla. +4 a Spionaggio."
+icona = ExtResource("3")
+effetto_inizio_run = SubResource("eff_occhio")
+sblocca_dialoghi = []
+sblocca_finali = []
+mostra_hint_stat = true
+sblocco_hint = "Si sblocca portando una run fino al suo epilogo."

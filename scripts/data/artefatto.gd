@@ -8,3 +8,7 @@ extends Resource
 @export var effetto_inizio_run: Effect
 @export var sblocca_dialoghi: Array[String] = []
 @export var sblocca_finali: Array[String] = []
+# Se true, con l'artefatto equipaggiato le card-opzione mostrano la stat rinforzata.
+@export var mostra_hint_stat: bool = false
+# Testo mostrato sulla card del Ledger finché l'artefatto è bloccato.
+@export var sblocco_hint: String = ""

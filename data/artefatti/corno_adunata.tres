@@ -25,3 +25,4 @@ icona = ExtResource("3")
 effetto_inizio_run = SubResource("eff_corno")
 sblocca_dialoghi = ["era1_brann_extra_1"]
 sblocca_finali = ["era_guerra_estesa"]
+sblocco_hint = "Si sblocca raggiungendo l'Era della Guerra."

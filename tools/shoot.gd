@@ -51,6 +51,7 @@ func _run() -> void:
 	GameState.reset_run()
 	GameState.era_corrente = 2
 	GameState.set_flag("era1_completata", true)
+	GameState.artefatto_equipaggiato = "occhio_dello_spirito"   # mostra gli hint-stat
 	await _shot("res://scenes/main.tscn", "shot_era2_decision", Callable(), func(inst: Node) -> void:
 		inst._apri_decisione())
 	GameState.reset_run()
@@ -78,4 +79,10 @@ func _run() -> void:
 	print("SHOT shot_worldmap ", wimg.get_size())
 	wm.queue_free()
 	await get_tree().process_frame
+	# Ledger con artefatti misti: semina SOLO in memoria (niente save -> niente
+	# scrittura del ledger.json reale). Per questo va tenuto come ultimo shot.
+	GameState.reset_run()
+	Ledger.artefatti_sbloccati.assign(["pietra_del_fuoco", "occhio_dello_spirito"])
+	Ledger.artefatto_scelto = "occhio_dello_spirito"
+	await _shot("res://scenes/ledger_screen.tscn", "shot_ledger")
 	get_tree().quit()

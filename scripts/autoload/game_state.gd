@@ -208,6 +208,12 @@ func reset_run() -> void:
 	rapporti_civilta.clear()
 	artefatto_equipaggiato = ""
 	mystery_attiva = false
+	# Lo spirito porta nella nuova run l'artefatto scelto nel Ledger.
+	if Ledger.artefatto_scelto != "" and Ledger.is_artefatto_unlocked(Ledger.artefatto_scelto):
+		artefatto_equipaggiato = Ledger.artefatto_scelto
+		var art: Artefatto = load("res://data/artefatti/%s.tres" % artefatto_equipaggiato) as Artefatto
+		if art != null and art.effetto_inizio_run != null:
+			apply_effect(art.effetto_inizio_run)
 
 
 func to_dict() -> Dictionary:

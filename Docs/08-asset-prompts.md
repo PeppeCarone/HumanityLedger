@@ -159,6 +159,24 @@ No text, no labels, no borders with writing, no watermark.
 
 ---
 
+## P6 — Icona artefatto: L'Occhio dello Spirito
+
+Quarto artefatto del Ledger (gli altri 3 esistono già: corno, lacrima, pietra).
+Oggi usa come placeholder il medaglione-spionaggio. Stessa resa degli artefatti
+esistenti: oggetto singolo, painterly dark-fantasy, fondo scuro.
+
+```
+A single mystical artifact on a plain dark background: a polished crystal eye
+the size of a river stone, amber-gold iris with a faint spiral inside, ancient
+and slightly luminous, resting like an orb, painterly dark-fantasy style,
+warm rim light, high detail, centered, no hands, no text, no watermark.
+```
+
+Dopo il drop: salvare come `Assets/art/ledger/occhio_dello_spirito.png` e
+aggiornare il path icona in `data/artefatti/occhio_dello_spirito.tres`.
+
+---
+
 ## Già a posto (NON rigenerare)
 
 - Ritratti 16 consiglieri (post-recrop), ambasciatori, icone stat, artefatti Ledger

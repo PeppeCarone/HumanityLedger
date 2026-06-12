@@ -25,3 +25,4 @@ icona = ExtResource("3")
 effetto_inizio_run = SubResource("eff_pietra")
 sblocca_dialoghi = ["era1_tev_extra_1"]
 sblocca_finali = []
+sblocco_hint = "Si sblocca completando il Paleolitico."

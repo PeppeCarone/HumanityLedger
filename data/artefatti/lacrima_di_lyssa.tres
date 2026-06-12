@@ -27,3 +27,4 @@ icona = ExtResource("3")
 effetto_inizio_run = SubResource("eff_lacrima")
 sblocca_dialoghi = ["mystery_intro_1"]
 sblocca_finali = ["era_futura"]
+sblocco_hint = "Si sblocca risvegliando il mistero in una run."

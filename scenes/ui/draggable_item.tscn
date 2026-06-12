@@ -33,6 +33,19 @@ text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="StatHint" type="Label" parent="."]
+anchor_right = 1.0
+offset_top = 124.0
+offset_bottom = 148.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.4, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.95)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 13
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Label" type="Label" parent="."]
 anchor_top = 1.0
 anchor_right = 1.0

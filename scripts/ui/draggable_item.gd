@@ -10,11 +10,13 @@ extends Control
 @export var target_text: String = ""
 @export var target_color: Color = Color(0.55, 0.88, 0.6)
 @export var hint_text: String = ""
+@export var stat_hint_text: String = ""
 
 @onready var bg: Panel = $Background
 @onready var icon_rect: TextureRect = $IconTexture
 @onready var lbl: Label = $Label
 @onready var target_lbl: Label = $Target
+@onready var stat_hint_lbl: Label = $StatHint
 
 const COL_LABEL_NORMALE: Color = Color(0.97, 0.92, 0.8)
 const COL_LABEL_DISABILITATO: Color = Color(0.85, 0.5, 0.42)
@@ -45,6 +47,9 @@ func _refresh() -> void:
 		target_lbl.text = target_text
 		target_lbl.visible = target_text != ""
 		target_lbl.add_theme_color_override("font_color", target_color)
+	if stat_hint_lbl != null:
+		stat_hint_lbl.text = stat_hint_text
+		stat_hint_lbl.visible = stat_hint_text != ""
 	if _disabled:
 		modulate = Color(0.78, 0.74, 0.7, 0.92)
 		if lbl != null:

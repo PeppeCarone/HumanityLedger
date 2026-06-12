@@ -6,6 +6,8 @@ const SAVE_VERSION: int = 1
 var lore_sbloccata: Array[String] = []
 var artefatti_sbloccati: Array[String] = []
 var eventi_sbloccati: Array[String] = []
+# Artefatto scelto per le prossime run (meta-persistente, applicato da reset_run).
+var artefatto_scelto: String = ""
 
 signal lore_unlocked(id: String)
 signal artefatto_unlocked(id: String)
@@ -40,6 +42,14 @@ func unlock_evento(id: String) -> void:
 	save()
 
 
+func scegli_artefatto(id: String) -> void:
+	# Toggle: ri-cliccare l'artefatto scelto lo rimuove.
+	if id != "" and not is_artefatto_unlocked(id):
+		return
+	artefatto_scelto = "" if artefatto_scelto == id else id
+	save()
+
+
 func is_lore_unlocked(id: String) -> bool:
 	return id in lore_sbloccata
 
@@ -58,6 +68,7 @@ func save() -> void:
 		"lore_sbloccata": lore_sbloccata,
 		"artefatti_sbloccati": artefatti_sbloccati,
 		"eventi_sbloccati": eventi_sbloccati,
+		"artefatto_scelto": artefatto_scelto,
 	}
 	var file: FileAccess = FileAccess.open(LEDGER_PATH, FileAccess.WRITE)
 	if file == null:
@@ -84,11 +95,15 @@ func load_ledger() -> void:
 	lore_sbloccata.assign(data.get("lore_sbloccata", []))
 	artefatti_sbloccati.assign(data.get("artefatti_sbloccati", []))
 	eventi_sbloccati.assign(data.get("eventi_sbloccati", []))
+	artefatto_scelto = data.get("artefatto_scelto", "")
+	if artefatto_scelto != "" and not is_artefatto_unlocked(artefatto_scelto):
+		artefatto_scelto = ""
 
 
 func reset_ledger() -> void:
 	lore_sbloccata.clear()
 	artefatti_sbloccati.clear()
 	eventi_sbloccati.clear()
+	artefatto_scelto = ""
 	if FileAccess.file_exists(LEDGER_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(LEDGER_PATH))

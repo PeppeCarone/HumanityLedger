@@ -196,7 +196,8 @@ func _populate_artefatti() -> void:
 
 
 func _build_artefatto_card(art: Artefatto) -> Control:
-	var equipped: bool = GameState.artefatto_equipaggiato == art.id
+	var unlocked: bool = Ledger.is_artefatto_unlocked(art.id)
+	var scelto: bool = Ledger.artefatto_scelto == art.id
 	var card: PanelContainer = PanelContainer.new()
 	card.custom_minimum_size = Vector2(240, 360)
 	var vbox: VBoxContainer = VBoxContainer.new()
@@ -207,27 +208,47 @@ func _build_artefatto_card(art: Artefatto) -> Control:
 	icon.texture = art.icona
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if not unlocked:
+		icon.modulate = Color(0.16, 0.14, 0.18)
 	vbox.add_child(icon)
 	var nome_lbl: Label = Label.new()
-	nome_lbl.text = art.nome
+	nome_lbl.text = art.nome if unlocked else "???"
 	nome_lbl.add_theme_font_size_override("font_size", 16)
 	nome_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(nome_lbl)
 	var desc_lbl: Label = Label.new()
-	desc_lbl.text = art.descrizione
+	if unlocked:
+		desc_lbl.text = art.descrizione
+	elif art.sblocco_hint != "":
+		desc_lbl.text = art.sblocco_hint
+	else:
+		desc_lbl.text = "Un artefatto ancora da conquistare."
 	desc_lbl.add_theme_font_size_override("font_size", 12)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.modulate = Color(1, 1, 1, 0.7)
+	desc_lbl.modulate = Color(1, 1, 1, 0.7 if unlocked else 0.5)
 	vbox.add_child(desc_lbl)
-	if equipped:
+	if scelto:
 		var equipped_lbl: Label = Label.new()
-		equipped_lbl.text = "EQUIPAGGIATO"
+		if GameState.artefatto_equipaggiato == art.id:
+			equipped_lbl.text = "EQUIPAGGIATO"
+		else:
+			equipped_lbl.text = "EQUIPAGGIATO\n(dalla prossima run)"
 		equipped_lbl.add_theme_font_size_override("font_size", 12)
 		equipped_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		equipped_lbl.modulate = Color(1.0, 0.85, 0.4)
 		vbox.add_child(equipped_lbl)
 		card.modulate = Color(1.15, 1.15, 0.85)
+	if unlocked:
+		card.tooltip_text = "Clicca per rimuovere" if scelto else "Clicca per equipaggiare"
+		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		card.gui_input.connect(_on_artefatto_card_input.bind(art.id))
 	return card
+
+
+func _on_artefatto_card_input(event: InputEvent, art_id: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		Ledger.scegli_artefatto(art_id)
+		_populate_artefatti()
 
 
 func _populate_eventi() -> void:
