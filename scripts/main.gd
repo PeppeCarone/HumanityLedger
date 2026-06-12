@@ -301,16 +301,33 @@ func _setup_hud() -> void:
 			icon.texture = load(icon_path)
 		row.add_child(icon)
 		stat_icon_nodes[stat_name] = icon
+		# Nome a sinistra (tenue), valore a destra (bold chiaro): gerarchia da
+		# pannello di comando, non lista di debug.
+		var nome_lbl: Label = Label.new()
+		nome_lbl.text = STAT_LABELS[stat_name]
+		nome_lbl.add_theme_font_size_override("font_size", 16)
+		nome_lbl.add_theme_color_override("font_color", Color(0.78, 0.72, 0.60))
+		nome_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nome_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(nome_lbl)
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
-		label.text = "%s: %d" % [STAT_LABELS[stat_name], GameState.get_stat(stat_name)]
-		label.add_theme_font_size_override("font_size", 20)
+		label.text = str(GameState.get_stat(stat_name))
+		label.add_theme_font_size_override("font_size", 19)
+		label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.82))
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(label)
 		hud_container.add_child(row)
 		stat_value_labels[stat_name] = label
+	var spacer_a: Control = Control.new()
+	spacer_a.custom_minimum_size = Vector2(0, 8)
+	hud_container.add_child(spacer_a)
+	var sep: ColorRect = ColorRect.new()
+	sep.color = Color(0.5, 0.38, 0.22, 0.35)
+	sep.custom_minimum_size = Vector2(0, 1)
+	hud_container.add_child(sep)
 	var spacer: Control = Control.new()
-	spacer.custom_minimum_size = Vector2(0, 20)
+	spacer.custom_minimum_size = Vector2(0, 8)
 	hud_container.add_child(spacer)
 	popolazione_label = Label.new()
 	popolazione_label.name = "Popolazione"
@@ -405,6 +422,7 @@ func _aggiorna_sfondo_era() -> void:
 	if village != null:
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
+		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
 
 
 func _aggiorna_scena_decisione() -> void:
@@ -978,11 +996,10 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 		(stat_tweens[nome] as Tween).kill()
 	var tween: Tween = create_tween()
 	stat_tweens[nome] = tween
-	var stat_label: String = STAT_LABELS[nome]
 	tween.tween_method(
 		func(value: float) -> void:
 			if is_instance_valid(label):
-				label.text = "%s: %d" % [stat_label, int(round(value))],
+				label.text = str(int(round(value))),
 		float(vecchio),
 		float(nuovo),
 		STAT_TWEEN_DURATION,
@@ -1002,6 +1019,8 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_stat_delta_float(label, nuovo - vecchio)
 	AudioManager.play_sfx("stat_up" if nuovo > vecchio else "stat_down")
+	if village != null and (nome == "popolo" or nome == "tesoro"):
+		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
 	_refresh_disabled_options()
 	if in_attesa_quest:
 		_avvia_prossima_quest()

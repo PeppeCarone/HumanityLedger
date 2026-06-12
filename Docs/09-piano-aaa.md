@@ -85,4 +85,12 @@ Avvertenza architetturale: ogni tween nuovo va killato al reset run (estendere i
 3. **Ondata 3 — sistemici**: J11 (villaggio che riflette lo stato), J6+J14, vignette/grain ovunque (#3, #9), poi Tier 3-4 a scendere.
 4. **Ondata 4 — da Lapse**: indicatori effetti-duraturi sotto l'HUD, contatore run/epiloghi nel Ledger, 2-3 richiami narrativi cross-decisione.
 
+---
+
+## Stato avanzamento
+
+- **2026-06-12 (commit ecbf00f)** — Ondata 1 Tier 1 completa: J1, J2, J3, J4, J5, J6-light, J14 + audit #1 (tipografia decisione), #7 (title card alone caldo), rimossa VersionLabel debug.
+- **2026-06-12 (secondo giro)** — audit #2 (HUD redesign: nome tenue a sinistra, valore bold a destra, separatore bronzo), #9 (zone mappa desaturate seppia, alpha 0.3→0.22), #10 (Ledger: vuoti in bronzo-mistero) + J10 (fumo CPUParticles2D dal focolare), J11 (prosperità: popolo+tesoro tingono gli edifici — crisi spenta / benessere dorato) + contatore meta "Epiloghi X/6 · Artefatti X/N" nel Ledger (lezione Lapse).
+- **Restano**: #3 vignette shader menu/mappa, #5 epilogo box istruzioni, #6 sfondo caverna [ASSET], #8 sfondo Ledger [ASSET], J7, J8, J12, J13, J15, J16, J17, indicatori effetti-duraturi, richiami narrativi cross-era.
+
 *File vivo: spuntare gli interventi man mano che vengono fatti.*

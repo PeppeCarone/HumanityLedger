@@ -243,8 +243,9 @@ func _crea_zona(nome: String, centro: Vector2, scala: float, mapscala: float) ->
 	tr.size = dim
 	tr.pivot_offset = dim * 0.5
 	tr.position = centro - dim * 0.5
-	tr.modulate = Color(1, 1, 1, 0.0)
-	tr.set_meta("alpha_target", 0.3)
+	# Velo grigio-caldo: smorza i colori moderni delle zone verso la palette seppia.
+	tr.modulate = Color(0.90, 0.86, 0.80, 0.0)
+	tr.set_meta("alpha_target", 0.22)
 	return tr
 
 

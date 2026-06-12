@@ -70,6 +70,9 @@ const FX_CONSEGUENZA: Dictionary = {
 var _era: int = 1
 var _slot_usati: int = 0
 var _edifici_nodi: Array[TextureRect] = []
+var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta prosperita')
+var _fumo: CPUParticles2D = null
+var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
 @onready var _fx: Control = $Fx
 
@@ -95,11 +98,13 @@ func sincronizza(era: int, n: int) -> void:
 		if is_instance_valid(nodo):
 			nodo.queue_free()
 	_edifici_nodi.clear()
+	_edifici_sprite.clear()
 	_slot_usati = 0
 	var quanti: int = mini(n, _slots().size())
 	for i in quanti:
 		_posa_edificio(false)
 	_fuoco_centrale()
+	_avvia_fumo()
 
 
 # Bagliore caldo pulsante dietro l'edificio centrale (focolare/tempio): il segno
@@ -173,8 +178,10 @@ func _posa_edificio(animato: bool) -> TextureRect:
 	var py: float = float(slot["y"]) * s.y
 	tr.position = Vector2(px - dim.x * 0.5, py - dim.y)
 	var ombra: TextureRect = _ombra(px, py, dim.x, animato)
+	tr.modulate = _tinta_prosperita
 	_suolo.add_child(tr)
 	_edifici_nodi.append(tr)
+	_edifici_sprite.append(tr)
 	if ombra != null:
 		_edifici_nodi.append(ombra)
 	_slot_usati += 1
@@ -239,6 +246,65 @@ func _polvere(base: Vector2) -> void:
 	t.tween_property(tr, "modulate:a", 0.0, 0.6)
 	t.parallel().tween_property(tr, "scale", Vector2.ONE * 1.4, 0.8)
 	t.tween_callback(tr.queue_free)
+
+
+# Filo di fumo dal focolare/tempio centrale: il villaggio respira anche da fermo.
+func _avvia_fumo() -> void:
+	if _fumo != null and is_instance_valid(_fumo):
+		_fumo.queue_free()
+	_fumo = null
+	if _slot_usati == 0:
+		return
+	var slot: Dictionary = _slots()[0]
+	var s: Vector2 = _baseline()
+	_fumo = CPUParticles2D.new()
+	_fumo.position = Vector2(float(slot["x"]) * s.x, float(slot["y"]) * s.y - 64.0)
+	_fumo.amount = 10
+	_fumo.lifetime = 3.4
+	_fumo.preprocess = 2.5
+	_fumo.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	_fumo.emission_sphere_radius = 6.0
+	_fumo.direction = Vector2(0, -1)
+	_fumo.spread = 16.0
+	_fumo.gravity = Vector2(5, -26)
+	_fumo.initial_velocity_min = 6.0
+	_fumo.initial_velocity_max = 13.0
+	_fumo.scale_amount_min = 0.35
+	_fumo.scale_amount_max = 0.8
+	var soft: Gradient = Gradient.new()
+	soft.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	soft.offsets = PackedFloat32Array([0.0, 1.0])
+	var soft_tex: GradientTexture2D = GradientTexture2D.new()
+	soft_tex.gradient = soft
+	soft_tex.fill = GradientTexture2D.FILL_RADIAL
+	soft_tex.fill_from = Vector2(0.5, 0.5)
+	soft_tex.fill_to = Vector2(1.0, 0.5)
+	soft_tex.width = 32
+	soft_tex.height = 32
+	_fumo.texture = soft_tex
+	var ramp: Gradient = Gradient.new()
+	ramp.colors = PackedColorArray([
+		Color(0.78, 0.73, 0.66, 0.22), Color(0.7, 0.68, 0.66, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 1.0])
+	_fumo.color_ramp = ramp
+	_suolo.add_child(_fumo)
+
+
+# Lo stato del regno si legge sugli edifici: crisi = spenti, benessere = dorati.
+func aggiorna_prosperita(popolo: int, tesoro: int) -> void:
+	var p: float = clampf(float(popolo + tesoro) / 120.0, 0.0, 1.0)
+	var tinta: Color = Color.WHITE
+	if p < 0.25:
+		tinta = Color(0.72, 0.68, 0.62)
+	elif p > 0.66:
+		tinta = Color(1.06, 1.01, 0.90)
+	if tinta == _tinta_prosperita:
+		return
+	_tinta_prosperita = tinta
+	for nodo in _edifici_sprite:
+		if is_instance_valid(nodo):
+			var t: Tween = nodo.create_tween()
+			t.tween_property(nodo, "modulate", tinta, 1.2)
 
 
 # Mostra l'effetto della conseguenza al centro del villaggio.

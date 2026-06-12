@@ -145,20 +145,49 @@ const EVENTI_REGISTRY: Dictionary = {
 
 func _ready() -> void:
 	background.gui_input.connect(_on_background_input)
+	_setup_contatori()
 	_populate_lore()
 	_populate_artefatti()
 	_populate_eventi()
+
+
+# Il progresso meta a colpo d'occhio (alla Lapse): quanto resta da scoprire.
+func _setup_contatori() -> void:
+	var epiloghi_visti: int = 0
+	for id in Ledger.lore_sbloccata:
+		if String(id).begins_with("epilogo_"):
+			epiloghi_visti += 1
+	var tot_artefatti: int = 0
+	var dir: DirAccess = DirAccess.open(ARTEFATTI_DIR)
+	if dir != null:
+		dir.list_dir_begin()
+		var fname: String = dir.get_next()
+		while fname != "":
+			if not dir.current_is_dir() and fname.ends_with(".tres"):
+				tot_artefatti += 1
+			fname = dir.get_next()
+		dir.list_dir_end()
+	var lbl: Label = Label.new()
+	lbl.text = "Epiloghi vissuti: %d / 6      Artefatti: %d / %d" % [
+		epiloghi_visti, Ledger.artefatti_sbloccati.size(), tot_artefatti]
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.78, 0.65, 0.42))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var vbox: VBoxContainer = $Panel/Margin/VBox
+	vbox.add_child(lbl)
+	vbox.move_child(lbl, 2)
 
 
 func _populate_lore() -> void:
 	for c in lore_list.get_children():
 		c.queue_free()
 	if Ledger.lore_sbloccata.is_empty():
+		# Il vuoto e' un mistero da scoprire, non un errore.
 		var empty: Label = Label.new()
 		empty.text = "Nessuna lore ancora scoperta.\n\nLe scelte ricche di significato lasciano segno qui."
-		empty.add_theme_font_size_override("font_size", 16)
+		empty.add_theme_font_size_override("font_size", 14)
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.modulate = Color(1, 1, 1, 0.6)
+		empty.modulate = Color(0.78, 0.66, 0.45, 0.8)
 		lore_list.add_child(empty)
 		return
 	for lore_id in Ledger.lore_sbloccata:
@@ -264,7 +293,7 @@ func _populate_eventi() -> void:
 			lbl.text = "???"
 		lbl.add_theme_font_size_override("font_size", 16)
 		if not sbloccato:
-			lbl.modulate = Color(1, 1, 1, 0.5)
+			lbl.modulate = Color(0.78, 0.66, 0.45, 0.55)
 		eventi_list.add_child(lbl)
 
 
