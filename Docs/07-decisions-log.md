@@ -466,9 +466,20 @@ Decisioni emerse durante l'implementazione, dopo che il gioco era già completo 
 
 ---
 
+### D047 — Ciclo artefatti: sblocchi per traguardi + equip dal Ledger
+
+- **Data**: 2026-06-12
+- **Status**: attiva (attua D018)
+- **Decisione**: gli artefatti si sbloccano raggiungendo traguardi della run (Pietra del Fuoco = Era 1 completata; Lacrima di Lyssa = mistero risvegliato; Corno dell'Adunata = finale Guerra; nuovo Occhio dello Spirito = qualunque epilogo) e si equipaggiano cliccando la card nel Ledger. La scelta è meta-persistente (`Ledger.artefatto_scelto`) e all'inizio di ogni nuova run l'artefatto viene equipaggiato e il suo `effetto_inizio_run` applicato. Le card bloccate mostrano silhouette scura + indizio di sblocco.
+- **Motivazione**: l'infrastruttura esisteva (unlock/persistenza/card) ma nessun codice sbloccava o equipaggiava: la Lacrima contava nel mystery senza poter mai essere equipaggiata. Il ciclo sblocco→equip→bonus chiude il loop meta del Ledger ("ogni run lascia qualcosa alla successiva") e dà un motivo concreto per rigiocare.
+- **Implicazioni**: l'Occhio dello Spirito (quarto artefatto) rivela sulla card-opzione la virtù che l'azione rinforza: è l'eccezione prevista dalla regola "mai mostrare la stat prima della scelta, al massimo sbloccabile via artefatto". Icona placeholder (medaglione spionaggio) finché non arriva l'asset Lovable (P6 in 08-asset-prompts). Equip a metà run vale dalla run successiva.
+- **Alternative considerate**: sblocchi a moneta/punti (fuori tono), equip a inizio run con schermata dedicata (più chiaro ma più UI da costruire), hint-stat sempre visibile (viola la regola di design D-linguaggio).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D047**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D048**.
 
 ```
 ### D036 — ...
