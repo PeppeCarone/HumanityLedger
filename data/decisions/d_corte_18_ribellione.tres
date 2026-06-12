@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 12,
+"popolo": -8
+}
+set_flags = {}
+unlock_lore = ["lore_ribellione"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = -2
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Sfonda le barricate prima dell'alba"
+target_consigliere_id = "era2_calden"
+effetto = SubResource("eff_0")
+feedback_testo = "Le barricate cadono in un'ora. Calden conta i feriti a voce alta, uno per uno, perché il consiglio li senta. L'ordine è tornato: brucia ancora, ma è tornato."
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 12,
+"legge": -4
+}
+set_flags = {}
+unlock_lore = ["lore_ribellione"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Scavalca la barricata e ascolta"
+target_consigliere_id = "era2_karro"
+effetto = SubResource("eff_1")
+feedback_testo = "Karro scavalca la barricata da solo, a mani aperte, e si siede sul carro rovesciato. Parlano fino all'alba. Le fornaci si riaccendono: il regno ha piegato l'orgoglio, non la schiena."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 11,
+"popolo": -3
+}
+set_flags = {}
+unlock_lore = ["lore_ribellione"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Processa i capi, grazia chi depone"
+target_consigliere_id = "era2_maren"
+effetto = SubResource("eff_2")
+feedback_testo = "Maren istruisce il processo nella piazza stessa, davanti alle fornaci spente. Tre condanne, lette piano; per tutti gli altri, la grazia. La legge mostra prima il peso, poi la mano aperta."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_18_ribellione"
+era = 2
+testo_consigliere = "Il quartiere delle fornaci ha bruciato i registri delle tasse e rovesciato i carri alle porte. Barricate alte un uomo, e dietro gente che conosco per nome. Stanotte ho riportato due feriti miei e tre dei loro. Posso riprendermi le strade prima dell'alba, ma il prezzo lo decidete voi. Cosa facciamo della rivolta?"
+personaggio_id = "era2_calden"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "catastrofe"
+illustrazione_id = "rebellion"

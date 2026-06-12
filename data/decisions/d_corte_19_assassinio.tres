@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/spionaggio.tres" id="s_spionaggio"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/spionaggio.png" id="t_spionaggio"]
+[ext_resource type="Resource" path="res://data/strategie/decreto.tres" id="s_decreto"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/decreto.png" id="t_decreto"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"spionaggio": 12,
+"diplomazia": 2
+}
+set_flags = {}
+unlock_lore = ["lore_lama_buio"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_spionaggio")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_spionaggio")
+label_text = "Risali il filo nell'ombra, fino al mandante"
+target_consigliere_id = "era2_saekh"
+effetto = SubResource("eff_0")
+feedback_testo = "Saekh sparisce per nove giorni. Torna con un nome che non pronuncia: lo posa scritto su un frammento di cera, lo fa leggere al consiglio, poi lo scioglie alla candela. \"Sanno che sappiamo,\" sussurra. \"Adesso la paura ha cambiato casa.\""
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"legge": 12,
+"popolo": 3
+}
+set_flags = {}
+unlock_lore = ["lore_lama_buio"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_decreto")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_decreto")
+label_text = "Processalo alla luce, davanti al regno"
+target_consigliere_id = "era2_maren"
+effetto = SubResource("eff_1")
+feedback_testo = "Maren mette il sicario alla sbarra nella sala aperta, porte spalancate. Il regno guarda, e capisce che la corona non trema. Chi ha pagato la lama, da qualche parte, smette di sorridere."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 10,
+"diplomazia": -4
+}
+set_flags = {}
+unlock_lore = ["lore_lama_buio"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Raddoppia le guardie e sigilla la corte"
+target_consigliere_id = "era2_calden"
+effetto = SubResource("eff_2")
+feedback_testo = "Calden chiude la corte come un pugno: turni doppi, porte contate, ospiti perquisiti. Nessuna lama passerà più. Nemmeno, temono gli ambasciatori, una parola amica."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_19_assassinio"
+era = 2
+testo_consigliere = "Una lama, stanotte. Tre passi dalla camera del consiglio. Il mio corvo l'ha fermata; non chiedete come. L'uomo tace, ma la moneta cucita nel suo mantello non è del regno, non è dell'Impero, non è della Lega. Qualcuno vuole il trono vuoto prima della grande scelta. Fuori da questa stanza, nessuno sa nulla. Rispondiamo nell'ombra, o alla luce?"
+personaggio_id = "era2_saekh"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "catastrofe"
+illustrazione_id = "assassination"

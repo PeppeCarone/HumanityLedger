@@ -111,6 +111,18 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "La Scelta Finale",
 		"testo": "L'ultima decisione dello spirito. Ogni era confluisce qui, e il Ledger registra ciò che siamo diventati."
 	},
+	"lore_peste": {
+		"titolo": "La Peste",
+		"testo": "Il morbo salì dalla porta del fiume e raddoppiò ogni quattro giorni. Il regno imparò a combattere un nemico senza bandiera."
+	},
+	"lore_ribellione": {
+		"titolo": "La Rivolta delle Fornaci",
+		"testo": "Il quartiere delle fornaci bruciò i registri delle tasse e alzò barricate. Dietro ogni barricata, volti che il regno conosceva per nome."
+	},
+	"lore_lama_buio": {
+		"titolo": "La Lama nel Buio",
+		"testo": "Una lama fermata a tre passi dal consiglio, una moneta straniera cucita in un mantello. Qualcuno voleva il trono vuoto prima della grande scelta."
+	},
 	"epilogo_fine_guerra": {"titolo": "Epilogo: Era della Guerra", "testo": "Lo spirito scelse la spada e vinse, al prezzo del fumo e delle tombe."},
 	"epilogo_fine_prosperita": {"titolo": "Epilogo: Era della Prosperità", "testo": "Lo spirito scelse il pane e il commercio. Un'era morbida, di lunghe estati."},
 	"epilogo_fine_scienza": {"titolo": "Epilogo: Era della Scienza", "testo": "Lo spirito protesse il sapere e aprì porte che nessuno sapeva chiuse."},

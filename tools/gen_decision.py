@@ -116,13 +116,69 @@ def genera(spec):
     print("scritto", path, "(%d opzioni, %d strategie)" % (len(opts), len(strats)))
 
 
-# --- Batch nuove decisioni Era 2 (2026-06-11) ------------------------------
+# --- Batch catastrofi Era 2 (2026-06-12) -----------------------------------
+# Completa D020: Peste, Ribellione, Tentato Assassinio (illustrazioni plague/
+# rebellion/assassination gia' in Assets/art/eventi). Saekh propone per la
+# prima volta. Lore nuove da registrare in ledger_screen.gd LORE_REGISTRY.
+
+DECISIONI = [
+    {
+        "id": "d_corte_17_peste", "era": 2, "personaggio": "era2_iove", "tipo": "catastrofe",
+        "illustrazione": "plague",
+        "testo": "Tre morti alla porta del fiume, dieci giorni fa. Ieri ventisette, e stamattina i carri non bastavano. Ho misurato il passo del morbo come misuro le stelle: raddoppia ogni quattro giorni, e non ha ancora toccato i quartieri alti. Le erbe amare che bruciano nei vicoli non fermeranno la proporzione. Come fermiamo la peste?",
+        "opzioni": [
+            {"strat": "libro", "target": "era2_iove", "label": "Isola il morbo e distilla un rimedio",
+             "stat": {"scienza": 12, "popolo": 2}, "flags": {"peste_studiata": True}, "lore": ["lore_peste"],
+             "feedback": "Iove trasforma una taverna in spezieria e scompone il morbo come un metallo impuro. Il rimedio arriva tardi per molti, ma arriva. \"Ogni piaga,\" annota, \"è una domanda posta male.\""},
+            {"strat": "decreto", "target": "era2_maren", "label": "Mura i quartieri colpiti per decreto",
+             "stat": {"legge": 11, "popolo": -6}, "pop": -2, "lore": ["lore_peste"],
+             "feedback": "Maren firma la quarantena senza alzare lo sguardo. Le porte dei vicoli vengono murate, i viveri calati con le corde. Il morbo si spegne in fretta; certe grida, più lentamente."},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Porta cure e pane in mezzo ai malati",
+             "stat": {"popolo": 12, "tesoro": -5}, "pop": -1, "lore": ["lore_peste"],
+             "feedback": "Karro entra nei quartieri bassi quando tutti ne scappano, e mezza piazza lo segue con erbe e pane. Qualcuno di loro non torna. Ma il popolo non dimentica chi è rimasto."},
+        ],
+    },
+    {
+        "id": "d_corte_18_ribellione", "era": 2, "personaggio": "era2_calden", "tipo": "catastrofe",
+        "illustrazione": "rebellion",
+        "testo": "Il quartiere delle fornaci ha bruciato i registri delle tasse e rovesciato i carri alle porte. Barricate alte un uomo, e dietro gente che conosco per nome. Stanotte ho riportato due feriti miei e tre dei loro. Posso riprendermi le strade prima dell'alba, ma il prezzo lo decidete voi. Cosa facciamo della rivolta?",
+        "opzioni": [
+            {"strat": "scudo", "target": "era2_calden", "label": "Sfonda le barricate prima dell'alba",
+             "stat": {"militare": 12, "popolo": -8}, "pop": -2, "lore": ["lore_ribellione"],
+             "feedback": "Le barricate cadono in un'ora. Calden conta i feriti a voce alta, uno per uno, perché il consiglio li senta. L'ordine è tornato: brucia ancora, ma è tornato."},
+            {"strat": "rivoluzionaria", "target": "era2_karro", "label": "Scavalca la barricata e ascolta",
+             "stat": {"popolo": 12, "legge": -4}, "lore": ["lore_ribellione"],
+             "feedback": "Karro scavalca la barricata da solo, a mani aperte, e si siede sul carro rovesciato. Parlano fino all'alba. Le fornaci si riaccendono: il regno ha piegato l'orgoglio, non la schiena."},
+            {"strat": "decreto", "target": "era2_maren", "label": "Processa i capi, grazia chi depone",
+             "stat": {"legge": 11, "popolo": -3}, "lore": ["lore_ribellione"],
+             "feedback": "Maren istruisce il processo nella piazza stessa, davanti alle fornaci spente. Tre condanne, lette piano; per tutti gli altri, la grazia. La legge mostra prima il peso, poi la mano aperta."},
+        ],
+    },
+    {
+        "id": "d_corte_19_assassinio", "era": 2, "personaggio": "era2_saekh", "tipo": "catastrofe",
+        "illustrazione": "assassination",
+        "testo": "Una lama, stanotte. Tre passi dalla camera del consiglio. Il mio corvo l'ha fermata; non chiedete come. L'uomo tace, ma la moneta cucita nel suo mantello non è del regno, non è dell'Impero, non è della Lega. Qualcuno vuole il trono vuoto prima della grande scelta. Fuori da questa stanza, nessuno sa nulla. Rispondiamo nell'ombra, o alla luce?",
+        "opzioni": [
+            {"strat": "spionaggio", "target": "era2_saekh", "label": "Risali il filo nell'ombra, fino al mandante",
+             "stat": {"spionaggio": 12, "diplomazia": 2}, "lore": ["lore_lama_buio"],
+             "feedback": "Saekh sparisce per nove giorni. Torna con un nome che non pronuncia: lo posa scritto su un frammento di cera, lo fa leggere al consiglio, poi lo scioglie alla candela. \"Sanno che sappiamo,\" sussurra. \"Adesso la paura ha cambiato casa.\""},
+            {"strat": "decreto", "target": "era2_maren", "label": "Processalo alla luce, davanti al regno",
+             "stat": {"legge": 12, "popolo": 3}, "lore": ["lore_lama_buio"],
+             "feedback": "Maren mette il sicario alla sbarra nella sala aperta, porte spalancate. Il regno guarda, e capisce che la corona non trema. Chi ha pagato la lama, da qualche parte, smette di sorridere."},
+            {"strat": "scudo", "target": "era2_calden", "label": "Raddoppia le guardie e sigilla la corte",
+             "stat": {"militare": 10, "diplomazia": -4}, "lore": ["lore_lama_buio"],
+             "feedback": "Calden chiude la corte come un pugno: turni doppi, porte contate, ospiti perquisiti. Nessuna lama passerà più. Nemmeno, temono gli ambasciatori, una parola amica."},
+        ],
+    },
+]
+
+# --- Batch nuove decisioni Era 2 (2026-06-11, commit 05728d2) ---------------
 # Espansione 9->16 per avvicinarsi al target D031 (~20-25 decisioni/era).
 # Valorizza Vorrik/Saekh/Maren; intreccia Impero del Sole, Lega delle Coste e
 # il mystery (canti_trascritti conta in mystery_punti). Batch precedente
 # (Era 1, commit ecc2796) rimosso: i .tres sono gia' generati.
 
-DECISIONI = [
+_DECISIONI_ERA2_ARCHIVIO = [
     # === q_corte_si_forma (atto 1): +2 ===
     {
         "id": "d_corte_10_moneta", "era": 2, "personaggio": "era2_vorrik", "tipo": "proposta_consigliere",
