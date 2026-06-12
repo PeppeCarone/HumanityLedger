@@ -83,6 +83,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		return null
 	AudioManager.play_sfx("drag_pickup")
 	set_drag_preview(_build_preview())
+	# Ghost della card sorgente mentre la sua copia e' in aria.
+	modulate = Color(1, 1, 1, 0.5)
 	return {
 		"item_id": item_id,
 		"label": label_text,
@@ -94,9 +96,16 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	}
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END:
+		_refresh()
+
+
 func _build_preview() -> Control:
 	var c: Control = Control.new()
 	c.custom_minimum_size = size
+	c.rotation = deg_to_rad(-5.0)
+	c.scale = Vector2(1.08, 1.08)
 	var rect: ColorRect = ColorRect.new()
 	rect.color = icon_color
 	rect.modulate = Color(1, 1, 1, 0.85)

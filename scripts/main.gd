@@ -106,6 +106,8 @@ var ending_instance: CanvasLayer = null
 var pause_instance: CanvasLayer = null
 var era_card: CanvasLayer = null
 var stat_tweens: Dictionary = {}
+var stat_icon_nodes: Dictionary = {}
+var narrative_tween: Tween = null
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 
@@ -119,6 +121,10 @@ func _ready() -> void:
 	var titolo_font: Font = _font_titoli()
 	if titolo_font != null:
 		proposer_name_label.add_theme_font_override("font", titolo_font)
+	# Gerarchia tipografica del pannello decisione: nome oro, corpo panna arioso.
+	proposer_name_label.add_theme_color_override("font_color", Color(0.91, 0.78, 0.48))
+	proposer_text_label.add_theme_color_override("font_color", Color(0.84, 0.78, 0.65))
+	proposer_text_label.add_theme_constant_override("line_spacing", 6)
 	_applica_cornici()
 	_crea_vignette()
 	_setup_hud()
@@ -167,6 +173,20 @@ func _set_decision_visible(mostra: bool) -> void:
 	for n in _decision_nodes():
 		if n != null:
 			n.visible = mostra
+
+
+func _chiudi_decisione_morbida() -> void:
+	# Fade-out della vista decisione: si "atterra" sul villaggio, niente taglio netto.
+	var t: Tween = create_tween()
+	t.set_parallel()
+	for n in _decision_nodes():
+		if n != null:
+			t.tween_property(n, "modulate:a", 0.0, 0.22)
+	t.chain().tween_callback(func() -> void:
+		_set_decision_visible(false)
+		for n in _decision_nodes():
+			if n != null:
+				n.modulate.a = 1.0)
 
 
 func _consigliere_in_arrivo(nome: String, ritratto: Texture2D = null) -> void:
@@ -268,6 +288,7 @@ func _stile_pannello() -> StyleBoxFlat:
 
 func _setup_hud() -> void:
 	stat_value_labels.clear()
+	stat_icon_nodes.clear()
 	for stat_name in GameState.STAT_NAMES:
 		var row: HBoxContainer = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
@@ -279,6 +300,7 @@ func _setup_hud() -> void:
 		if ResourceLoader.exists(icon_path):
 			icon.texture = load(icon_path)
 		row.add_child(icon)
+		stat_icon_nodes[stat_name] = icon
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
 		label.text = "%s: %d" % [STAT_LABELS[stat_name], GameState.get_stat(stat_name)]
@@ -516,6 +538,24 @@ func _mostra_era_card(titolo: String, testo: String, footer: String) -> void:
 	bg.color = Color(0.015, 0.01, 0.02, 1.0)
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	era_card.add_child(bg)
+	# Alone caldo al centro: il quasi-nero respira invece di sembrare un fade rotto.
+	var alone_grad: Gradient = Gradient.new()
+	alone_grad.colors = PackedColorArray([Color(0.16, 0.10, 0.04, 0.30), Color(0, 0, 0, 0.0)])
+	alone_grad.offsets = PackedFloat32Array([0.0, 1.0])
+	var alone_tex: GradientTexture2D = GradientTexture2D.new()
+	alone_tex.gradient = alone_grad
+	alone_tex.fill = GradientTexture2D.FILL_RADIAL
+	alone_tex.fill_from = Vector2(0.5, 0.45)
+	alone_tex.fill_to = Vector2(0.5, 1.1)
+	alone_tex.width = 512
+	alone_tex.height = 512
+	var alone: TextureRect = TextureRect.new()
+	alone.texture = alone_tex
+	alone.set_anchors_preset(Control.PRESET_FULL_RECT)
+	alone.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	alone.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	alone.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.add_child(alone)
 	bg.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and in_transizione_era:
 			_entra_era2())
@@ -851,12 +891,13 @@ func _on_item_dropped(data: Dictionary) -> void:
 	GameState.apply_effect(option.effetto)
 	var tipo_cons: String = _tipo_conseguenza(option.effetto)
 	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
-	_set_decision_visible(false)
+	_chiudi_decisione_morbida()
 	if village != null:
 		village.applica_conseguenza(tipo_cons)
 		if tipo_cons == "costruzione":
 			var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1)) + 1
 			GameState.set_flag("villaggio_n", n)
+	_screen_shake(tipo_cons)
 	SaveSystem.save_run()
 	_show_narrative(option.feedback_testo)
 	if source_node.has_method("consume"):
@@ -905,12 +946,23 @@ func _complete_quest() -> void:
 
 func _show_narrative(text: String) -> void:
 	narrative_label.text = text
+	if narrative_tween != null and narrative_tween.is_valid():
+		narrative_tween.kill()
 	if text.is_empty():
 		narrative_label.modulate.a = 0.0
 		return
-	narrative_label.modulate.a = 0.0
-	var tween: Tween = create_tween()
-	tween.tween_property(narrative_label, "modulate:a", 1.0, NARRATIVE_FADE_DURATION)
+	# Typewriter: il testo "si scrive" invece di apparire tutto insieme.
+	narrative_label.modulate.a = 1.0
+	narrative_label.visible_characters = 0
+	narrative_tween = create_tween()
+	narrative_tween.tween_method(
+		func(v: float) -> void:
+			if is_instance_valid(narrative_label):
+				narrative_label.visible_characters = int(v),
+		0.0,
+		float(text.length()),
+		text.length() / 45.0,
+	)
 
 
 func _clear_children(node: Node) -> void:
@@ -939,10 +991,60 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	label.modulate = flash_color
 	var color_tween: Tween = create_tween()
 	color_tween.tween_property(label, "modulate", Color.WHITE, STAT_TWEEN_DURATION + 0.2)
+	# Il medaglione pulsa e un "+N"/"-N" galleggia via: l'occhio sa dove guardare.
+	var icon: TextureRect = stat_icon_nodes.get(nome)
+	if icon != null:
+		icon.pivot_offset = icon.size * 0.5
+		var pulse: Tween = create_tween()
+		pulse.tween_property(icon, "scale", Vector2(1.22, 1.22), 0.1) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		pulse.tween_property(icon, "scale", Vector2.ONE, 0.4) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_stat_delta_float(label, nuovo - vecchio)
 	AudioManager.play_sfx("stat_up" if nuovo > vecchio else "stat_down")
 	_refresh_disabled_options()
 	if in_attesa_quest:
 		_avvia_prossima_quest()
+
+
+func _stat_delta_float(label: Label, delta: int) -> void:
+	if delta == 0:
+		return
+	var fl: Label = Label.new()
+	fl.top_level = true
+	fl.text = "%+d" % delta
+	fl.add_theme_font_size_override("font_size", 16)
+	fl.add_theme_color_override("font_color",
+		Color(0.55, 1.0, 0.55) if delta > 0 else Color(1.0, 0.55, 0.5))
+	fl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	fl.add_theme_constant_override("outline_size", 4)
+	label.add_child(fl)
+	fl.global_position = label.global_position + Vector2(label.size.x + 8.0, 0.0)
+	var t: Tween = create_tween()
+	t.set_parallel()
+	t.tween_property(fl, "global_position:y", fl.global_position.y - 20.0, 0.9) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(fl, "modulate:a", 0.0, 0.9).set_ease(Tween.EASE_IN)
+	t.chain().tween_callback(fl.queue_free)
+
+
+func _screen_shake(tipo: String) -> void:
+	# Vibrazione calibrata: la guerra colpisce, la costruzione assesta appena.
+	var ampiezza: float
+	match tipo:
+		"guerra":
+			ampiezza = 8.0
+		"neutro":
+			return
+		_:
+			ampiezza = 3.0
+	var ui: CanvasLayer = $UI
+	var t: Tween = create_tween()
+	for i in range(4):
+		var off: Vector2 = Vector2(
+			randf_range(-ampiezza, ampiezza), randf_range(-ampiezza * 0.6, ampiezza * 0.6))
+		t.tween_property(ui, "offset", off, 0.05)
+	t.tween_property(ui, "offset", Vector2.ZERO, 0.08)
 
 
 func _on_mystery_attivata() -> void:

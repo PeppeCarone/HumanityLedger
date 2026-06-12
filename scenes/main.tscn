@@ -70,16 +70,6 @@ theme_override_font_sizes/font_size = 30
 text = "Un consigliere attende il tuo parere
 [ Decidi ]"
 
-[node name="VersionLabel" type="Label" parent="UI"]
-offset_left = 60.0
-offset_top = 12.0
-offset_right = 1860.0
-offset_bottom = 44.0
-mouse_filter = 2
-theme_override_font_sizes/font_size = 18
-text = "HumanityLedger"
-horizontal_alignment = 1
-
 [node name="HUDPanel" type="PanelContainer" parent="UI"]
 offset_left = 20.0
 offset_top = 60.0

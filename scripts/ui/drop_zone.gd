@@ -18,6 +18,8 @@ signal item_dropped(data: Dictionary)
 
 var _is_hovering: bool = false
 var _last_can_drop: bool = false
+var _hover_tween: Tween = null
+var _portrait_tween: Tween = null
 
 
 func _ready() -> void:
@@ -84,12 +86,35 @@ func _accepts(item_id: String) -> bool:
 
 
 func _animate_hover(active: bool) -> void:
-	var target: float = 1.0 if active else 0.0
-	var tween: Tween = create_tween()
-	tween.tween_property(hover, "modulate:a", target, 0.12)
+	if _hover_tween != null and _hover_tween.is_valid():
+		_hover_tween.kill()
+	_hover_tween = create_tween()
+	if active:
+		# La zona "respira" finche' la card compatibile e' in aria.
+		_hover_tween.set_loops()
+		_hover_tween.set_trans(Tween.TRANS_SINE)
+		_hover_tween.tween_property(hover, "modulate:a", 0.95, 0.35)
+		_hover_tween.tween_property(hover, "modulate:a", 0.55, 0.45)
+	else:
+		_hover_tween.tween_property(hover, "modulate:a", 0.0, 0.12)
+	# Il consigliere reagisce: leggero scale-up e luce calda sul ritratto.
+	if portrait_rect != null:
+		if _portrait_tween != null and _portrait_tween.is_valid():
+			_portrait_tween.kill()
+		portrait_rect.pivot_offset = portrait_rect.size * 0.5
+		_portrait_tween = create_tween()
+		_portrait_tween.set_parallel()
+		_portrait_tween.tween_property(
+			portrait_rect, "scale", Vector2(1.06, 1.06) if active else Vector2.ONE, 0.15) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		_portrait_tween.tween_property(
+			portrait_rect, "modulate",
+			Color(1.10, 1.05, 0.92) if active else Color.WHITE, 0.15)
 
 
 func flash_fail() -> void:
+	if _hover_tween != null and _hover_tween.is_valid():
+		_hover_tween.kill()
 	var original: Color = hover.color
 	hover.color = fail_flash_color
 	hover.modulate.a = 1.0
