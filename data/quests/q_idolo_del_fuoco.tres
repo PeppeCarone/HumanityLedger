@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="Quest" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="Quest" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
 [ext_resource type="Resource" path="res://data/decisions/d_idolo_01_erigi.tres" id="3"]
+[ext_resource type="Resource" path="res://data/decisions/d_idolo_00_pietra.tres" id="4"]
 
 [sub_resource type="Resource" id="eff_complete"]
 script = ExtResource("2")
@@ -27,7 +28,7 @@ precondizioni_stat = {
 "costruzione": 42,
 "popolo": 38
 }
-passi = [ExtResource("3")]
+passi = [ExtResource("4"), ExtResource("3")]
 effetto_completamento = SubResource("eff_complete")
 flag_di_completamento = "era1_completata"
 visibile_nel_log = true

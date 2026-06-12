@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Quest" load_steps=10 format=3]
+[gd_resource type="Resource" script_class="Quest" load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/quest.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Resource" path="res://data/decisions/d_acc_04_dispute.tres" id="6"]
 [ext_resource type="Resource" path="res://data/decisions/d_acc_06_acqua.tres" id="7"]
 [ext_resource type="Resource" path="res://data/decisions/d_acc_05_nebbie_scambio.tres" id="8"]
+[ext_resource type="Resource" path="res://data/decisions/d_acc_07_notti.tres" id="9"]
 
 [sub_resource type="Resource" id="eff_complete"]
 script = ExtResource("2")
@@ -32,7 +33,7 @@ era = 1
 tipo = "principale"
 precondizioni_flag = ["caverna_tutorial_completata"]
 precondizioni_stat = {}
-passi = [ExtResource("3"), ExtResource("6"), ExtResource("4"), ExtResource("7"), ExtResource("5"), ExtResource("8")]
+passi = [ExtResource("3"), ExtResource("6"), ExtResource("4"), ExtResource("7"), ExtResource("5"), ExtResource("9"), ExtResource("8")]
 effetto_completamento = SubResource("eff_complete")
 flag_di_completamento = "accampamento_completato"
 visibile_nel_log = true

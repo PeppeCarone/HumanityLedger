@@ -1,0 +1,91 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/rivoluzionaria.tres" id="s_rivoluzionaria"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/rivoluzionaria.png" id="t_rivoluzionaria"]
+[ext_resource type="Resource" path="res://data/strategie/scudo.tres" id="s_scudo"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/scudo.png" id="t_scudo"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+
+[sub_resource type="Resource" id="eff_0"]
+script = ExtResource("eff")
+stat_delta = {
+"popolo": 12
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_0"]
+script = ExtResource("opt")
+strategia = ExtResource("s_rivoluzionaria")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_rivoluzionaria")
+label_text = "Raduna tutti al fuoco e canta la memoria"
+target_consigliere_id = "era1_aru"
+effetto = SubResource("eff_0")
+feedback_testo = "Aru canta i nomi di chi ci ha portato fin qui, una notte per nome. I piccoli imparano i ritornelli, i vecchi li correggono sorridendo. Il buio resta fuori dal cerchio di luce."
+
+[sub_resource type="Resource" id="eff_1"]
+script = ExtResource("eff")
+stat_delta = {
+"militare": 11,
+"popolo": -2
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_1"]
+script = ExtResource("opt")
+strategia = ExtResource("s_scudo")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_scudo")
+label_text = "Imponi turni di guardia armata"
+target_consigliere_id = "era1_brann"
+effetto = SubResource("eff_1")
+feedback_testo = "Brann divide la notte in tre veglie. Lupo che si avvicina, lancia che lo aspetta. Qualcuno sbuffa per il sonno perso, ma i canti dei lupi si allontanano."
+
+[sub_resource type="Resource" id="eff_2"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 11,
+"tesoro": -2
+}
+set_flags = {}
+unlock_lore = []
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_2"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Alza un cerchio di torce attorno al campo"
+target_consigliere_id = "era1_tev"
+effetto = SubResource("eff_2")
+feedback_testo = "Tev pianta pali alti quanto un uomo e li corona di fuoco. Il campo diventa un'isola di luce nella pianura nera. Costa grasso e legna ogni notte, ma da lontano sembriamo già un popolo."
+
+[resource]
+script = ExtResource("dec")
+id = "d_acc_07_notti"
+era = 1
+testo_consigliere = "Le notti si sono fatte lunghe, e il buio entra nelle teste prima che nei ripari. I piccoli non dormono, i vecchi contano i lupi che cantano oltre il fiume. Il fuoco da solo non basta a tenere insieme un popolo quando il sole se ne va. Come attraversiamo le notti lunghe?"
+personaggio_id = "era1_aru"
+opzioni = [SubResource("opt_0"), SubResource("opt_1"), SubResource("opt_2")]
+tipo_decisione = "proposta_consigliere"

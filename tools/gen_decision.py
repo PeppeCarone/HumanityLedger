@@ -116,12 +116,64 @@ def genera(spec):
     print("scritto", path, "(%d opzioni, %d strategie)" % (len(opts), len(strats)))
 
 
-# --- Batch catastrofi Era 2 (2026-06-12) -----------------------------------
+# --- Batch espansione Era 1 (2026-06-12): 18 -> 21 --------------------------
+# Le notti lunghe (Aru, accampamento), il cacciatore ferito (Orm, confronto),
+# il trasporto della pietra (Tev, atto Idolo che aveva 1 sola decisione).
+
+DECISIONI = [
+    {
+        "id": "d_acc_07_notti", "era": 1, "personaggio": "era1_aru", "tipo": "proposta_consigliere",
+        "testo": "Le notti si sono fatte lunghe, e il buio entra nelle teste prima che nei ripari. I piccoli non dormono, i vecchi contano i lupi che cantano oltre il fiume. Il fuoco da solo non basta a tenere insieme un popolo quando il sole se ne va. Come attraversiamo le notti lunghe?",
+        "opzioni": [
+            {"strat": "rivoluzionaria", "target": "era1_aru", "label": "Raduna tutti al fuoco e canta la memoria",
+             "stat": {"popolo": 12},
+             "feedback": "Aru canta i nomi di chi ci ha portato fin qui, una notte per nome. I piccoli imparano i ritornelli, i vecchi li correggono sorridendo. Il buio resta fuori dal cerchio di luce."},
+            {"strat": "scudo", "target": "era1_brann", "label": "Imponi turni di guardia armata",
+             "stat": {"militare": 11, "popolo": -2},
+             "feedback": "Brann divide la notte in tre veglie. Lupo che si avvicina, lancia che lo aspetta. Qualcuno sbuffa per il sonno perso, ma i canti dei lupi si allontanano."},
+            {"strat": "ascia", "target": "era1_tev", "label": "Alza un cerchio di torce attorno al campo",
+             "stat": {"costruzione": 11, "tesoro": -2},
+             "feedback": "Tev pianta pali alti quanto un uomo e li corona di fuoco. Il campo diventa un'isola di luce nella pianura nera. Costa grasso e legna ogni notte, ma da lontano sembriamo già un popolo."},
+        ],
+    },
+    {
+        "id": "d_con_06_ferito", "era": 1, "personaggio": "era1_orm", "tipo": "incontro",
+        "testo": "I cacciatori hanno trovato un uomo del Bisonte nel nostro territorio, la gamba spezzata da una caduta. Respira, ma da solo non camminerà. Possiamo riportarlo ai suoi, tenerlo finché parla, o chiedere qualcosa in cambio della sua vita. Ognuna di queste strade dice chi siamo. Cosa facciamo dell'uomo ferito?",
+        "opzioni": [
+            {"strat": "pergamena", "target": "era1_orm", "label": "Curalo e riportalo ai suoi",
+             "stat": {"diplomazia": 12}, "rapporti": {"clan_bisonte": 10},
+             "feedback": "Orm stecca la gamba dell'uomo e lo riporta al fiume su una barella di rami. Il Bisonte osserva in silenzio dall'altra riva. Tre giorni dopo, sulla riva nostra, qualcuno lascia una cesta di pesce affumicato."},
+            {"strat": "spionaggio", "target": "era1_kael", "label": "Tienilo finché non parla",
+             "stat": {"spionaggio": 12}, "rapporti": {"clan_bisonte": -4},
+             "feedback": "Kael si siede accanto al ferito e aspetta. Niente minacce: domande corte, silenzi lunghi. Quando l'uomo torna ai suoi, noi sappiamo quanti sono e cosa temono. Lui non sa di averlo detto."},
+            {"strat": "economico", "target": "era1_vesha", "label": "Chiedi un riscatto per la sua vita",
+             "stat": {"tesoro": 11, "popolo": -2}, "rapporti": {"clan_bisonte": -8},
+             "feedback": "Vesha manda al Bisonte il conto: sette pelli e due lame per riavere il loro cacciatore. Pagano, contando ogni pelle a voce alta perché tutti sentano. Il fiume, da quel giorno, è più freddo."},
+        ],
+    },
+    {
+        "id": "d_idolo_00_pietra", "era": 1, "personaggio": "era1_tev", "tipo": "svolta",
+        "testo": "La pietra per l'Idolo l'ho trovata: dorme a mezza giornata da qui, grande come quattro uomini e pesante come cento. Si può fare: rulli di tronchi, corde di pelle, braccia. Oppure si può fare in altri modi. Ma una cosa è certa: nessuna pietra cammina da sola. Come la portiamo a casa?",
+        "opzioni": [
+            {"strat": "ascia", "target": "era1_tev", "label": "Rulli, corde e ingegno",
+             "stat": {"costruzione": 12, "scienza": 2},
+             "feedback": "Tev stende un sentiero di tronchi e la pietra cammina, un palmo per canto di corda. Quando entra nel campo, nessuno parla. La montagna è venuta da noi."},
+            {"strat": "rivoluzionaria", "target": "era1_aru", "label": "Tutto il popolo, una sola corda",
+             "stat": {"popolo": 12, "costruzione": 2},
+             "feedback": "Aru lega il canto al passo: tira-respira, tira-respira. Vecchi, piccoli, cacciatori, tutti sulla stessa corda. La pietra arriva, e il popolo scopre il proprio peso."},
+            {"strat": "pergamena", "target": "era1_orm", "label": "Chiedi le braccia del Bisonte",
+             "stat": {"diplomazia": 11, "tesoro": -3}, "rapporti": {"clan_bisonte": 8},
+             "feedback": "Orm porta al Bisonte una proposta semplice: braccia oggi, gratitudine domani. Vengono in venti, e guardano la pietra con sospetto e meraviglia. Due popoli, una pietra sola."},
+        ],
+    },
+]
+
+# --- Batch catastrofi Era 2 (2026-06-12, commit ce78968) ---------------------
 # Completa D020: Peste, Ribellione, Tentato Assassinio (illustrazioni plague/
 # rebellion/assassination gia' in Assets/art/eventi). Saekh propone per la
 # prima volta. Lore nuove da registrare in ledger_screen.gd LORE_REGISTRY.
 
-DECISIONI = [
+_DECISIONI_CATASTROFI_ARCHIVIO = [
     {
         "id": "d_corte_17_peste", "era": 2, "personaggio": "era2_iove", "tipo": "catastrofe",
         "illustrazione": "plague",
