@@ -49,6 +49,11 @@ func _run() -> void:
 	GameState.rapporti_civilta = {"impero_sole": 3, "lega_coste": -2}
 	await _shot("res://scenes/main.tscn", "shot_era2")
 	GameState.reset_run()
+	GameState.era_corrente = 2
+	GameState.set_flag("era1_completata", true)
+	await _shot("res://scenes/main.tscn", "shot_era2_decision", Callable(), func(inst: Node) -> void:
+		inst._apri_decisione())
+	GameState.reset_run()
 	await _shot("res://scenes/main.tscn", "shot_evento", Callable(), func(inst: Node) -> void:
 		inst._imposta_event_image("conflitto_religioso"))
 	var dec: Decision = load("res://data/decisions/d_caverna_05_inverno.tres") as Decision
