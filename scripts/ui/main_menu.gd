@@ -24,6 +24,8 @@ func _ready() -> void:
 	_stilizza_primario()
 	_aggiungi_tagline()
 	_setup_hover()
+	for b in [nuova_btn, continua_btn, ledger_btn, esci_btn]:
+		b.pressed.connect(func() -> void: AudioManager.play_sfx("ui_click"))
 	var ha_save: bool = SaveSystem.exists_run()
 	continua_btn.disabled = not ha_save
 	if not ha_save:

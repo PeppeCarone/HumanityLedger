@@ -1617,6 +1617,7 @@ func _toggle_ledger() -> void:
 	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
 		_close_ledger_if_open()
 	else:
+		AudioManager.play_sfx("ledger_open")
 		ledger_screen_instance = LEDGER_SCENE.instantiate()
 		add_child(ledger_screen_instance)
 

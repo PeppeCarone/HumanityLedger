@@ -17,6 +17,8 @@ func _ready() -> void:
 	riprendi_btn.pressed.connect(_on_riprendi)
 	audio_btn.pressed.connect(_on_audio)
 	menu_btn.pressed.connect(_on_menu)
+	for b in [riprendi_btn, audio_btn, menu_btn]:
+		b.pressed.connect(func() -> void: AudioManager.play_sfx("ui_click"))
 	var cinzel_path: String = "res://Assets/fonts/Cinzel.ttf"
 	if titolo != null and ResourceLoader.exists(cinzel_path):
 		var fv: FontVariation = FontVariation.new()

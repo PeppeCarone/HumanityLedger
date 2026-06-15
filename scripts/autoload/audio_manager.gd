@@ -5,13 +5,19 @@ const MUSIC_DIR: String = "res://Assets/audio/music/"
 const SFX_PATHS: Dictionary = {
 	"drag_pickup": "res://Assets/audio/sfx/drag_pickup.ogg",
 	"drag_hover": "res://Assets/audio/sfx/drag_hover.ogg",
-	"drop_success": "res://Assets/audio/sfx/drop_success.ogg",
+	"drop_success": "res://Assets/audio/sfx/confirmation.wav",
 	"drop_fail": "res://Assets/audio/sfx/drop_fail.ogg",
 	"stat_up": "res://Assets/audio/sfx/stat_up.ogg",
-	"stat_down": "res://Assets/audio/sfx/stat_down.ogg",
-	"quest_complete": "res://Assets/audio/sfx/quest_complete.ogg",
+	"stat_down": "res://Assets/audio/sfx/conseguenze_negative.wav",
+	"quest_complete": "res://Assets/audio/sfx/event_reward.wav",
 	"ledger_unlock": "res://Assets/audio/sfx/ledger_unlock.ogg",
 	"era_transition": "res://Assets/audio/sfx/era_transition.ogg",
+	"ui_click": "res://Assets/audio/sfx/ui_click.mp3",
+	"ledger_open": "res://Assets/audio/sfx/ledger_open.wav",
+}
+
+const MUSIC_PATHS: Dictionary = {
+	"era2": "res://Assets/audio/music/void_crown.mp3",
 }
 
 const MUSIC_VOLUME_DB: float = -8.0
@@ -67,7 +73,7 @@ func play_sfx(id: String) -> void:
 
 
 func play_music_id(id: String) -> void:
-	play_music(MUSIC_DIR + id + ".ogg")
+	play_music(MUSIC_PATHS.get(id, MUSIC_DIR + id + ".ogg"))
 
 
 func play_music(path: String) -> void:
@@ -84,6 +90,8 @@ func play_music(path: String) -> void:
 		return
 	if stream is AudioStreamOggVorbis:
 		(stream as AudioStreamOggVorbis).loop = true
+	elif stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = true
 	_music_player.stream = stream
 	_music_player.play()
 
