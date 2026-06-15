@@ -54,6 +54,15 @@ func _run() -> void:
 	GameState.artefatto_equipaggiato = "occhio_dello_spirito"   # mostra gli hint-stat
 	await _shot("res://scenes/main.tscn", "shot_era2_decision", Callable(), func(inst: Node) -> void:
 		inst._apri_decisione())
+	# Richiamo narrativo cross-era: scelta Era 1 citata su d_corte_04_impero.
+	GameState.reset_run()
+	GameState.era_corrente = 2
+	GameState.set_flag("era1_completata", true)
+	GameState.set_flag("era2_atto1_completato", true)
+	GameState.segna_quest_completata("q_corte_si_forma")
+	GameState.registra_scelta("d_con_01_bisonte", "era1_orm")
+	await _shot("res://scenes/main.tscn", "shot_richiamo", Callable(), func(inst: Node) -> void:
+		inst._apri_decisione())
 	GameState.reset_run()
 	await _shot("res://scenes/main.tscn", "shot_evento", Callable(), func(inst: Node) -> void:
 		inst._imposta_event_image("conflitto_religioso"))

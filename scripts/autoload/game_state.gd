@@ -27,6 +27,9 @@ var atto_corrente: int = 1
 var quest_completate: Array[String] = []
 var flag_narrativi: Dictionary = {}
 var decisioni_chiave: Array[String] = []
+# Scelta presa per ogni decisione (id_decisione -> chiave_opzione), per i
+# richiami narrativi cross-era. Persiste per tutta la run, azzerata al reset.
+var scelte: Dictionary = {}
 var rapporti_civilta: Dictionary = {}
 var artefatto_equipaggiato: String = ""
 var mystery_attiva: bool = false
@@ -110,6 +113,15 @@ func has_flag(nome: String) -> bool:
 func aggiungi_decisione_chiave(id: String) -> void:
 	if id not in decisioni_chiave:
 		decisioni_chiave.append(id)
+
+
+func registra_scelta(decisione_id: String, scelta: String) -> void:
+	if decisione_id != "":
+		scelte[decisione_id] = scelta
+
+
+func scelta_di(decisione_id: String) -> String:
+	return scelte.get(decisione_id, "")
 
 
 func quest_e_completata(id: String) -> bool:
@@ -205,6 +217,7 @@ func reset_run() -> void:
 	quest_completate.clear()
 	flag_narrativi.clear()
 	decisioni_chiave.clear()
+	scelte.clear()
 	rapporti_civilta.clear()
 	artefatto_equipaggiato = ""
 	mystery_attiva = false
@@ -235,6 +248,7 @@ func to_dict() -> Dictionary:
 		"quest_completate": quest_completate,
 		"flag_narrativi": flag_narrativi,
 		"decisioni_chiave": decisioni_chiave,
+		"scelte": scelte,
 		"rapporti_civilta": rapporti_civilta,
 		"artefatto_equipaggiato": artefatto_equipaggiato,
 		"mystery_attiva": mystery_attiva,
@@ -252,6 +266,7 @@ func from_dict(data: Dictionary) -> void:
 	quest_completate.assign(data.get("quest_completate", []))
 	flag_narrativi = data.get("flag_narrativi", {})
 	decisioni_chiave.assign(data.get("decisioni_chiave", []))
+	scelte = data.get("scelte", {})
 	rapporti_civilta = data.get("rapporti_civilta", {})
 	artefatto_equipaggiato = data.get("artefatto_equipaggiato", "")
 	mystery_attiva = data.get("mystery_attiva", false)

@@ -39,6 +39,14 @@ const COLOR_PROPOSER_CATASTROFE: Color = Color(0.6, 0.8, 1.0)
 const COLOR_PROPOSER_SVOLTA: Color = Color(1.0, 0.85, 0.5)
 const COLOR_PROPOSER_MISTERO: Color = Color(0.78, 0.6, 1.0)
 
+# Indicatori di effetto-duraturo (lezione Lapse): tinta per categoria.
+const COLOR_EFF_ARTEFATTO: Color = Color(0.95, 0.78, 0.4)
+const COLOR_EFF_MYSTERY: Color = Color(0.78, 0.6, 1.0)
+const COLOR_EFF_ALLEATO: Color = Color(0.6, 0.95, 0.6)
+const COLOR_EFF_OSTILE: Color = Color(0.95, 0.55, 0.5)
+# Soglia oltre la quale un rapporto vale come patto/ostilita' "attiva".
+const SOGLIA_RAPPORTO: int = 2
+
 # colori distinti per accoppiare ogni opzione al consigliere bersaglio (card <-> zona)
 const ACCENT_PALETTE: Array[Color] = [
 	Color(0.95, 0.78, 0.4),
@@ -52,6 +60,37 @@ const PREFISSO_TIPO: Dictionary = {
 	"svolta": "SVOLTA — ",
 	"incontro": "INCONTRO — ",
 	"mistero": "MISTERO — ",
+}
+
+# Richiami narrativi cross-era: una decisione Era 2 cita la scelta presa
+# nella decisione Era 1 corrispondente. Chiave = id decisione Era 2; valore =
+# lista di {decisione, scelta (target_consigliere_id), testo}. Solo il primo
+# match viene mostrato. Lezione Lapse: il mondo ricorda cosa hai scelto.
+const RICHIAMI: Dictionary = {
+	"d_corte_04_impero": [
+		{"decisione": "d_con_01_bisonte", "scelta": "era1_orm",
+			"testo": "Generazioni fa lo spirito accolse un inviato disarmato offrendogli il sale, non le lance. Quella scelta è diventata la nostra parola: al tavolo si parla prima di mostrare il ferro."},
+		{"decisione": "d_con_01_bisonte", "scelta": "era1_brann",
+			"testo": "Generazioni fa lo spirito accolse un inviato schierandogli davanti gli uomini in armi. L'Impero conosce questa fama: noi arriviamo al tavolo già pronti alla guerra."},
+		{"decisione": "d_con_01_bisonte", "scelta": "era1_kael",
+			"testo": "Generazioni fa lo spirito annuì a un inviato e poi lo seguì nell'ombra. Da allora ogni nostro patto ha una seconda faccia, e i potenti lo sanno."},
+	],
+	"d_corte_05_lega": [
+		{"decisione": "d_con_03_spie", "scelta": "era1_kael",
+			"testo": "Quando il Bisonte si mosse lungo il fiume, lo spirito mandò l'ombra a contarne le lance. La Lega lo sa: i nostri occhi arrivano sempre prima delle nostre vele."},
+		{"decisione": "d_con_03_spie", "scelta": "era1_brann",
+			"testo": "Quando il Bisonte si mosse lungo il fiume, lo spirito restò alla luce, gli uomini in vista. La Lega ci tratta da gente che non nasconde le mani."},
+		{"decisione": "d_con_03_spie", "scelta": "era1_orm",
+			"testo": "Quando il Bisonte si mosse lungo il fiume, lo spirito mandò parole prima delle ombre. La Lega negozia sapendo che noi parliamo, non spiamo."},
+	],
+	"d_corte_18_ribellione": [
+		{"decisione": "d_con_06_ferito", "scelta": "era1_orm",
+			"testo": "Molto tempo fa lo spirito fasciò la gamba di un nemico ferito e lo rimandò ai suoi. Quel gesto è ancora un racconto nelle fornaci: forse stanotte qualcuno là fuori se ne ricorda."},
+		{"decisione": "d_con_06_ferito", "scelta": "era1_kael",
+			"testo": "Molto tempo fa lo spirito tenne un nemico ferito finché non parlò. La gente delle fornaci sa come trattiamo chi cade nelle nostre mani."},
+		{"decisione": "d_con_06_ferito", "scelta": "era1_vesha",
+			"testo": "Molto tempo fa lo spirito vendette a peso di pelli la vita di un ferito. La folla là fuori conosce il prezzo che diamo a una vita: il loro."},
+	],
 }
 
 const STAT_LABELS: Dictionary = {
@@ -96,6 +135,10 @@ var popolazione_label: Label = null
 var stat_value_labels: Dictionary = {}
 var rapporti_label: Label = null
 var rapporti_box: VBoxContainer = null
+var effetti_label: Label = null
+var effetti_box: HFlowContainer = null
+var richiamo_label: Label = null
+var _richiamo_pendente: String = ""
 var current_quest: Quest = null
 var current_step: int = 0
 var personaggi_db: Dictionary = {}
@@ -127,6 +170,7 @@ func _ready() -> void:
 	proposer_text_label.add_theme_constant_override("line_spacing", 6)
 	_applica_cornici()
 	_crea_vignette()
+	_crea_richiamo_label()
 	_setup_hud()
 	_load_personaggi()
 	GameState.stat_changed.connect(_on_stat_changed)
@@ -166,6 +210,7 @@ func _decision_nodes() -> Array:
 	return [
 		$UI/ConsigliereProposer, $UI/ConsiglieriRow,
 		$UI/DecisionPanel, help_label, decision_dim, decision_bg,
+		richiamo_label,
 	]
 
 
@@ -173,6 +218,9 @@ func _set_decision_visible(mostra: bool) -> void:
 	for n in _decision_nodes():
 		if n != null:
 			n.visible = mostra
+	# Il richiamo appare solo se c'e' una memoria da citare per questa decisione.
+	if richiamo_label != null:
+		richiamo_label.visible = mostra and _richiamo_pendente != ""
 
 
 func _chiudi_decisione_morbida() -> void:
@@ -227,6 +275,29 @@ func _apri_decisione() -> void:
 	decision_dim.modulate.a = 0.0
 	var tw: Tween = create_tween()
 	tw.tween_property(decision_dim, "modulate:a", 1.0, 0.35)
+
+
+# Label dedicata per i richiami narrativi cross-era: una "memoria dello spirito"
+# che galleggia sopra il consigliere, nella banda altrimenti vuota durante la
+# decisione. Niente resize del pannello: nessun rischio di invadere le scelte.
+func _crea_richiamo_label() -> void:
+	richiamo_label = Label.new()
+	richiamo_label.name = "RichiamoLabel"
+	richiamo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	richiamo_label.offset_left = 408.0
+	richiamo_label.offset_top = 300.0
+	richiamo_label.offset_right = 1852.0
+	richiamo_label.offset_bottom = 414.0
+	richiamo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	richiamo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	richiamo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	richiamo_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	richiamo_label.add_theme_font_size_override("font_size", 18)
+	richiamo_label.add_theme_color_override("font_color", Color(0.74, 0.64, 0.46))
+	richiamo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	richiamo_label.add_theme_constant_override("outline_size", 4)
+	richiamo_label.visible = false
+	$UI.add_child(richiamo_label)
 
 
 func _crea_vignette() -> void:
@@ -329,6 +400,21 @@ func _setup_hud() -> void:
 	var spacer: Control = Control.new()
 	spacer.custom_minimum_size = Vector2(0, 8)
 	hud_container.add_child(spacer)
+	# Effetti duraturi: badge persistenti che dicono cosa ti protegge/minaccia ora.
+	effetti_label = Label.new()
+	effetti_label.name = "EffettiLabel"
+	effetti_label.add_theme_font_size_override("font_size", 14)
+	effetti_label.add_theme_color_override("font_color", Color(0.65, 0.55, 0.38))
+	effetti_label.visible = false
+	hud_container.add_child(effetti_label)
+	effetti_box = HFlowContainer.new()
+	effetti_box.name = "EffettiBox"
+	effetti_box.add_theme_constant_override("h_separation", 6)
+	effetti_box.add_theme_constant_override("v_separation", 4)
+	hud_container.add_child(effetti_box)
+	var spacer_eff: Control = Control.new()
+	spacer_eff.custom_minimum_size = Vector2(0, 10)
+	hud_container.add_child(spacer_eff)
 	popolazione_label = Label.new()
 	popolazione_label.name = "Popolazione"
 	popolazione_label.text = "Popolazione: %d" % GameState.popolazione
@@ -364,6 +450,7 @@ func _setup_hud() -> void:
 	tasti.modulate = Color(1, 1, 1, 0.45)
 	hud_container.add_child(tasti)
 	_refresh_rapporti()
+	_refresh_effetti_duraturi()
 
 
 func _load_personaggi() -> void:
@@ -770,6 +857,9 @@ func _show_current_decision() -> void:
 	proposer_name_label.text = prefisso + nome_base
 	proposer_name_label.modulate = _colore_proposer(decision.tipo_decisione)
 	proposer_text_label.text = decision.testo_consigliere
+	_richiamo_pendente = _richiamo_per(decision.id)
+	if richiamo_label != null:
+		richiamo_label.text = ("↩ " + _richiamo_pendente) if _richiamo_pendente != "" else ""
 	_imposta_event_image(decision.illustrazione_id)
 	_setup_consiglieri_for_decision(decision)
 	_setup_decision_panel_for_decision(decision)
@@ -780,6 +870,20 @@ func _show_current_decision() -> void:
 		proposer.nome if proposer != null else "Un consigliere",
 		proposer.ritratto if proposer != null else null
 	)
+
+
+func _decisione_attiva() -> Decision:
+	if current_quest == null or current_step >= current_quest.passi.size():
+		return null
+	return current_quest.passi[current_step]
+
+
+func _richiamo_per(decision_id: String) -> String:
+	var lista: Array = RICHIAMI.get(decision_id, [])
+	for r in lista:
+		if GameState.scelta_di(r["decisione"]) == r["scelta"]:
+			return r["testo"]
+	return ""
 
 
 func _imposta_event_image(illustrazione_id: String) -> void:
@@ -906,6 +1010,10 @@ func _on_item_dropped(data: Dictionary) -> void:
 	if option == null:
 		processing_drop = false
 		return
+	# Registra la scelta per i richiami narrativi cross-era.
+	var dec_attiva: Decision = _decisione_attiva()
+	if dec_attiva != null:
+		GameState.registra_scelta(dec_attiva.id, option.target_consigliere_id)
 	GameState.apply_effect(option.effetto)
 	var tipo_cons: String = _tipo_conseguenza(option.effetto)
 	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
@@ -1075,6 +1183,7 @@ func _on_mystery_attivata() -> void:
 	Ledger.unlock_lore("lore_fiume_rosso")
 	Ledger.unlock_artefatto("lacrima_di_lyssa")
 	AudioManager.play_sfx("quest_complete")
+	_refresh_effetti_duraturi()
 	_show_narrative("Il fuoco arde di un rosso che non conosce. Oltre la fiamma, qualcosa ascolta.")
 
 
@@ -1090,6 +1199,7 @@ func _on_popolazione_changed(vecchio: int, nuovo: int) -> void:
 
 func _on_rapporto_changed(_civ_id: String, _vecchio: int, _nuovo: int) -> void:
 	_refresh_rapporti()
+	_refresh_effetti_duraturi()
 
 
 func _refresh_rapporti() -> void:
@@ -1123,6 +1233,82 @@ func _refresh_rapporti() -> void:
 		row.add_child(lbl)
 		rapporti_box.add_child(row)
 	rapporti_label.text = "Rapporti:" if qualcuno else ""
+
+
+func _refresh_effetti_duraturi() -> void:
+	if effetti_box == null:
+		return
+	_clear_children(effetti_box)
+	var qualcosa: bool = false
+	# Artefatto equipaggiato: ti potenzia per tutta la run.
+	if GameState.artefatto_equipaggiato != "":
+		var art: Artefatto = load(
+			"res://data/artefatti/%s.tres" % GameState.artefatto_equipaggiato) as Artefatto
+		if art != null:
+			var tip: String = "Artefatto: %s" % art.nome
+			if art.descrizione != "":
+				tip += "\n%s" % art.descrizione
+			effetti_box.add_child(_crea_badge(art.nome, COLOR_EFF_ARTEFATTO, art.icona, tip))
+			qualcosa = true
+	# Mistero desto: una presenza oltre la fiamma osserva le scelte.
+	if GameState.mystery_attiva:
+		effetti_box.add_child(_crea_badge(
+			"Mistero desto", COLOR_EFF_MYSTERY, null,
+			"Qualcosa oltre la fiamma osserva le tue scelte."))
+		qualcosa = true
+	# Patti e rotture: aggregati come "ti sostengono / ti minacciano".
+	var alleati: int = 0
+	var ostili: int = 0
+	for civ_id in GameState.rapporti_civilta.keys():
+		var v: int = int(GameState.rapporti_civilta[civ_id])
+		if v >= SOGLIA_RAPPORTO:
+			alleati += 1
+		elif v <= -SOGLIA_RAPPORTO:
+			ostili += 1
+	if alleati > 0:
+		effetti_box.add_child(_crea_badge(
+			"Alleati ×%d" % alleati, COLOR_EFF_ALLEATO, null,
+			"Civiltà legate da un patto: ti sostengono."))
+		qualcosa = true
+	if ostili > 0:
+		effetti_box.add_child(_crea_badge(
+			"Ostili ×%d" % ostili, COLOR_EFF_OSTILE, null,
+			"Civiltà in rotta con te: una minaccia presente."))
+		qualcosa = true
+	effetti_label.text = "Effetti duraturi:" if qualcosa else ""
+	effetti_label.visible = qualcosa
+
+
+func _crea_badge(testo: String, colore: Color, icona: Texture2D, tooltip: String) -> PanelContainer:
+	var pc: PanelContainer = PanelContainer.new()
+	pc.tooltip_text = tooltip
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(colore.r, colore.g, colore.b, 0.14)
+	sb.border_color = Color(colore.r, colore.g, colore.b, 0.7)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	pc.add_theme_stylebox_override("panel", sb)
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	pc.add_child(hb)
+	if icona != null:
+		var ic: TextureRect = TextureRect.new()
+		ic.custom_minimum_size = Vector2(22, 22)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.texture = icona
+		hb.add_child(ic)
+	var lbl: Label = Label.new()
+	lbl.text = testo
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", colore.lightened(0.2))
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(lbl)
+	return pc
 
 
 func _colore_proposer(tipo: String) -> Color:
@@ -1224,4 +1410,5 @@ func _reset_run() -> void:
 	if bg != null:
 		bg.color = COLOR_BG_ERA1
 	_refresh_rapporti()
+	_refresh_effetti_duraturi()
 	_start_era1()

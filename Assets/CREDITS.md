@@ -10,6 +10,9 @@
 - `art/_sheets/` — **reference sheet** (immagini composite con più sprite per foglio). Non usate direttamente in gioco: vanno SLICED via `AtlasTexture` Godot in `art/<era>/` o `art/<categoria>/`.
 - `art/era1_paleo/` — sprite paleolitici (Era 1)
 - `art/era2_mitico/` — sprite mitici (Era 2)
+- `art/era3_futuro/` — ritratti consiglieri era futura (Era 3, non ancora integrata in gioco)
+- `art/risorse_era3/` — icone risorse/stat era futura (popolo, prestigio, ecologia, legge, mistero, tecnologia)
+- `art/decisioni_era3/` — icone categorie decisione era futura (guerra, diplomazia, industria, ecologia, economia, catastrofe)
 - `art/strategie/` — icone 8 strategie politiche
 - `art/catastrofi/` — illustrazioni 8 catastrofi
 - `art/ambasciatori/` — ritratti civiltà rivali
@@ -125,6 +128,21 @@ Tutti i seguenti file sono generati AI (forniti dal team) e usati come riferimen
 - **Licenza**: AI-generated, uso interno
 - **Contenuto**: 2 terreni-tabellone (radura tribale, spianata del regno) → `art/terreni/era<N>.jpg`; città Era 2 notturna (firma sfumata) → `art/backgrounds/era2_citta_notte.jpg`; 4 illustrazioni eventi paleolitici → `art/eventi/era1_*.png`; 3 effetti conseguenza con alpha (vortice braci, nebbia viola, alone dorato) → `art/fx/00-02.png` (il 4° del prompt, anello di fiamme, è uscito con alpha vuota: scartato); icona Spionaggio (pugnale+maschera) → `art/strategie/spionaggio.png`.
 - **Tool**: `tools/slice_batch2.py`
+
+### `Risorse_di_gioco.png`, `Decisioni_gioco.png` (batch "era futura", 2026-06-15)
+- **Autore**: AI Generated (Lovable)
+- **Licenza**: AI-generated, uso interno
+- **Contenuto**: 2 sheet 192×128 RGBA, griglia 3×2 (celle 64px). Risorse: popolo, prestigio, ecologia, legge, mistero, tecnologia. Decisioni: guerra, diplomazia, industria, ecologia, economia, catastrofe.
+- **Sliced in**: `art/risorse_era3/*.png`, `art/decisioni_era3/*.png` via `tools/smista_batch_futuro.py` (autocrop alpha per cella).
+
+### Ritratti + sfondi + VFX "era futura" (batch, 2026-06-15)
+- **Autore**: AI Generated (Lovable)
+- **Licenza**: AI-generated, uso interno
+- **Contenuto e destinazione** (smistati da `tools/smista_batch_futuro.py`):
+  - 4 ritratti consiglieri 1024² → `art/era3_futuro/`: `consigliere_guerra.png` (militare neon), `consigliere_moderno.png` (diplomatico hi-tech), `ecologista.png`, `tecnico.png` (cyborg).
+  - 3 sfondi 1920×1080 → `art/backgrounds/`: `era3_insediamento.jpg` (campo dystopico al crepuscolo), `era3_citta_crescita.jpg` (città cyberpunk), `era3_metropoli.jpg` (metropoli verde futura). Convertiti in jpg q88.
+  - 1 VFX transizione 1024×572 → `art/fx/cambio_era.png`.
+- **Nota**: `Consigliere.png` (anziano in toga oro, stile Regno Mitico) NON smistato: in attesa di conferma sulla destinazione (Era 2 vs era futura). Resta in `Assets/` root.
 
 ### `bg_era1_caverna_src.jpg`, `bg_era1_accampamento_src.jpg`
 - **Autore**: AI Generated (Lovable, prompt in `Docs/08-asset-prompts.md` §P1, 2026-06-11)
