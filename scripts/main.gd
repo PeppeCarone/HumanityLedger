@@ -104,8 +104,9 @@ const STAT_LABELS: Dictionary = {
 	"costruzione": "Costruzione",
 }
 
-# --- Villaggio migliorabile (D046): ogni tipo-edificio sviluppa una stat tematica.
-# Migliorare costa Tesoro ed è gated dalla Costruzione (il dominio del Costruttore).
+# --- Villaggio builder (D046): ogni tipo-edificio sviluppa una stat tematica.
+# Costruire/migliorare costa RISORSE (la valuta del villaggio, prodotta a ogni
+# decisione dagli edifici) ed è gated dalla Costruzione (dominio del Costruttore).
 const EDIFICIO_NOME_ERA: Dictionary = {
 	1: {0: "Tenda", 1: "Capanna", 2: "Totem", 3: "Focolare", 4: "Essiccatoio", 5: "Palizzata"},
 	2: {0: "Tempio", 1: "Mercato", 2: "Torre", 3: "Fonderia", 4: "Mura", 5: "Archivio"},
@@ -114,14 +115,21 @@ const EDIFICIO_STAT_ERA: Dictionary = {
 	1: {0: "popolo", 1: "popolo", 2: "scienza", 3: "legge", 4: "costruzione", 5: "militare"},
 	2: {0: "legge", 1: "diplomazia", 2: "spionaggio", 3: "costruzione", 4: "militare", 5: "scienza"},
 }
-# Per raggiungere il livello-chiave: costo Tesoro, Costruzione minima, bonus alla stat.
-const UPGRADE_COSTO: Dictionary = {2: 10, 3: 16}
+# Edifici "economici": producono RISORSE doppie a ogni turno (essiccatoio / mercato).
+const EDIFICIO_ECONOMICO: Dictionary = {
+	1: {4: true},
+	2: {1: true},
+}
+# Per raggiungere il livello-chiave: costo Risorse, Costruzione minima, bonus alla stat.
+const UPGRADE_COSTO: Dictionary = {2: 14, 3: 24}
 const UPGRADE_GATE_COSTR: Dictionary = {2: 30, 3: 55}
 const UPGRADE_BONUS: Dictionary = {2: 6, 3: 9}
 # Costruire un nuovo edificio sul lotto vuoto: piu' economico dell'upgrade.
-const BUILD_COSTO: int = 8
+const BUILD_COSTO: int = 10
 const BUILD_GATE_COSTR: int = 20
 const BUILD_BONUS: int = 3
+# Produzione base di Risorse per turno (anche con poche strutture si accumula).
+const PRODUZIONE_BASE: int = 2
 
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
 # Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
@@ -151,6 +159,8 @@ const BG_ERA2_NOTTE: String = "res://Assets/art/backgrounds/era2_citta_notte.jpg
 
 var quest_log_label: Label = null
 var popolazione_label: Label = null
+var risorse_label: Label = null
+var produzione_label: Label = null
 var stat_value_labels: Dictionary = {}
 var rapporti_label: Label = null
 var rapporti_box: VBoxContainer = null
@@ -193,9 +203,11 @@ func _ready() -> void:
 	_crea_vignette()
 	_crea_richiamo_label()
 	_setup_hud()
+	_setup_resource_bar()
 	_load_personaggi()
 	GameState.stat_changed.connect(_on_stat_changed)
 	GameState.popolazione_changed.connect(_on_popolazione_changed)
+	GameState.risorse_changed.connect(_on_risorse_changed)
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
 	if village != null:
@@ -1103,6 +1115,8 @@ func _on_item_dropped(data: Dictionary) -> void:
 	if dec_attiva != null:
 		GameState.registra_scelta(dec_attiva.id, option.target_consigliere_id)
 	GameState.apply_effect(option.effetto)
+	# Il turno produce Risorse dal villaggio: ogni decisione alimenta l'economia.
+	_produci_risorse()
 	var tipo_cons: String = _tipo_conseguenza(option.effetto)
 	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
 	_chiudi_decisione_morbida()
@@ -1575,7 +1589,7 @@ func _apri_pannello_edificio(slot: int) -> void:
 		var costo: int = int(UPGRADE_COSTO[next])
 		var gate: int = int(UPGRADE_GATE_COSTR[next])
 		var bonus: int = int(UPGRADE_BONUS[next])
-		var ok_tesoro: bool = GameState.get_stat("tesoro") >= costo
+		var ok_risorse: bool = GameState.risorse >= costo
 		var ok_gate: bool = GameState.get_stat("costruzione") >= gate
 		var info: Label = Label.new()
 		info.text = "Migliora a Livello %d:  +%d %s" % [next, bonus, STAT_LABELS.get(stat, stat)]
@@ -1584,10 +1598,10 @@ func _apri_pannello_edificio(slot: int) -> void:
 		info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(info)
 		var costo_lbl: Label = Label.new()
-		costo_lbl.text = "Costo: %d Tesoro  (hai %d)" % [costo, GameState.get_stat("tesoro")]
+		costo_lbl.text = "Costo: %d Risorse  (hai %d)" % [costo, GameState.risorse]
 		costo_lbl.add_theme_font_size_override("font_size", 16)
 		costo_lbl.add_theme_color_override("font_color",
-			Color(0.6, 1, 0.6) if ok_tesoro else Color(1, 0.6, 0.55))
+			Color(0.6, 1, 0.6) if ok_risorse else Color(1, 0.6, 0.55))
 		costo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(costo_lbl)
 		var gate_lbl: Label = Label.new()
@@ -1599,7 +1613,7 @@ func _apri_pannello_edificio(slot: int) -> void:
 		vb.add_child(gate_lbl)
 		var migliora_btn: Button = Button.new()
 		migliora_btn.text = "Migliora"
-		migliora_btn.disabled = not (ok_tesoro and ok_gate)
+		migliora_btn.disabled = not (ok_risorse and ok_gate)
 		migliora_btn.pressed.connect(func() -> void:
 			_esegui_upgrade(era, slot, stat, costo, bonus))
 		vb.add_child(migliora_btn)
@@ -1613,9 +1627,9 @@ func _apri_pannello_edificio(slot: int) -> void:
 
 
 func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) -> void:
-	if GameState.get_stat("tesoro") < costo:
+	if GameState.risorse < costo:
 		return
-	GameState.modifica_stat("tesoro", -costo)
+	GameState.modifica_risorse(-costo)
 	GameState.modifica_stat(stat, bonus)
 	GameState.migliora_edificio(era, slot)
 	AudioManager.play_sfx("quest_complete")
@@ -1631,12 +1645,12 @@ func _chiudi_pannello_edificio() -> void:
 
 
 # Accende il glow d'invito sugli edifici che il giocatore può migliorare ORA
-# (Tesoro e Costruzione sufficienti). Discoverability: la meccanica si fa notare.
+# (Risorse e Costruzione sufficienti). Discoverability: la meccanica si fa notare.
 func _refresh_potenziabili() -> void:
 	if village == null or village.slot_count() == 0:
 		return
 	var era: int = GameState.era_corrente
-	var tesoro: int = GameState.get_stat("tesoro")
+	var risorse: int = GameState.risorse
 	var costr: int = GameState.get_stat("costruzione")
 	var slots: Array = []
 	for s in range(village.slot_count()):
@@ -1644,9 +1658,96 @@ func _refresh_potenziabili() -> void:
 		if lv >= GameState.EDIFICIO_LIVELLO_MAX:
 			continue
 		var nx: int = lv + 1
-		if tesoro >= int(UPGRADE_COSTO[nx]) and costr >= int(UPGRADE_GATE_COSTR[nx]):
+		if risorse >= int(UPGRADE_COSTO[nx]) and costr >= int(UPGRADE_GATE_COSTR[nx]):
 			slots.append(s)
 	village.segna_potenziabili(slots)
+	_aggiorna_produzione_label()
+
+
+# Risorse prodotte a ogni decisione (turno): base + somma dei livelli edificio,
+# doppia per gli edifici economici. Piu' il villaggio cresce, piu' rende.
+func _produzione_per_turno() -> int:
+	if village == null:
+		return PRODUZIONE_BASE
+	var era: int = GameState.era_corrente
+	var tot: int = PRODUZIONE_BASE
+	for s in range(village.slot_count()):
+		var lv: int = GameState.livello_edificio(era, s)
+		var tipo: int = village.tipo_at(s)
+		var mult: int = 2 if bool(EDIFICIO_ECONOMICO.get(era, {}).get(tipo, false)) else 1
+		tot += lv * mult
+	return tot
+
+
+func _produci_risorse() -> void:
+	var n: int = _produzione_per_turno()
+	if n > 0:
+		GameState.modifica_risorse(n)
+
+
+# Barra risorse in alto: identità "gestionale" del gioco (Risorse + produzione/turno).
+func _setup_resource_bar() -> void:
+	var bar: PanelContainer = PanelContainer.new()
+	bar.name = "ResourceBar"
+	bar.add_theme_stylebox_override("panel", _stile_pannello())
+	bar.anchor_left = 0.5
+	bar.anchor_right = 0.5
+	bar.offset_left = -300.0
+	bar.offset_right = 300.0
+	bar.offset_top = 14.0
+	bar.offset_bottom = 74.0
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 18)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	bar.add_child(hb)
+	var ic: TextureRect = TextureRect.new()
+	ic.custom_minimum_size = Vector2(30, 30)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var icp: String = STAT_ICON_DIR + "costruzione.png"
+	if ResourceLoader.exists(icp):
+		ic.texture = load(icp)
+	hb.add_child(ic)
+	risorse_label = Label.new()
+	risorse_label.text = "Risorse: %d" % GameState.risorse
+	risorse_label.add_theme_font_size_override("font_size", 22)
+	risorse_label.add_theme_color_override("font_color", Color(0.97, 0.86, 0.5))
+	risorse_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	risorse_label.add_theme_constant_override("outline_size", 4)
+	var tf: Font = _font_titoli()
+	if tf != null:
+		risorse_label.add_theme_font_override("font", tf)
+	hb.add_child(risorse_label)
+	produzione_label = Label.new()
+	produzione_label.text = "(+%d / turno)" % _produzione_per_turno()
+	produzione_label.add_theme_font_size_override("font_size", 15)
+	produzione_label.add_theme_color_override("font_color", Color(0.62, 0.92, 0.62))
+	produzione_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(produzione_label)
+	var sep: VSeparator = VSeparator.new()
+	hb.add_child(sep)
+	var hint: Label = Label.new()
+	hint.text = "Costruisci e potenzia il villaggio"
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color(0.78, 0.72, 0.6))
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(hint)
+	$UI.add_child(bar)
+
+
+func _aggiorna_produzione_label() -> void:
+	if produzione_label != null:
+		produzione_label.text = "(+%d / turno)" % _produzione_per_turno()
+
+
+func _on_risorse_changed(vecchio: int, nuovo: int) -> void:
+	if risorse_label == null:
+		return
+	risorse_label.text = "Risorse: %d" % nuovo
+	risorse_label.modulate = Color(0.6, 1, 0.6) if nuovo > vecchio else Color(1, 0.7, 0.5)
+	var t: Tween = create_tween()
+	t.tween_property(risorse_label, "modulate", Color.WHITE, 0.6)
+	_aggiorna_produzione_label()
 
 
 func _on_plot_cliccato(slot: int) -> void:
@@ -1666,7 +1767,7 @@ func _apri_pannello_costruzione(slot: int) -> void:
 		return
 	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
 	var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
-	var ok_tesoro: bool = GameState.get_stat("tesoro") >= BUILD_COSTO
+	var ok_risorse: bool = GameState.risorse >= BUILD_COSTO
 	var ok_gate: bool = GameState.get_stat("costruzione") >= BUILD_GATE_COSTR
 	var vb: VBoxContainer = _nuovo_pannello_modale()
 	vb.add_child(_lbl_titolo("Costruisci: %s" % nome))
@@ -1674,13 +1775,13 @@ func _apri_pannello_costruzione(slot: int) -> void:
 	vb.add_child(_separatore_panel())
 	vb.add_child(_lbl("Nuovo edificio del villaggio:  +%d %s" % [BUILD_BONUS, STAT_LABELS.get(stat, stat)],
 		18, Color(0.9, 0.86, 0.74)))
-	vb.add_child(_lbl("Costo: %d Tesoro  (hai %d)" % [BUILD_COSTO, GameState.get_stat("tesoro")],
-		16, Color(0.6, 1, 0.6) if ok_tesoro else Color(1, 0.6, 0.55)))
+	vb.add_child(_lbl("Costo: %d Risorse  (hai %d)" % [BUILD_COSTO, GameState.risorse],
+		16, Color(0.6, 1, 0.6) if ok_risorse else Color(1, 0.6, 0.55)))
 	vb.add_child(_lbl("Richiede Costruzione ≥ %d  (hai %d)" % [BUILD_GATE_COSTR, GameState.get_stat("costruzione")],
 		16, Color(0.6, 1, 0.6) if ok_gate else Color(1, 0.6, 0.55)))
 	var btn: Button = Button.new()
 	btn.text = "Costruisci"
-	btn.disabled = not (ok_tesoro and ok_gate)
+	btn.disabled = not (ok_risorse and ok_gate)
 	btn.pressed.connect(func() -> void: _esegui_build(era, stat))
 	vb.add_child(btn)
 	var chiudi: Button = Button.new()
@@ -1691,11 +1792,11 @@ func _apri_pannello_costruzione(slot: int) -> void:
 
 
 func _esegui_build(_era: int, stat: String) -> void:
-	if GameState.get_stat("tesoro") < BUILD_COSTO:
+	if GameState.risorse < BUILD_COSTO:
 		return
 	if village.slot_count() >= village.slot_max():
 		return
-	GameState.modifica_stat("tesoro", -BUILD_COSTO)
+	GameState.modifica_risorse(-BUILD_COSTO)
 	if stat != "":
 		GameState.modifica_stat(stat, BUILD_BONUS)
 	village.costruisci()

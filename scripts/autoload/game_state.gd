@@ -10,6 +10,9 @@ const STAT_MAX: int = 100
 
 const INITIAL_STAT_VALUE: int = 30
 const INITIAL_POPOLAZIONE: int = 40
+# "Risorse" (materiali): la valuta del villaggio. Si produce a ogni decisione in
+# base agli edifici e si spende per costruire/migliorare. Distinta dalle 8 stat.
+const INITIAL_RISORSE: int = 12
 
 var militare: int = INITIAL_STAT_VALUE
 var tesoro: int = INITIAL_STAT_VALUE
@@ -21,6 +24,7 @@ var popolo: int = INITIAL_STAT_VALUE
 var costruzione: int = INITIAL_STAT_VALUE
 
 var popolazione: int = INITIAL_POPOLAZIONE
+var risorse: int = INITIAL_RISORSE
 
 var era_corrente: int = 1
 var atto_corrente: int = 1
@@ -44,6 +48,7 @@ signal stat_changed(nome: String, valore_vecchio: int, valore_nuovo: int)
 signal flag_set(nome: String, valore: Variant)
 signal era_advanced(nuova_era: int)
 signal popolazione_changed(valore_vecchio: int, valore_nuovo: int)
+signal risorse_changed(valore_vecchio: int, valore_nuovo: int)
 signal mystery_attivata
 signal rapporto_changed(civ_id: String, valore_vecchio: int, valore_nuovo: int)
 signal edificio_migliorato(era: int, slot: int, nuovo_livello: int)
@@ -104,6 +109,17 @@ func modifica_popolazione(delta: int) -> void:
 	popolazione = maxi(0, popolazione + delta)
 	if vecchio != popolazione:
 		popolazione_changed.emit(vecchio, popolazione)
+
+
+func modifica_risorse(delta: int) -> void:
+	var vecchio: int = risorse
+	risorse = maxi(0, risorse + delta)
+	if vecchio != risorse:
+		risorse_changed.emit(vecchio, risorse)
+
+
+func puo_spendere_risorse(costo: int) -> bool:
+	return risorse >= costo
 
 
 func set_flag(nome: String, valore: Variant) -> void:
@@ -231,6 +247,10 @@ func reset_run() -> void:
 	popolazione = INITIAL_POPOLAZIONE
 	if pop_vecchio != popolazione:
 		popolazione_changed.emit(pop_vecchio, popolazione)
+	var ris_vecchio: int = risorse
+	risorse = INITIAL_RISORSE
+	if ris_vecchio != risorse:
+		risorse_changed.emit(ris_vecchio, risorse)
 	era_corrente = 1
 	atto_corrente = 1
 	quest_completate.clear()
@@ -263,6 +283,7 @@ func to_dict() -> Dictionary:
 			"costruzione": costruzione,
 		},
 		"popolazione": popolazione,
+		"risorse": risorse,
 		"era_corrente": era_corrente,
 		"atto_corrente": atto_corrente,
 		"quest_completate": quest_completate,
@@ -282,6 +303,7 @@ func from_dict(data: Dictionary) -> void:
 		if stats.has(stat_name):
 			set_stat(stat_name, stats[stat_name])
 	popolazione = data.get("popolazione", INITIAL_POPOLAZIONE)
+	risorse = data.get("risorse", INITIAL_RISORSE)
 	era_corrente = data.get("era_corrente", 1)
 	atto_corrente = data.get("atto_corrente", 1)
 	quest_completate.assign(data.get("quest_completate", []))
