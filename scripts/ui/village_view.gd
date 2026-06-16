@@ -11,6 +11,9 @@ signal edificio_cliccato(slot: int)
 # Riusa map_transformation (edifici) e live_feedback (effetti).
 
 const VILLAGGIO: String = "res://Assets/art/villaggio/era%d/%02d.png"
+# Variante per-stadio opzionale: se esiste, sostituisce lo sprite base al salire
+# di livello (es. era1/05_lv2.png). Altrimenti resta lo sprite base + stelle.
+const VILLAGGIO_LV: String = "res://Assets/art/villaggio/era%d/%02d_lv%d.png"
 const FEEDBACK: String = "res://Assets/art/map/live_feedback/%02d.png"
 const FX: String = "res://Assets/art/fx/%02d.png"
 const TERRENO: String = "res://Assets/art/terreni/era%d.jpg"
@@ -115,6 +118,12 @@ func _aggiorna_livello_edificio(slot: int) -> void:
 	if not is_instance_valid(tr):
 		return
 	var lv: int = GameState.livello_edificio(_era, slot)
+	# Se esiste arte dedicata per lo stadio, usala (altrimenti sprite base + stelle).
+	var tipo: int = _slot_tipo[slot] if slot < _slot_tipo.size() else -1
+	if tipo >= 0:
+		var lv_path: String = VILLAGGIO_LV % [_era, tipo, lv]
+		if ResourceLoader.exists(lv_path):
+			tr.texture = load(lv_path)
 	tr.scale = Vector2.ONE * (1.0 + 0.07 * float(lv - 1))
 	var vecchio: Node = tr.get_node_or_null("LvBadge")
 	if vecchio != null:
