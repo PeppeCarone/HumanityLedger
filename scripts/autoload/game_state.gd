@@ -159,6 +159,17 @@ func migliora_edificio(era: int, slot: int) -> int:
 	return lv
 
 
+# Una sciagura abbatte un edificio di un livello (mai sotto 1: si ricostruisce, non
+# si perde del tutto). Non toglie le stat già guadagnate: riduce sviluppo/produzione.
+func danneggia_edificio(era: int, slot: int) -> int:
+	var lv: int = livello_edificio(era, slot)
+	if lv <= 1:
+		return lv
+	lv -= 1
+	edifici_livelli["%d_%d" % [era, slot]] = lv
+	return lv
+
+
 func quest_e_completata(id: String) -> bool:
 	return id in quest_completate
 

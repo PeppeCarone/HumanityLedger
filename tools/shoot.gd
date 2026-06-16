@@ -66,6 +66,14 @@ func _run() -> void:
 	GameState.set_flag("villaggio_n", 4)
 	await _shot("res://scenes/main.tscn", "shot_traguardo", Callable(), func(inst: Node) -> void:
 		inst._toast_traguardo("Il Borgo Cresce", "+12 Risorse"), 0.9)
+	# Danno da catastrofe: un edificio migliorato crolla di un livello.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 5)
+	GameState.edifici_livelli = {"1_2": 3, "1_4": 2}
+	await _shot("res://scenes/main.tscn", "shot_danno", Callable(), func(inst: Node) -> void:
+		var e: Effect = Effect.new()
+		e.popolazione_delta = -10
+		inst._check_danno_catastrofe(e), 1.1)
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	GameState.scienza = 9   # sotto il prereq di Progetto Scientifico (15): opzione bloccata

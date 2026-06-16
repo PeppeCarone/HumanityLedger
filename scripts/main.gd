@@ -1129,8 +1129,9 @@ func _on_item_dropped(data: Dictionary) -> void:
 			var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1)) + 1
 			GameState.set_flag("villaggio_n", n)
 	_screen_shake(tipo_cons)
+	var nota_danno: String = _check_danno_catastrofe(option.effetto)
 	SaveSystem.save_run()
-	_show_narrative(option.feedback_testo)
+	_show_narrative(option.feedback_testo + nota_danno)
 	if source_node.has_method("consume"):
 		source_node.consume()
 	await get_tree().create_timer(FEEDBACK_PAUSE_SEC).timeout
@@ -1783,6 +1784,31 @@ func _toast_traguardo(titolo: String, premio: String) -> void:
 	t.tween_interval(2.6)
 	t.tween_property(p, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
 	t.tween_callback(p.queue_free)
+
+
+# Posta in gioco: una sciagura (forte calo di popolazione) abbatte di un livello un
+# edificio già migliorato. Mai sotto il livello 1 e mai su un villaggio "giovane":
+# è un contraccolpo da ricostruire, non una punizione che azzera i progressi.
+func _check_danno_catastrofe(eff: Effect) -> String:
+	if eff == null or village == null:
+		return ""
+	if eff.popolazione_delta > -4:
+		return ""
+	var era: int = GameState.era_corrente
+	var candidati: Array = []
+	for s in range(village.slot_count()):
+		if GameState.livello_edificio(era, s) > 1:
+			candidati.append(s)
+	if candidati.is_empty():
+		return ""
+	var slot: int = candidati[randi() % candidati.size()]
+	var tipo: int = village.tipo_at(slot)
+	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Un edificio")
+	GameState.danneggia_edificio(era, slot)
+	village.danneggia(slot)
+	_refresh_potenziabili()
+	AudioManager.play_sfx("stat_down")
+	return "\n\nLa sciagura colpisce il villaggio: %s crolla di un livello." % nome
 
 
 # "+N" verde che sale dalla barra risorse: il turno ha alimentato l'economia.

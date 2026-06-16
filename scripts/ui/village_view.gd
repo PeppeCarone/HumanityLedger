@@ -209,6 +209,26 @@ func _aggiorna_livello_edificio(slot: int) -> void:
 	tr.add_child(badge)
 
 
+func danneggia(slot: int) -> void:
+	# Sciagura: l'edificio cala di livello con scuotimento, lampo rosso e polvere.
+	if slot < 0 or slot >= _edifici_sprite.size():
+		return
+	var tr: TextureRect = _edifici_sprite[slot]
+	if not is_instance_valid(tr):
+		return
+	_aggiorna_livello_edificio(slot)  # meno stelle, scala minore
+	var base_pos: Vector2 = tr.position
+	var t: Tween = tr.create_tween()
+	for i in range(5):
+		t.tween_property(tr, "position",
+			base_pos + Vector2(randf_range(-8.0, 8.0), randf_range(-3.0, 3.0)), 0.04)
+	t.tween_property(tr, "position", base_pos, 0.06)
+	tr.modulate = Color(1.0, 0.5, 0.45)
+	var flash: Tween = tr.create_tween()
+	flash.tween_property(tr, "modulate", _tinta_prosperita, 0.55).set_trans(Tween.TRANS_SINE)
+	_polvere(tr.position + Vector2(tr.size.x * 0.5, tr.size.y * 0.45))
+
+
 func _pop_upgrade(slot: int) -> void:
 	if slot < 0 or slot >= _edifici_sprite.size():
 		return
