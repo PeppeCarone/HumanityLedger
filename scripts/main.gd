@@ -1337,7 +1337,21 @@ func _refresh_rapporti() -> void:
 		var col_val: Color = Color(0.6, 1.0, 0.6) if valore > 0 else (Color(1.0, 0.6, 0.6) if valore < 0 else Color(1, 1, 1, 0.8))
 		lbl.add_theme_color_override("font_color", col_val)
 		row.add_child(lbl)
-		rapporti_box.add_child(row)
+		# Badge bronzo invece di riga nuda: tinta del bordo = stato del rapporto.
+		var badge: PanelContainer = PanelContainer.new()
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
+		var tint: Color = Color(0.6, 0.95, 0.6) if valore > 0 else (Color(0.95, 0.55, 0.5) if valore < 0 else Color(0.62, 0.46, 0.27))
+		sb.bg_color = Color(0.12, 0.09, 0.07, 0.85)
+		sb.border_color = Color(tint.r, tint.g, tint.b, 0.7)
+		sb.set_border_width_all(1)
+		sb.set_corner_radius_all(6)
+		sb.content_margin_left = 8
+		sb.content_margin_right = 8
+		sb.content_margin_top = 5
+		sb.content_margin_bottom = 5
+		badge.add_theme_stylebox_override("panel", sb)
+		badge.add_child(row)
+		rapporti_box.add_child(badge)
 	rapporti_label.text = "Rapporti:" if qualcuno else ""
 
 

@@ -38,7 +38,8 @@ vuoto scuro, testo piccolo), e mancanza di un **componente UI condiviso** (tema)
 5. `[x]` **[ICON] Icone strategia = medaglioni circolari bronzo** (via codice, coerenti col Ledger).
 6. `[ ]` **[LAYOUT] Incorniciare il pannello stat di sinistra** (l'HUDPanel ha già cornice bronzo;
    resta da rifinire allineamento numeri/margini).
-7. `[ ]` **[STYLE] Status chip (Inflazione/Conflitto) e Rapporti come badge bronzo** con icona/bordo.
+7. `[x]` **[STYLE] Rapporti come badge bronzo** (volto + valore, bordo tinto alleato/ostile). Le chip
+   "effetti duraturi" erano già badge.
 8. `[x]` **[LAYOUT] Scrim modale più scuro** (0.72) + pannelli centrati.
 9. `[~]` **[SMOOTH] CTA "...DECIDI"** già stilizzata e pulsa; resta hover-glow coerente sulle piazzole.
 10. `[ ]` **[STYLE] Stati "bloccati" del Ledger** (silhouette + lucchetto in medaglione) invece di "???".
