@@ -323,10 +323,10 @@ func _crea_richiamo_label() -> void:
 	richiamo_label = Label.new()
 	richiamo_label.name = "RichiamoLabel"
 	richiamo_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	richiamo_label.offset_left = 408.0
-	richiamo_label.offset_top = 300.0
-	richiamo_label.offset_right = 1852.0
-	richiamo_label.offset_bottom = 414.0
+	richiamo_label.offset_left = 470.0
+	richiamo_label.offset_top = 120.0
+	richiamo_label.offset_right = 1790.0
+	richiamo_label.offset_bottom = 220.0
 	richiamo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	richiamo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	richiamo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

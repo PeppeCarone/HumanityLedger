@@ -81,17 +81,17 @@ layout_mode = 2
 theme_override_constants/separation = 6
 
 [node name="ConsigliereProposer" type="PanelContainer" parent="UI"]
-offset_left = 360.0
-offset_top = 424.0
-offset_right = 1900.0
-offset_bottom = 590.0
+offset_left = 470.0
+offset_top = 235.0
+offset_right = 1790.0
+offset_bottom = 540.0
 
 [node name="HBox" type="HBoxContainer" parent="UI/ConsigliereProposer"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
 [node name="PortraitProposer" type="TextureRect" parent="UI/ConsigliereProposer/HBox"]
-custom_minimum_size = Vector2(130, 130)
+custom_minimum_size = Vector2(175, 175)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
@@ -103,7 +103,7 @@ theme_override_constants/separation = 8
 
 [node name="ProposerName" type="Label" parent="UI/ConsigliereProposer/HBox/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 30
 text = "..."
 
 [node name="ProposerText" type="Label" parent="UI/ConsigliereProposer/HBox/VBox"]
@@ -121,11 +121,11 @@ stretch_mode = 5
 
 [node name="ConsiglieriRow" type="HBoxContainer" parent="UI"]
 offset_left = 360.0
-offset_top = 600.0
+offset_top = 575.0
 offset_right = 1900.0
-offset_bottom = 810.0
+offset_bottom = 790.0
 alignment = 1
-theme_override_constants/separation = 40
+theme_override_constants/separation = 48
 
 [node name="NarrativeLabel" type="Label" parent="UI"]
 offset_left = 360.0
@@ -143,7 +143,7 @@ autowrap_mode = 3
 offset_left = 360.0
 offset_top = 820.0
 offset_right = 1900.0
-offset_bottom = 1012.0
+offset_bottom = 1006.0
 mouse_filter = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="UI/DecisionPanel"]
