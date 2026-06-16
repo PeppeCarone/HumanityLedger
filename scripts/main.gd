@@ -153,6 +153,7 @@ var stat_icon_nodes: Dictionary = {}
 var narrative_tween: Tween = null
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
+var atmosfera: CPUParticles2D = null
 
 
 func _ready() -> void:
@@ -321,6 +322,68 @@ func _crea_vignette() -> void:
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	$UI.add_child(tr)
+
+
+# Pulviscolo d'atmosfera per era: in Era 1 motes caldi che scendono lenti nella
+# luce del tramonto, in Era 2 braci che salgono dalla citta'. Sta sopra il
+# villaggio ma sotto i pannelli e l'overlay decisione (resta nella vista villaggio).
+func _aggiorna_atmosfera() -> void:
+	var vp: Vector2 = Vector2(1920, 1080)
+	if atmosfera == null:
+		atmosfera = CPUParticles2D.new()
+		atmosfera.name = "Atmosfera"
+		atmosfera.texture = _soft_dot_texture()
+		atmosfera.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		atmosfera.local_coords = false
+		$UI.add_child(atmosfera)
+		# Sopra il villaggio (idx 2), sotto DecisionBg/HUD: indice 3.
+		$UI.move_child(atmosfera, 3)
+	var era2: bool = GameState.era_corrente >= 2
+	atmosfera.amount = 22 if era2 else 30
+	atmosfera.lifetime = 7.0 if era2 else 9.5
+	atmosfera.preprocess = atmosfera.lifetime
+	atmosfera.spread = 18.0
+	atmosfera.scale_amount_min = 0.5 if era2 else 0.35
+	atmosfera.scale_amount_max = 1.4 if era2 else 1.0
+	atmosfera.emission_rect_extents = Vector2(vp.x * 0.5, 40.0)
+	var ramp: Gradient = Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.25, 1.0])
+	if era2:
+		# Braci ascendenti: partono dal basso e salgono, ambra-arancio.
+		atmosfera.position = Vector2(vp.x * 0.5, vp.y * 0.98)
+		atmosfera.direction = Vector2(0, -1)
+		atmosfera.gravity = Vector2(3, -16)
+		atmosfera.initial_velocity_min = 10.0
+		atmosfera.initial_velocity_max = 26.0
+		ramp.colors = PackedColorArray([
+			Color(1.0, 0.6, 0.3, 0.0), Color(1.0, 0.66, 0.32, 0.55),
+			Color(1.0, 0.6, 0.3, 0.0)])
+	else:
+		# Pulviscolo caldo che scende lento dall'alto.
+		atmosfera.position = Vector2(vp.x * 0.5, vp.y * 0.04)
+		atmosfera.direction = Vector2(0.2, 1)
+		atmosfera.gravity = Vector2(5, 10)
+		atmosfera.initial_velocity_min = 4.0
+		atmosfera.initial_velocity_max = 12.0
+		ramp.colors = PackedColorArray([
+			Color(1.0, 0.95, 0.82, 0.0), Color(1.0, 0.94, 0.8, 0.42),
+			Color(1.0, 0.95, 0.82, 0.0)])
+	atmosfera.color_ramp = ramp
+	atmosfera.restart()
+
+
+func _soft_dot_texture() -> GradientTexture2D:
+	var g: Gradient = Gradient.new()
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	g.offsets = PackedFloat32Array([0.0, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 24
+	tex.height = 24
+	return tex
 
 
 func _font_titoli() -> Font:
@@ -505,6 +568,7 @@ func _aggiorna_sfondo_era() -> void:
 		scene_bg.texture = load(path)
 		scene_bg.set_meta("bg_path", path)
 	_aggiorna_scena_decisione()
+	_aggiorna_atmosfera()
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
 	if village != null:
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
