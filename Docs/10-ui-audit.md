@@ -54,8 +54,9 @@ transizioni tra viste, hover su altri elementi.
 1. `[x]` **Scegli cosa costruire**: il lotto apre "Cosa costruire?" coi tipi-edificio dell'era a
    scelta — specializzazione (militare/economico/sapere). `village.costruisci(tipo)`.
 2. `[ ]` **Vista villaggio gestionale**: pannello con elenco edifici, produzione dettagliata, hover-info.
-3. `[ ]` **Posta in gioco**: catastrofi che danneggiano edifici (rovina→ricostruisci); traguardi del
-   villaggio che sbloccano bonus/eventi/lore (milestone stile Lapse/Clash).
+3. `[x]` **Posta in gioco**: traguardi del villaggio con ricompense+toast (Lapse/Clash); catastrofi
+   (forte calo popolazione) che danneggiano un edificio migliorato di un livello (rovina→ricostruisci,
+   non punitivo). Resta opzionale: traguardi che sbloccano *lore* nel Ledger.
 4. `[~]` **Bilanciamento**: i finali restano 6/6 (le sim non usano il villaggio); il villaggio è una
    leva extra player-driven. Da tenere d'occhio se rende troppo facile raggiungere una soglia.
 
