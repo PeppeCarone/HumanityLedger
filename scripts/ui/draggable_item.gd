@@ -27,16 +27,44 @@ var _disabled_reason: String = ""
 
 
 func _ready() -> void:
+	_crea_medaglione()
 	_refresh()
+
+
+# Medaglione circolare bronzo dietro l'icona: i token strategia diventano emblemi
+# coerenti coi medaglioni-artefatto del Ledger (audit UI #5), senza nuova arte.
+func _crea_medaglione() -> void:
+	if has_node("Medaglione"):
+		return
+	var med: Panel = Panel.new()
+	med.name = "Medaglione"
+	med.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	med.anchor_left = 0.5
+	med.anchor_right = 0.5
+	med.offset_left = -62.0
+	med.offset_right = 62.0
+	med.offset_top = 14.0
+	med.offset_bottom = 138.0
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.17, 0.12, 0.08, 0.94)
+	sb.border_color = Color(0.66, 0.49, 0.27)
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(62)
+	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.shadow_size = 7
+	med.add_theme_stylebox_override("panel", sb)
+	add_child(med)
+	move_child(med, 1)
 
 
 func _refresh() -> void:
 	if bg != null:
+		# Backing della card reso discreto: il medaglione circolare è il protagonista.
 		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = icon_color
-		sb.border_color = Color(0.5, 0.38, 0.22, 0.9)
-		sb.set_border_width_all(2)
-		sb.set_corner_radius_all(6)
+		sb.bg_color = Color(0.10, 0.08, 0.06, 0.45)
+		sb.border_color = Color(0.5, 0.38, 0.22, 0.5)
+		sb.set_border_width_all(1)
+		sb.set_corner_radius_all(10)
 		bg.add_theme_stylebox_override("panel", sb)
 	if icon_rect != null:
 		icon_rect.texture = icon_texture
