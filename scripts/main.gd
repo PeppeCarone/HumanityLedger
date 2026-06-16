@@ -1627,6 +1627,7 @@ func _apri_pannello_edificio(slot: int) -> void:
 	vb.add_child(chiudi)
 
 	add_child(edificio_panel)
+	_anima_apertura_pannello()
 
 
 func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) -> void:
@@ -1639,6 +1640,18 @@ func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) 
 	SaveSystem.save_run()
 	_refresh_potenziabili()
 	_chiudi_pannello_edificio()
+
+
+func _anima_apertura_pannello() -> void:
+	# Fade-in morbido del pannello modale (dim + box) invece dell'apparizione di scatto.
+	if edificio_panel == null or not is_instance_valid(edificio_panel):
+		return
+	var t: Tween = create_tween()
+	t.set_parallel()
+	for c in edificio_panel.get_children():
+		if c is CanvasItem:
+			(c as CanvasItem).modulate.a = 0.0
+			t.tween_property(c, "modulate:a", 1.0, 0.16).set_trans(Tween.TRANS_SINE)
 
 
 func _chiudi_pannello_edificio() -> void:
@@ -1814,6 +1827,7 @@ func _apri_pannello_costruzione(slot: int) -> void:
 	chiudi.pressed.connect(_chiudi_pannello_edificio)
 	vb.add_child(chiudi)
 	add_child(edificio_panel)
+	_anima_apertura_pannello()
 
 
 func _esegui_build(_era: int, stat: String) -> void:

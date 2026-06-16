@@ -99,7 +99,7 @@ func _crea_scrims() -> void:
 	scrim_top.texture = _gradiente_verticale(
 		[Color(0, 0, 0, 0.62), Color(0, 0, 0, 0.0)], [0.0, 0.32])
 	scrim_bottom.texture = _gradiente_verticale(
-		[Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.93)], [0.42, 1.0])
+		[Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.55), Color(0, 0, 0, 0.96)], [0.30, 0.6, 1.0])
 
 
 func _gradiente_verticale(colori: Array, offsets: Array) -> GradientTexture2D:
