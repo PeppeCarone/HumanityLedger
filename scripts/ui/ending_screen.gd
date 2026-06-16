@@ -53,6 +53,45 @@ func _stile_testi() -> void:
 	testo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	testo_label.add_theme_constant_override("outline_size", 5)
 	testo_label.add_theme_constant_override("line_spacing", 7)
+	_box_footer()
+
+
+# Le istruzioni non sono "testo nudo" sull'illustrazione (audit AAA #5): vanno in
+# un cartiglio bronzo centrato in basso, leggibile su qualunque epilogo chiaro.
+# Ancore esplicite (0.5/0.5 + offset simmetrici) come Titolo/Testo della scena:
+# i preset+grow su un CanvasLayer non centravano in modo affidabile.
+func _box_footer() -> void:
+	if footer_label.get_parent() is PanelContainer:
+		return
+	var box: PanelContainer = PanelContainer.new()
+	box.name = "FooterBox"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.05, 0.04, 0.66)
+	sb.border_color = Color(0.55, 0.42, 0.24, 0.9)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.shadow_size = 6
+	box.add_theme_stylebox_override("panel", sb)
+	add_child(box)
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 1.0
+	box.anchor_bottom = 1.0
+	box.offset_left = -240.0
+	box.offset_right = 240.0
+	box.offset_top = -94.0
+	box.offset_bottom = -44.0
+	# Riparentela la Label dentro al cartiglio e falle riempire l'area imbottita.
+	footer_label.reparent(box)
+	footer_label.custom_minimum_size = Vector2.ZERO
+	footer_label.modulate = Color.WHITE
+	footer_label.add_theme_color_override("font_color", Color(0.85, 0.74, 0.52))
 
 
 func _crea_scrims() -> void:
@@ -60,7 +99,7 @@ func _crea_scrims() -> void:
 	scrim_top.texture = _gradiente_verticale(
 		[Color(0, 0, 0, 0.62), Color(0, 0, 0, 0.0)], [0.0, 0.32])
 	scrim_bottom.texture = _gradiente_verticale(
-		[Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.88)], [0.48, 1.0])
+		[Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.93)], [0.42, 1.0])
 
 
 func _gradiente_verticale(colori: Array, offsets: Array) -> GradientTexture2D:
@@ -94,7 +133,11 @@ func _anima_ingresso() -> void:
 	immagine.modulate.a = 0.0
 	titolo_label.modulate.a = 0.0
 	testo_label.modulate.a = 0.0
-	footer_label.modulate.a = 0.0
+	# Anima il cartiglio del footer (testo + bordo insieme), non solo la Label.
+	var footer_node: CanvasItem = footer_label.get_parent() as CanvasItem
+	if footer_node == null:
+		footer_node = footer_label
+	footer_node.modulate.a = 0.0
 	var vp: Vector2 = get_viewport().get_visible_rect().size
 	immagine.pivot_offset = vp * 0.5
 	immagine.scale = Vector2.ONE
@@ -105,4 +148,4 @@ func _anima_ingresso() -> void:
 	t.tween_property(immagine, "modulate:a", 1.0, 1.6).set_trans(Tween.TRANS_SINE)
 	t.parallel().tween_property(titolo_label, "modulate:a", 1.0, 1.2).set_delay(0.7)
 	t.parallel().tween_property(testo_label, "modulate:a", 1.0, 1.2).set_delay(1.5)
-	t.parallel().tween_property(footer_label, "modulate:a", 0.55, 0.8).set_delay(2.4)
+	t.parallel().tween_property(footer_node, "modulate:a", 0.95, 0.8).set_delay(2.4)

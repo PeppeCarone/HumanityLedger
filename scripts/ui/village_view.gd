@@ -58,13 +58,16 @@ const SLOTS_BOARD: Array[Dictionary] = [
 
 # Effetto + tinta per tipo di conseguenza (sprite painterly in art/fx:
 # 0 = vortice di braci, 1 = nebbia viola, 2 = alone dorato).
+# Tinte ancorate alla palette bronzo/oro/ambra e desaturate ~45% (audit AAA #4):
+# niente verdi/blu acidi che stonano col fondale painterly. La guerra vira al
+# brace, l'alleanza a un salvia-oro tenue, la scienza a un acciaio freddo ma muto.
 const FX_CONSEGUENZA: Dictionary = {
-	"guerra":      {"idx": 0, "col": Color(1.0, 0.85, 0.8)},
-	"alleanza":    {"idx": 2, "col": Color(0.75, 1.0, 0.8)},
-	"scienza":     {"idx": 1, "col": Color(0.65, 0.85, 1.0)},
-	"costruzione": {"idx": 2, "col": Color(1.0, 0.92, 0.7)},
-	"ricchezza":   {"idx": 2, "col": Color(1.0, 0.9, 0.55)},
-	"neutro":      {"idx": 1, "col": Color(1.0, 0.95, 1.0)},
+	"guerra":      {"idx": 0, "col": Color(0.95, 0.62, 0.45)},
+	"alleanza":    {"idx": 2, "col": Color(0.80, 0.86, 0.62)},
+	"scienza":     {"idx": 1, "col": Color(0.68, 0.80, 0.88)},
+	"costruzione": {"idx": 2, "col": Color(0.98, 0.88, 0.62)},
+	"ricchezza":   {"idx": 2, "col": Color(1.0, 0.86, 0.5)},
+	"neutro":      {"idx": 1, "col": Color(0.92, 0.88, 0.80)},
 }
 
 var _era: int = 1
