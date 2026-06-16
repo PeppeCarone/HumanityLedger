@@ -81,6 +81,7 @@ var _slot_usati: int = 0
 var _edifici_nodi: Array[TextureRect] = []
 var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta prosperita')
 var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
+var _potenziabili: Array[int] = []  # slot attualmente migliorabili (glow d'invito)
 var _fumo: CPUParticles2D = null
 var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
@@ -155,6 +156,81 @@ func _pop_upgrade(slot: int) -> void:
 	t.tween_property(tr, "scale", target, 0.35) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_polvere(tr.position + Vector2(tr.size.x * 0.5, 0.0))
+	# Lampo dorato che si espande dalla base: l'upgrade "sboccia".
+	var flash: TextureRect = TextureRect.new()
+	flash.texture = _disc_texture()
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	flash.stretch_mode = TextureRect.STRETCH_SCALE
+	var w: float = tr.size.x * 1.1
+	flash.size = Vector2(w, w)
+	flash.pivot_offset = flash.size * 0.5
+	flash.position = tr.position + Vector2(tr.size.x * 0.5 - w * 0.5, tr.size.y - w * 0.62)
+	flash.modulate = Color(1.0, 0.86, 0.45, 0.9)
+	_fx.add_child(flash)
+	var ft: Tween = flash.create_tween()
+	ft.set_parallel()
+	ft.tween_property(flash, "scale", Vector2.ONE * 1.6, 0.6).from(Vector2.ONE * 0.3) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	ft.tween_property(flash, "modulate:a", 0.0, 0.6)
+	ft.chain().tween_callback(flash.queue_free)
+
+
+# Glow d'invito "potenziabile ora" alla base degli edifici migliorabili (stile RTS).
+func segna_potenziabili(slots: Array) -> void:
+	_potenziabili.clear()
+	for s in slots:
+		_potenziabili.append(int(s))
+	for i in range(_edifici_sprite.size()):
+		_aggiorna_glow_affordance(i)
+
+
+func _aggiorna_glow_affordance(slot: int) -> void:
+	if slot < 0 or slot >= _edifici_sprite.size():
+		return
+	var tr: TextureRect = _edifici_sprite[slot]
+	if not is_instance_valid(tr):
+		return
+	var ring: TextureRect = tr.get_node_or_null("AffordGlow")
+	var vuole: bool = slot in _potenziabili
+	if vuole and ring == null:
+		ring = TextureRect.new()
+		ring.name = "AffordGlow"
+		ring.texture = _disc_texture()
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ring.stretch_mode = TextureRect.STRETCH_SCALE
+		var w: float = tr.size.x * 0.95
+		ring.size = Vector2(w, w * 0.42)
+		ring.position = Vector2(tr.size.x * 0.5 - w * 0.5, tr.size.y - w * 0.30)
+		ring.modulate = Color(1.0, 0.84, 0.4, 0.0)
+		tr.add_child(ring)
+		tr.move_child(ring, 0)  # dietro la sagoma dell'edificio
+		var t: Tween = ring.create_tween()
+		t.set_loops()
+		t.set_trans(Tween.TRANS_SINE)
+		t.tween_property(ring, "modulate:a", 0.55, 0.75)
+		t.tween_property(ring, "modulate:a", 0.16, 0.75)
+		ring.set_meta("tw", t)
+	elif not vuole and ring != null:
+		var t: Variant = ring.get_meta("tw", null)
+		if t != null and (t as Tween).is_valid():
+			(t as Tween).kill()
+		ring.queue_free()
+
+
+func _disc_texture() -> GradientTexture2D:
+	var g: Gradient = Gradient.new()
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	g.offsets = PackedFloat32Array([0.0, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	return tex
 
 
 func _baseline() -> Vector2:

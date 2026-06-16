@@ -592,6 +592,7 @@ func _aggiorna_sfondo_era() -> void:
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
+		_refresh_potenziabili()
 
 
 func _aggiorna_scena_decisione() -> void:
@@ -1212,6 +1213,7 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	if village != null and (nome == "popolo" or nome == "tesoro"):
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
 	_refresh_disabled_options()
+	_refresh_potenziabili()
 	if in_attesa_quest:
 		_avvia_prossima_quest()
 
@@ -1613,6 +1615,7 @@ func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) 
 	GameState.migliora_edificio(era, slot)
 	AudioManager.play_sfx("quest_complete")
 	SaveSystem.save_run()
+	_refresh_potenziabili()
 	_chiudi_pannello_edificio()
 
 
@@ -1620,6 +1623,25 @@ func _chiudi_pannello_edificio() -> void:
 	if edificio_panel != null and is_instance_valid(edificio_panel):
 		edificio_panel.queue_free()
 	edificio_panel = null
+
+
+# Accende il glow d'invito sugli edifici che il giocatore può migliorare ORA
+# (Tesoro e Costruzione sufficienti). Discoverability: la meccanica si fa notare.
+func _refresh_potenziabili() -> void:
+	if village == null or village.slot_count() == 0:
+		return
+	var era: int = GameState.era_corrente
+	var tesoro: int = GameState.get_stat("tesoro")
+	var costr: int = GameState.get_stat("costruzione")
+	var slots: Array = []
+	for s in range(village.slot_count()):
+		var lv: int = GameState.livello_edificio(era, s)
+		if lv >= GameState.EDIFICIO_LIVELLO_MAX:
+			continue
+		var nx: int = lv + 1
+		if tesoro >= int(UPGRADE_COSTO[nx]) and costr >= int(UPGRADE_GATE_COSTR[nx]):
+			slots.append(s)
+	village.segna_potenziabili(slots)
 
 
 func _reset_run() -> void:
