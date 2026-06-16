@@ -1639,6 +1639,7 @@ func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) 
 	AudioManager.play_sfx("quest_complete")
 	SaveSystem.save_run()
 	_refresh_potenziabili()
+	_check_traguardi_villaggio()
 	_chiudi_pannello_edificio()
 
 
@@ -1700,6 +1701,74 @@ func _produci_risorse() -> void:
 	if n > 0:
 		GameState.modifica_risorse(n)
 		_float_risorse(n)
+
+
+# Traguardi del villaggio (progressione stile Clash/Lapse): costruire e migliorare
+# sblocca ricompense una volta per run, con un toast celebrativo. I flag persistono
+# nel save e si azzerano al reset.
+func _check_traguardi_villaggio() -> void:
+	if village == null:
+		return
+	var era: int = GameState.era_corrente
+	var n: int = village.slot_count()
+	var ha_lv_max: bool = false
+	for s in range(n):
+		if GameState.livello_edificio(era, s) >= GameState.EDIFICIO_LIVELLO_MAX:
+			ha_lv_max = true
+			break
+	if n >= 3 and not GameState.has_flag("trg_borgo"):
+		GameState.set_flag("trg_borgo", true)
+		GameState.modifica_risorse(12)
+		_toast_traguardo("Il Borgo Cresce", "+12 Risorse")
+	if n >= village.slot_max() and not GameState.has_flag("trg_completo"):
+		GameState.set_flag("trg_completo", true)
+		GameState.modifica_risorse(20)
+		GameState.modifica_stat("costruzione", 3)
+		_toast_traguardo("Villaggio Compiuto", "+20 Risorse  ·  +3 Costruzione")
+	if ha_lv_max and not GameState.has_flag("trg_maestria"):
+		GameState.set_flag("trg_maestria", true)
+		GameState.modifica_risorse(15)
+		GameState.modifica_stat("popolo", 3)
+		_toast_traguardo("Opera Maestra", "+15 Risorse  ·  +3 Popolo")
+
+
+func _toast_traguardo(titolo: String, premio: String) -> void:
+	var p: PanelContainer = PanelContainer.new()
+	p.add_theme_stylebox_override("panel", _stile_pannello())
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.anchor_left = 0.5
+	p.anchor_right = 0.5
+	p.offset_left = -300.0
+	p.offset_right = 300.0
+	p.offset_top = 92.0
+	p.offset_bottom = 172.0
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 4)
+	p.add_child(vb)
+	var t1: Label = Label.new()
+	t1.text = "Traguardo:  %s" % titolo
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t1.add_theme_font_size_override("font_size", 24)
+	t1.add_theme_color_override("font_color", Color(0.95, 0.84, 0.5))
+	var f: Font = _font_titoli()
+	if f != null:
+		t1.add_theme_font_override("font", f)
+	vb.add_child(t1)
+	var t2: Label = Label.new()
+	t2.text = premio
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t2.add_theme_font_size_override("font_size", 16)
+	t2.add_theme_color_override("font_color", Color(0.66, 0.95, 0.66))
+	vb.add_child(t2)
+	$UI.add_child(p)
+	p.modulate.a = 0.0
+	AudioManager.play_sfx("ledger_unlock")
+	var t: Tween = create_tween()
+	t.tween_property(p, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
+	t.tween_interval(2.6)
+	t.tween_property(p, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+	t.tween_callback(p.queue_free)
 
 
 # "+N" verde che sale dalla barra risorse: il turno ha alimentato l'economia.
@@ -1849,6 +1918,7 @@ func _esegui_build(tipo: int, stat: String) -> void:
 	AudioManager.play_sfx("quest_complete")
 	SaveSystem.save_run()
 	_refresh_potenziabili()
+	_check_traguardi_villaggio()
 	_chiudi_pannello_edificio()
 
 

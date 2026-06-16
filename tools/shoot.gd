@@ -61,6 +61,11 @@ func _run() -> void:
 	GameState.tesoro = 40
 	await _shot("res://scenes/main.tscn", "shot_build_panel", Callable(), func(inst: Node) -> void:
 		inst._apri_pannello_costruzione(2), 0.9)
+	# Toast traguardo del villaggio.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 4)
+	await _shot("res://scenes/main.tscn", "shot_traguardo", Callable(), func(inst: Node) -> void:
+		inst._toast_traguardo("Il Borgo Cresce", "+12 Risorse"), 0.9)
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	GameState.scienza = 9   # sotto il prereq di Progetto Scientifico (15): opzione bloccata
