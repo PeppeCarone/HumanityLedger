@@ -118,6 +118,10 @@ const EDIFICIO_STAT_ERA: Dictionary = {
 const UPGRADE_COSTO: Dictionary = {2: 10, 3: 16}
 const UPGRADE_GATE_COSTR: Dictionary = {2: 30, 3: 55}
 const UPGRADE_BONUS: Dictionary = {2: 6, 3: 9}
+# Costruire un nuovo edificio sul lotto vuoto: piu' economico dell'upgrade.
+const BUILD_COSTO: int = 8
+const BUILD_GATE_COSTR: int = 20
+const BUILD_BONUS: int = 3
 
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
 # Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
@@ -196,6 +200,7 @@ func _ready() -> void:
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
 	if village != null:
 		village.edificio_cliccato.connect(_on_edificio_cliccato)
+		village.plot_cliccato.connect(_on_plot_cliccato)
 	call_button.pressed.connect(_apri_decisione)
 	_stile_call_button()
 	_set_decision_visible(false)
@@ -1642,6 +1647,117 @@ func _refresh_potenziabili() -> void:
 		if tesoro >= int(UPGRADE_COSTO[nx]) and costr >= int(UPGRADE_GATE_COSTR[nx]):
 			slots.append(s)
 	village.segna_potenziabili(slots)
+
+
+func _on_plot_cliccato(slot: int) -> void:
+	if processing_drop or in_transizione_era:
+		return
+	if $UI/ConsigliereProposer.visible:
+		return
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		return
+	_apri_pannello_costruzione(slot)
+
+
+func _apri_pannello_costruzione(slot: int) -> void:
+	var era: int = GameState.era_corrente
+	var tipo: int = village.tipo_previsto(slot)
+	if tipo < 0:
+		return
+	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
+	var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
+	var ok_tesoro: bool = GameState.get_stat("tesoro") >= BUILD_COSTO
+	var ok_gate: bool = GameState.get_stat("costruzione") >= BUILD_GATE_COSTR
+	var vb: VBoxContainer = _nuovo_pannello_modale()
+	vb.add_child(_lbl_titolo("Costruisci: %s" % nome))
+	vb.add_child(_lbl("Sviluppa: %s" % STAT_LABELS.get(stat, stat), 17, Color(0.82, 0.76, 0.62)))
+	vb.add_child(_separatore_panel())
+	vb.add_child(_lbl("Nuovo edificio del villaggio:  +%d %s" % [BUILD_BONUS, STAT_LABELS.get(stat, stat)],
+		18, Color(0.9, 0.86, 0.74)))
+	vb.add_child(_lbl("Costo: %d Tesoro  (hai %d)" % [BUILD_COSTO, GameState.get_stat("tesoro")],
+		16, Color(0.6, 1, 0.6) if ok_tesoro else Color(1, 0.6, 0.55)))
+	vb.add_child(_lbl("Richiede Costruzione ≥ %d  (hai %d)" % [BUILD_GATE_COSTR, GameState.get_stat("costruzione")],
+		16, Color(0.6, 1, 0.6) if ok_gate else Color(1, 0.6, 0.55)))
+	var btn: Button = Button.new()
+	btn.text = "Costruisci"
+	btn.disabled = not (ok_tesoro and ok_gate)
+	btn.pressed.connect(func() -> void: _esegui_build(era, stat))
+	vb.add_child(btn)
+	var chiudi: Button = Button.new()
+	chiudi.text = "Chiudi"
+	chiudi.pressed.connect(_chiudi_pannello_edificio)
+	vb.add_child(chiudi)
+	add_child(edificio_panel)
+
+
+func _esegui_build(_era: int, stat: String) -> void:
+	if GameState.get_stat("tesoro") < BUILD_COSTO:
+		return
+	if village.slot_count() >= village.slot_max():
+		return
+	GameState.modifica_stat("tesoro", -BUILD_COSTO)
+	if stat != "":
+		GameState.modifica_stat(stat, BUILD_BONUS)
+	village.costruisci()
+	GameState.set_flag("villaggio_n", village.slot_count())
+	AudioManager.play_sfx("quest_complete")
+	SaveSystem.save_run()
+	_refresh_potenziabili()
+	_chiudi_pannello_edificio()
+
+
+func _nuovo_pannello_modale() -> VBoxContainer:
+	edificio_panel = CanvasLayer.new()
+	edificio_panel.layer = 12
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.02, 0.015, 0.03, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_chiudi_pannello_edificio())
+	edificio_panel.add_child(dim)
+	var box: PanelContainer = PanelContainer.new()
+	box.add_theme_stylebox_override("panel", _stile_pannello())
+	box.mouse_filter = Control.MOUSE_FILTER_STOP
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 0.5
+	box.anchor_bottom = 0.5
+	box.offset_left = -235.0
+	box.offset_right = 235.0
+	box.offset_top = -205.0
+	box.offset_bottom = 205.0
+	edificio_panel.add_child(box)
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 12)
+	box.add_child(vb)
+	return vb
+
+
+func _lbl(testo: String, dim_font: int, col: Color) -> Label:
+	var l: Label = Label.new()
+	l.text = testo
+	l.add_theme_font_size_override("font_size", dim_font)
+	l.add_theme_color_override("font_color", col)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
+
+
+func _lbl_titolo(testo: String) -> Label:
+	var l: Label = _lbl(testo, 28, Color(0.93, 0.82, 0.5))
+	var f: Font = _font_titoli()
+	if f != null:
+		l.add_theme_font_override("font", f)
+	return l
+
+
+func _separatore_panel() -> ColorRect:
+	var sep: ColorRect = ColorRect.new()
+	sep.color = Color(0.5, 0.38, 0.22, 0.4)
+	sep.custom_minimum_size = Vector2(0, 1)
+	return sep
 
 
 func _reset_run() -> void:

@@ -3,6 +3,8 @@ class_name VillageView
 
 # Emesso quando il giocatore clicca un edificio costruito (per migliorarlo).
 signal edificio_cliccato(slot: int)
+# Emesso quando il giocatore clicca il lotto vuoto "costruisci qui".
+signal plot_cliccato(slot: int)
 
 # Fondale vivo: il villaggio del popolo che cresce a ogni decisione.
 # Sta dietro ai pannelli UI (traslucidi). Mostra una fila di edifici isometrici
@@ -82,6 +84,7 @@ var _edifici_nodi: Array[TextureRect] = []
 var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta prosperita')
 var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
 var _potenziabili: Array[int] = []  # slot attualmente migliorabili (glow d'invito)
+var _marker_costruibile: Control = null  # lotto vuoto "costruisci qui"
 var _fumo: CPUParticles2D = null
 var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
@@ -101,6 +104,69 @@ func tipo_at(slot: int) -> int:
 
 func slot_count() -> int:
 	return _edifici_sprite.size()
+
+
+func slot_max() -> int:
+	return _slots().size()
+
+
+# Tipo-edificio che verrebbe piazzato sul prossimo lotto vuoto (per il pannello build).
+func tipo_previsto(slot: int) -> int:
+	var seq: Array = EDIFICI_ERA.get(_era, EDIFICI_ERA[1])
+	if seq.is_empty():
+		return -1
+	return int(seq[slot % seq.size()])
+
+
+# Marker pulsante "costruisci qui" sul prossimo lotto libero (uno solo: i lotti si
+# riempiono in sequenza). Sparisce quando il villaggio è pieno.
+func _aggiorna_plot_costruibile() -> void:
+	if _marker_costruibile != null and is_instance_valid(_marker_costruibile):
+		_marker_costruibile.queue_free()
+	_marker_costruibile = null
+	var slots: Array = _slots()
+	if _slot_usati >= slots.size():
+		return
+	var slot: Dictionary = slots[_slot_usati]
+	var s: Vector2 = _baseline()
+	var pad_w: float = 120.0
+	var holder: Control = Control.new()
+	holder.name = "PlotCostruibile"
+	holder.mouse_filter = Control.MOUSE_FILTER_STOP
+	holder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	holder.size = Vector2(pad_w, pad_w)
+	holder.position = Vector2(float(slot["x"]) * s.x - pad_w * 0.5,
+		float(slot["y"]) * s.y - pad_w * 0.6)
+	var next_slot: int = _slot_usati
+	holder.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			plot_cliccato.emit(next_slot))
+	var pad: TextureRect = TextureRect.new()
+	pad.texture = _disc_texture()
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pad.stretch_mode = TextureRect.STRETCH_SCALE
+	pad.size = Vector2(pad_w, pad_w * 0.5)
+	pad.position = Vector2(0, pad_w * 0.5)
+	pad.modulate = Color(0.98, 0.84, 0.46, 0.35)
+	holder.add_child(pad)
+	var plus: Label = Label.new()
+	plus.text = "+"
+	plus.add_theme_font_size_override("font_size", 56)
+	plus.add_theme_color_override("font_color", Color(1.0, 0.9, 0.55))
+	plus.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.95))
+	plus.add_theme_constant_override("outline_size", 6)
+	plus.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plus.set_anchors_preset(Control.PRESET_FULL_RECT)
+	plus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	holder.add_child(plus)
+	_suolo.add_child(holder)
+	var t: Tween = holder.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE)
+	t.tween_property(pad, "modulate:a", 0.65, 0.85)
+	t.tween_property(pad, "modulate:a", 0.3, 0.85)
 
 
 func _on_edificio_migliorato(era: int, slot: int, _lv: int) -> void:
@@ -258,6 +324,7 @@ func sincronizza(era: int, n: int) -> void:
 		_posa_edificio(false)
 	_fuoco_centrale()
 	_avvia_fumo()
+	_aggiorna_plot_costruibile()
 
 
 # Bagliore caldo pulsante dietro l'edificio centrale (focolare/tempio): il segno
@@ -307,6 +374,7 @@ func _base_y() -> float:
 # Aggiunge un edificio al prossimo slot. Se animato, sorge dal terreno con polvere.
 func costruisci() -> void:
 	_posa_edificio(true)
+	_aggiorna_plot_costruibile()
 
 
 func _posa_edificio(animato: bool) -> TextureRect:

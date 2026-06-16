@@ -50,6 +50,17 @@ func _run() -> void:
 	GameState.tesoro = 50
 	await _shot("res://scenes/main.tscn", "shot_upgrade_panel", Callable(), func(inst: Node) -> void:
 		inst._apri_pannello_edificio(5), 0.9)
+	# Villaggio con lotto vuoto: marker "+" costruibile (slot 4, a destra), senza pannello/FX.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 4)
+	await _shot("res://scenes/main.tscn", "shot_villaggio_builder")
+	# Lotto "costruisci qui" (slot vuoto) + pannello di costruzione.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 2)
+	GameState.costruzione = 40
+	GameState.tesoro = 40
+	await _shot("res://scenes/main.tscn", "shot_build_panel", Callable(), func(inst: Node) -> void:
+		inst._apri_pannello_costruzione(2), 0.9)
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	GameState.scienza = 9   # sotto il prereq di Progetto Scientifico (15): opzione bloccata
