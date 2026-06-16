@@ -1683,6 +1683,28 @@ func _produci_risorse() -> void:
 	var n: int = _produzione_per_turno()
 	if n > 0:
 		GameState.modifica_risorse(n)
+		_float_risorse(n)
+
+
+# "+N" verde che sale dalla barra risorse: il turno ha alimentato l'economia.
+func _float_risorse(n: int) -> void:
+	if risorse_label == null or not is_instance_valid(risorse_label):
+		return
+	var fl: Label = Label.new()
+	fl.top_level = true
+	fl.text = "+%d" % n
+	fl.add_theme_font_size_override("font_size", 22)
+	fl.add_theme_color_override("font_color", Color(0.6, 1.0, 0.6))
+	fl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	fl.add_theme_constant_override("outline_size", 4)
+	$UI.add_child(fl)
+	fl.global_position = risorse_label.global_position + Vector2(risorse_label.size.x + 12.0, 4.0)
+	var t: Tween = create_tween()
+	t.set_parallel()
+	t.tween_property(fl, "global_position:y", fl.global_position.y - 28.0, 1.0) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(fl, "modulate:a", 0.0, 1.0).set_ease(Tween.EASE_IN)
+	t.chain().tween_callback(fl.queue_free)
 
 
 # Barra risorse in alto: identità "gestionale" del gioco (Risorse + produzione/turno).
