@@ -1,0 +1,97 @@
+[gd_resource type="Resource" script_class="Decision" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/decision.gd" id="dec"]
+[ext_resource type="Script" path="res://scripts/data/decision_option.gd" id="opt"]
+[ext_resource type="Script" path="res://scripts/data/effect.gd" id="eff"]
+[ext_resource type="Resource" path="res://data/strategie/economico.tres" id="s_economico"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/economico.png" id="t_economico"]
+[ext_resource type="Resource" path="res://data/strategie/pergamena.tres" id="s_pergamena"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/pergamena.png" id="t_pergamena"]
+[ext_resource type="Resource" path="res://data/strategie/ascia.tres" id="s_ascia"]
+[ext_resource type="Texture2D" path="res://Assets/art/strategie/ascia.png" id="t_ascia"]
+
+[sub_resource type="Resource" id="eff_razioni"]
+script = ExtResource("eff")
+stat_delta = {
+"tesoro": 6,
+"legge": 4,
+"popolo": -6
+}
+set_flags = {}
+unlock_lore = ["lore_carestia_razioni"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = -1
+
+[sub_resource type="Resource" id="opt_razioni"]
+script = ExtResource("opt")
+strategia = ExtResource("s_economico")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_economico")
+label_text = "Raziona i granai a peso e registro"
+target_consigliere_id = "era2_vorrik"
+effetto = SubResource("eff_razioni")
+feedback_testo = "Vorrik divide il regno in bocche e misure, ogni razione segnata a libro. Nessuno muore di fame, e nessuno dimentica la mano magra del Cancelliere. \"Il pane contato,\" dice senza alzare gli occhi, \"è pane che basta.\""
+
+[sub_resource type="Resource" id="eff_lega"]
+script = ExtResource("eff")
+stat_delta = {
+"diplomazia": 9,
+"tesoro": -9
+}
+set_flags = {}
+unlock_lore = ["lore_carestia_lega"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {
+"lega_coste": 2
+}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_lega"]
+script = ExtResource("opt")
+strategia = ExtResource("s_pergamena")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_pergamena")
+label_text = "Compra grano dalle navi della Lega"
+target_consigliere_id = "era2_sereth"
+effetto = SubResource("eff_lega")
+feedback_testo = "Sereth tratta sul molo fino all'alba: le stive della Lega si aprono, l'oro del regno parte con la marea. Il popolo mangia pane straniero, e la Lega impara quanto valiamo quando abbiamo fame."
+
+[sub_resource type="Resource" id="eff_canali"]
+script = ExtResource("eff")
+stat_delta = {
+"costruzione": 10,
+"popolo": 5,
+"tesoro": -3
+}
+set_flags = {}
+unlock_lore = ["lore_carestia_canali"]
+unlock_eventi = []
+add_decisione_chiave = ""
+add_to_log = ""
+rapporti_civilta = {}
+popolazione_delta = 0
+
+[sub_resource type="Resource" id="opt_canali"]
+script = ExtResource("opt")
+strategia = ExtResource("s_ascia")
+oggetto_drag = "icona_strategia"
+icona_drag = ExtResource("t_ascia")
+label_text = "Dissoda nuove terre e scava canali"
+target_consigliere_id = "era2_lena"
+effetto = SubResource("eff_canali")
+feedback_testo = "Lena traccia canali dove c'era polvere e mette zappa in mano al regno intero. La fame non finisce in un giorno, ma alla prossima siccità il popolo saprà bere dal fiume invece che pregare la pioggia."
+
+[resource]
+script = ExtResource("dec")
+id = "d_corte_20_carestia"
+era = 2
+testo_consigliere = "Ho contato i granai tre volte, sperando di sbagliarmi. La pioggia non è venuta, il grano è marcito nei campi alti, e le scorte reggono ventitré giorni. Poi il regno avrà fame, e la fame non rispetta né mura né tributi. Posso allungare ciò che resta, non crearlo dal nulla. Come nutriamo il popolo?"
+personaggio_id = "era2_vorrik"
+opzioni = [SubResource("opt_razioni"), SubResource("opt_lega"), SubResource("opt_canali")]
+tipo_decisione = "catastrofe"
+illustrazione_id = "famine"

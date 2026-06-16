@@ -66,6 +66,17 @@ func _run() -> void:
 	GameState.reset_run()
 	await _shot("res://scenes/main.tscn", "shot_evento", Callable(), func(inst: Node) -> void:
 		inst._imposta_event_image("conflitto_religioso"))
+	# Catastrofe Carestia (Era 2 Atto 2): forza la decisione e apri la vista.
+	GameState.reset_run()
+	GameState.era_corrente = 2
+	GameState.set_flag("era1_completata", true)
+	GameState.set_flag("era2_atto1_completato", true)
+	GameState.segna_quest_completata("q_corte_si_forma")
+	await _shot("res://scenes/main.tscn", "shot_carestia", Callable(), func(inst: Node) -> void:
+		inst.current_quest = QuestManager.quest_per_id("q_pressione_imperi")
+		inst.current_step = 4
+		inst._show_current_decision()
+		inst._apri_decisione())
 	var dec: Decision = load("res://data/decisions/d_caverna_05_inverno.tres") as Decision
 	print("CHECK inverno illustrazione_id=", dec.illustrazione_id if dec else "NULL")
 	var fin: Finale = load("res://data/finali/fine_prosperita.tres") as Finale

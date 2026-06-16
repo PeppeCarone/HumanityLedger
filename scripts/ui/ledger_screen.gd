@@ -123,6 +123,18 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "La Lama nel Buio",
 		"testo": "Una lama fermata a tre passi dal consiglio, una moneta straniera cucita in un mantello. Qualcuno voleva il trono vuoto prima della grande scelta."
 	},
+	"lore_carestia_razioni": {
+		"titolo": "I Granai Contati",
+		"testo": "Quando la pioggia non venne, Vorrik divise il regno in bocche e misure. Si sopravvisse a peso e registro: il pane bastò, e nessuno dimenticò la mano magra del Cancelliere."
+	},
+	"lore_carestia_lega": {
+		"titolo": "Il Pane Straniero",
+		"testo": "Nell'anno secco le stive della Lega salvarono il regno, e l'oro partì con la marea. Si imparò che la fame ha un prezzo, e che chi vende il pane decide chi mangia."
+	},
+	"lore_carestia_canali": {
+		"titolo": "I Canali di Lena",
+		"testo": "Contro la siccità Lena non pregò la pioggia: scavò per raggiungerla. I canali rimasero anche dopo la fame, e la terra arsa imparò a bere dal fiume."
+	},
 	"epilogo_fine_guerra": {"titolo": "Epilogo: Era della Guerra", "testo": "Lo spirito scelse la spada e vinse, al prezzo del fumo e delle tombe."},
 	"epilogo_fine_prosperita": {"titolo": "Epilogo: Era della Prosperità", "testo": "Lo spirito scelse il pane e il commercio. Un'era morbida, di lunghe estati."},
 	"epilogo_fine_scienza": {"titolo": "Epilogo: Era della Scienza", "testo": "Lo spirito protesse il sapere e aprì porte che nessuno sapeva chiuse."},
