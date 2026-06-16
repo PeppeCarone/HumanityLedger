@@ -197,8 +197,11 @@ func _ready() -> void:
 		proposer_name_label.add_theme_font_override("font", titolo_font)
 	# Gerarchia tipografica del pannello decisione: nome oro, corpo panna arioso.
 	proposer_name_label.add_theme_color_override("font_color", Color(0.91, 0.78, 0.48))
-	proposer_text_label.add_theme_color_override("font_color", Color(0.84, 0.78, 0.65))
-	proposer_text_label.add_theme_constant_override("line_spacing", 6)
+	# Testo decisione più grande e caldo (off-white) per leggibilità: è la schermata
+	# più vista del gioco (audit UI #4).
+	proposer_text_label.add_theme_font_size_override("font_size", 23)
+	proposer_text_label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75))
+	proposer_text_label.add_theme_constant_override("line_spacing", 8)
 	_applica_cornici()
 	_crea_vignette()
 	_crea_richiamo_label()
@@ -1530,7 +1533,7 @@ func _apri_pannello_edificio(slot: int) -> void:
 	edificio_panel = CanvasLayer.new()
 	edificio_panel.layer = 12
 	var dim: ColorRect = ColorRect.new()
-	dim.color = Color(0.02, 0.015, 0.03, 0.55)
+	dim.color = Color(0.02, 0.015, 0.03, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed:
@@ -1833,7 +1836,7 @@ func _nuovo_pannello_modale() -> VBoxContainer:
 	edificio_panel = CanvasLayer.new()
 	edificio_panel.layer = 12
 	var dim: ColorRect = ColorRect.new()
-	dim.color = Color(0.02, 0.015, 0.03, 0.55)
+	dim.color = Color(0.02, 0.015, 0.03, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed:
