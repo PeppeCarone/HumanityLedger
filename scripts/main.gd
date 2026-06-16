@@ -1798,30 +1798,36 @@ func _on_plot_cliccato(slot: int) -> void:
 	_apri_pannello_costruzione(slot)
 
 
-func _apri_pannello_costruzione(slot: int) -> void:
+func _apri_pannello_costruzione(_slot: int) -> void:
+	# Vera agency da builder: il giocatore SCEGLIE quale edificio erigere sul lotto
+	# (puoi specializzare il villaggio — militare, economico, sapere...).
 	var era: int = GameState.era_corrente
-	var tipo: int = village.tipo_previsto(slot)
-	if tipo < 0:
+	var nomi: Dictionary = EDIFICIO_NOME_ERA.get(era, {})
+	if nomi.is_empty():
 		return
-	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
-	var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
 	var ok_risorse: bool = GameState.risorse >= BUILD_COSTO
 	var ok_gate: bool = GameState.get_stat("costruzione") >= BUILD_GATE_COSTR
+	var ok: bool = ok_risorse and ok_gate
 	var vb: VBoxContainer = _nuovo_pannello_modale()
-	vb.add_child(_lbl_titolo("Costruisci: %s" % nome))
-	vb.add_child(_lbl("Sviluppa: %s" % STAT_LABELS.get(stat, stat), 17, Color(0.82, 0.76, 0.62)))
+	vb.add_child(_lbl_titolo("Cosa costruire?"))
+	vb.add_child(_lbl("Costo %d Risorse (hai %d) · Costruzione ≥ %d (hai %d)" % [
+		BUILD_COSTO, GameState.risorse, BUILD_GATE_COSTR, GameState.get_stat("costruzione")],
+		15, Color(0.62, 0.95, 0.62) if ok else Color(1.0, 0.7, 0.5)))
 	vb.add_child(_separatore_panel())
-	vb.add_child(_lbl("Nuovo edificio del villaggio:  +%d %s" % [BUILD_BONUS, STAT_LABELS.get(stat, stat)],
-		18, Color(0.9, 0.86, 0.74)))
-	vb.add_child(_lbl("Costo: %d Risorse  (hai %d)" % [BUILD_COSTO, GameState.risorse],
-		16, Color(0.6, 1, 0.6) if ok_risorse else Color(1, 0.6, 0.55)))
-	vb.add_child(_lbl("Richiede Costruzione ≥ %d  (hai %d)" % [BUILD_GATE_COSTR, GameState.get_stat("costruzione")],
-		16, Color(0.6, 1, 0.6) if ok_gate else Color(1, 0.6, 0.55)))
-	var btn: Button = Button.new()
-	btn.text = "Costruisci"
-	btn.disabled = not (ok_risorse and ok_gate)
-	btn.pressed.connect(func() -> void: _esegui_build(era, stat))
-	vb.add_child(btn)
+	var tipi: Array = nomi.keys()
+	tipi.sort()
+	for tipo in tipi:
+		var nome: String = nomi[tipo]
+		var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
+		var eco: bool = bool(EDIFICIO_ECONOMICO.get(era, {}).get(tipo, false))
+		var extra: String = "  ·  Risorse ×2" if eco else ""
+		var b: Button = Button.new()
+		b.text = "%s   +%d %s%s" % [nome, BUILD_BONUS, STAT_LABELS.get(stat, stat), extra]
+		b.disabled = not ok
+		var tipo_c: int = int(tipo)
+		var stat_c: String = stat
+		b.pressed.connect(func() -> void: _esegui_build(tipo_c, stat_c))
+		vb.add_child(b)
 	var chiudi: Button = Button.new()
 	chiudi.text = "Chiudi"
 	chiudi.pressed.connect(_chiudi_pannello_edificio)
@@ -1830,7 +1836,7 @@ func _apri_pannello_costruzione(slot: int) -> void:
 	_anima_apertura_pannello()
 
 
-func _esegui_build(_era: int, stat: String) -> void:
+func _esegui_build(tipo: int, stat: String) -> void:
 	if GameState.risorse < BUILD_COSTO:
 		return
 	if village.slot_count() >= village.slot_max():
@@ -1838,7 +1844,7 @@ func _esegui_build(_era: int, stat: String) -> void:
 	GameState.modifica_risorse(-BUILD_COSTO)
 	if stat != "":
 		GameState.modifica_stat(stat, BUILD_BONUS)
-	village.costruisci()
+	village.costruisci(tipo)
 	GameState.set_flag("villaggio_n", village.slot_count())
 	AudioManager.play_sfx("quest_complete")
 	SaveSystem.save_run()
@@ -1863,14 +1869,14 @@ func _nuovo_pannello_modale() -> VBoxContainer:
 	box.anchor_right = 0.5
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = -235.0
-	box.offset_right = 235.0
-	box.offset_top = -205.0
-	box.offset_bottom = 205.0
+	box.offset_left = -265.0
+	box.offset_right = 265.0
+	box.offset_top = -275.0
+	box.offset_bottom = 275.0
 	edificio_panel.add_child(box)
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 12)
+	vb.add_theme_constant_override("separation", 9)
 	box.add_child(vb)
 	return vb
 

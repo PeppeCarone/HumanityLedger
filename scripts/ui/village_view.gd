@@ -372,16 +372,16 @@ func _base_y() -> float:
 
 
 # Aggiunge un edificio al prossimo slot. Se animato, sorge dal terreno con polvere.
-func costruisci() -> void:
-	_posa_edificio(true)
+func costruisci(tipo_forzato: int = -1) -> void:
+	_posa_edificio(true, tipo_forzato)
 	_aggiorna_plot_costruibile()
 
 
-func _posa_edificio(animato: bool) -> TextureRect:
+func _posa_edificio(animato: bool, tipo_forzato: int = -1) -> TextureRect:
 	if _slot_usati >= _slots().size():
 		return null
 	var seq: Array = EDIFICI_ERA.get(_era, EDIFICI_ERA[1])
-	var idx: int = seq[_slot_usati % seq.size()]
+	var idx: int = tipo_forzato if tipo_forzato >= 0 else int(seq[_slot_usati % seq.size()])
 	var tex: Texture2D = _tex(idx)
 	if tex == null:
 		return null
