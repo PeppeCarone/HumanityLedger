@@ -244,18 +244,47 @@ func _build_artefatto_card(art: Artefatto) -> Control:
 	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
 	card.add_child(vbox)
-	var icon: TextureRect = TextureRect.new()
-	icon.custom_minimum_size = Vector2(200, 200)
-	icon.texture = art.icona
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	if not unlocked:
-		icon.modulate = Color(0.16, 0.14, 0.18)
-	vbox.add_child(icon)
+	if unlocked:
+		var icon: TextureRect = TextureRect.new()
+		icon.custom_minimum_size = Vector2(200, 200)
+		icon.texture = art.icona
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		vbox.add_child(icon)
+	else:
+		# Stato bloccato "disegnato" (audit #10): medaglione bronzo + silhouette + "?".
+		var med: Panel = Panel.new()
+		med.custom_minimum_size = Vector2(200, 200)
+		var msb: StyleBoxFlat = StyleBoxFlat.new()
+		msb.bg_color = Color(0.12, 0.10, 0.08, 0.92)
+		msb.border_color = Color(0.5, 0.38, 0.24, 0.9)
+		msb.set_border_width_all(3)
+		msb.set_corner_radius_all(100)
+		msb.shadow_color = Color(0, 0, 0, 0.4)
+		msb.shadow_size = 6
+		med.add_theme_stylebox_override("panel", msb)
+		var sil: TextureRect = TextureRect.new()
+		sil.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sil.texture = art.icona
+		sil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sil.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		sil.modulate = Color(0.30, 0.25, 0.20, 0.85)
+		med.add_child(sil)
+		var q: Label = Label.new()
+		q.set_anchors_preset(Control.PRESET_FULL_RECT)
+		q.text = "?"
+		q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		q.add_theme_font_size_override("font_size", 70)
+		q.add_theme_color_override("font_color", Color(0.72, 0.6, 0.38, 0.9))
+		med.add_child(q)
+		vbox.add_child(med)
 	var nome_lbl: Label = Label.new()
 	nome_lbl.text = art.nome if unlocked else "???"
 	nome_lbl.add_theme_font_size_override("font_size", 16)
 	nome_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if not unlocked:
+		nome_lbl.add_theme_color_override("font_color", Color(0.72, 0.6, 0.4))
 	vbox.add_child(nome_lbl)
 	var desc_lbl: Label = Label.new()
 	if unlocked:
