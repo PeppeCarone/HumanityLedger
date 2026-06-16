@@ -44,6 +44,60 @@ waiting for buildings to be placed. No text, no watermark.
 
 ---
 
+## P0b — Edifici per-stadio (D046 — villaggio migliorabile, GIÀ implementato)
+
+> Il villaggio migliorabile è **già funzionante** con stelle di livello + scala via
+> codice. Questi asset sono **opzionali e migliorativi**: se esistono, il codice
+> sostituisce lo sprite quando l'edificio sale di livello (Lv2/Lv3). Il Lv1 è lo
+> sprite base attuale in `Assets/art/villaggio/era<N>/`.
+>
+> **Convenzione di nome** (il codice li aggancia da solo, nessuna modifica necessaria):
+> `Assets/art/villaggio/era<N>/<TT>_lv<L>.png` — `TT` = indice tipo a 2 cifre, `L` = 2 o 3.
+>
+> | Era 1 (TT) | Edificio | Era 2 (TT) | Edificio |
+> |---|---|---|---|
+> | 00 | Tenda | 00 | Tempio |
+> | 01 | Capanna | 01 | Mercato |
+> | 02 | Totem | 02 | Torre |
+> | 03 | Focolare | 03 | Fonderia |
+> | 04 | Essiccatoio | 04 | Mura |
+> | 05 | Palizzata | 05 | Archivio |
+>
+> Esempio: la palizzata Era 1 migliorata a Lv2 → `Assets/art/villaggio/era1/05_lv2.png`.
+> Regola visiva: **stessa identità, stessa posa, stessa scala/inquadratura** dello
+> sprite Lv1, solo più sviluppato/ricco (così lo swap non "salta"). Sprite isometrico
+> trasparente, ~256×256, stessa palette painterly bronzo/sepia degli edifici esistenti.
+
+### Template (sostituisci le parti in MAIUSCOLO)
+
+```
+Isometric game building sprite, painterly dark-fantasy style, warm bronze-and-sepia
+palette, visible brushstrokes, soft contact shadow, TRUE alpha transparency (NO
+painted checkerboard), ~256px, centered, same camera angle and footprint as a base
+village building. Subject: A NOME_EDIFICIO, DESCRIZIONE_DELLO_STADIO. No text,
+no watermark, no background scene.
+```
+
+### Progressione consigliata per edificio (Lv1 base → Lv2 → Lv3)
+
+**Era 1** — *tribale, legno/pelli/pietra grezza:*
+- **Tenda**: pelli su pali → tenda più grande con secondo telo e fochetto → gruppo di tende con pellame appeso.
+- **Capanna**: capanna di frasche → capanna di fango e legno con tetto solido → capanna ampliata con recinto.
+- **Totem**: palo intagliato → totem alto dipinto con teschi → totem cerimoniale con offerte e bracieri.
+- **Focolare**: cerchio di pietre col fuoco → focolare ampio con graticcio → grande braciere comunitario con pietre erette.
+- **Essiccatoio**: rastrelliera di carne → essiccatoio coperto con più ripiani → magazzino-essiccatoio con scorte abbondanti.
+- **Palizzata**: staccionata di pali → palizzata alta rinforzata con porta → bastione di pali e pietra con piattaforma di guardia.
+
+**Era 2** — *mitico-medievale, pietra/metallo/stendardi:*
+- **Tempio**: piccola cappella di pietra → tempio con colonne e fiamma sull'altare → grande tempio con cupola e bracieri.
+- **Mercato**: bancarella → mercato coperto con più banchi e merci → loggia mercantile con stendardi e casse d'oro.
+- **Torre**: torre di guardia bassa → torre più alta con feritoie e vedetta → alta torre di vedetta con fanali e bandiere.
+- **Fonderia**: fucina con incudine → fonderia con altoforno fumante → grande fonderia con ingranaggi e colata.
+- **Mura**: tratto di mura basse → mura merlate con camminamento → possenti mura con bastione e porta rinforzata.
+- **Archivio**: scaffale di pergamene → archivio con scaffali e lettorino → grande biblioteca con tomi e simboli arcani luminosi.
+
+---
+
 ## P1 — Sfondi di scena (impatto massimo)
 
 ### 1. Accampamento Era 1 (MANCANTE — atti 2-3 si svolgono all'aperto ma si vede ancora la caverna)
