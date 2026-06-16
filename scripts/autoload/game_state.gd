@@ -33,8 +33,12 @@ var scelte: Dictionary = {}
 var rapporti_civilta: Dictionary = {}
 var artefatto_equipaggiato: String = ""
 var mystery_attiva: bool = false
+# Livello di ogni edificio del villaggio (chiave "era_slot" -> 1..3). Un edificio
+# costruito parte a 1; il giocatore lo migliora spendendo Tesoro (gate Costruzione).
+var edifici_livelli: Dictionary = {}
 
 const MYSTERY_SOGLIA: int = 2
+const EDIFICIO_LIVELLO_MAX: int = 3
 
 signal stat_changed(nome: String, valore_vecchio: int, valore_nuovo: int)
 signal flag_set(nome: String, valore: Variant)
@@ -42,6 +46,7 @@ signal era_advanced(nuova_era: int)
 signal popolazione_changed(valore_vecchio: int, valore_nuovo: int)
 signal mystery_attivata
 signal rapporto_changed(civ_id: String, valore_vecchio: int, valore_nuovo: int)
+signal edificio_migliorato(era: int, slot: int, nuovo_livello: int)
 
 
 func get_stat(nome: String) -> int:
@@ -122,6 +127,20 @@ func registra_scelta(decisione_id: String, scelta: String) -> void:
 
 func scelta_di(decisione_id: String) -> String:
 	return scelte.get(decisione_id, "")
+
+
+func livello_edificio(era: int, slot: int) -> int:
+	return int(edifici_livelli.get("%d_%d" % [era, slot], 1))
+
+
+func migliora_edificio(era: int, slot: int) -> int:
+	var lv: int = livello_edificio(era, slot)
+	if lv >= EDIFICIO_LIVELLO_MAX:
+		return lv
+	lv += 1
+	edifici_livelli["%d_%d" % [era, slot]] = lv
+	edificio_migliorato.emit(era, slot, lv)
+	return lv
 
 
 func quest_e_completata(id: String) -> bool:
@@ -221,6 +240,7 @@ func reset_run() -> void:
 	rapporti_civilta.clear()
 	artefatto_equipaggiato = ""
 	mystery_attiva = false
+	edifici_livelli.clear()
 	# Lo spirito porta nella nuova run l'artefatto scelto nel Ledger.
 	if Ledger.artefatto_scelto != "" and Ledger.is_artefatto_unlocked(Ledger.artefatto_scelto):
 		artefatto_equipaggiato = Ledger.artefatto_scelto
@@ -252,6 +272,7 @@ func to_dict() -> Dictionary:
 		"rapporti_civilta": rapporti_civilta,
 		"artefatto_equipaggiato": artefatto_equipaggiato,
 		"mystery_attiva": mystery_attiva,
+		"edifici_livelli": edifici_livelli,
 	}
 
 
@@ -270,3 +291,4 @@ func from_dict(data: Dictionary) -> void:
 	rapporti_civilta = data.get("rapporti_civilta", {})
 	artefatto_equipaggiato = data.get("artefatto_equipaggiato", "")
 	mystery_attiva = data.get("mystery_attiva", false)
+	edifici_livelli = data.get("edifici_livelli", {})

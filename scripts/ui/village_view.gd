@@ -1,6 +1,9 @@
 extends Control
 class_name VillageView
 
+# Emesso quando il giocatore clicca un edificio costruito (per migliorarlo).
+signal edificio_cliccato(slot: int)
+
 # Fondale vivo: il villaggio del popolo che cresce a ogni decisione.
 # Sta dietro ai pannelli UI (traslucidi). Mostra una fila di edifici isometrici
 # su una linea di terra; ogni decisione di costruzione ne fa sorgere uno nuovo con
@@ -74,6 +77,7 @@ var _era: int = 1
 var _slot_usati: int = 0
 var _edifici_nodi: Array[TextureRect] = []
 var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta prosperita')
+var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
 var _fumo: CPUParticles2D = null
 var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
@@ -82,6 +86,66 @@ var _tinta_prosperita: Color = Color.WHITE
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	GameState.edificio_migliorato.connect(_on_edificio_migliorato)
+
+
+func tipo_at(slot: int) -> int:
+	if slot < 0 or slot >= _slot_tipo.size():
+		return -1
+	return _slot_tipo[slot]
+
+
+func slot_count() -> int:
+	return _edifici_sprite.size()
+
+
+func _on_edificio_migliorato(era: int, slot: int, _lv: int) -> void:
+	if era != _era:
+		return
+	_aggiorna_livello_edificio(slot)
+	_pop_upgrade(slot)
+
+
+# Aspetto dell'edificio in base al livello (1..3): scala leggermente crescente +
+# stelle dorate sopra. Lo "stacco" visivo dice "migliorato" senza nuovi asset.
+func _aggiorna_livello_edificio(slot: int) -> void:
+	if slot < 0 or slot >= _edifici_sprite.size():
+		return
+	var tr: TextureRect = _edifici_sprite[slot]
+	if not is_instance_valid(tr):
+		return
+	var lv: int = GameState.livello_edificio(_era, slot)
+	tr.scale = Vector2.ONE * (1.0 + 0.07 * float(lv - 1))
+	var vecchio: Node = tr.get_node_or_null("LvBadge")
+	if vecchio != null:
+		vecchio.queue_free()
+	if lv <= 1:
+		return
+	var badge: Label = Label.new()
+	badge.name = "LvBadge"
+	badge.text = "★".repeat(lv - 1)
+	badge.add_theme_font_size_override("font_size", 22)
+	badge.add_theme_color_override("font_color", Color(1.0, 0.82, 0.4))
+	badge.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.9))
+	badge.add_theme_constant_override("outline_size", 5)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.position = Vector2(tr.size.x * 0.5 - float(lv - 1) * 11.0, -30.0)
+	tr.add_child(badge)
+
+
+func _pop_upgrade(slot: int) -> void:
+	if slot < 0 or slot >= _edifici_sprite.size():
+		return
+	var tr: TextureRect = _edifici_sprite[slot]
+	if not is_instance_valid(tr):
+		return
+	var target: Vector2 = tr.scale
+	var t: Tween = tr.create_tween()
+	t.tween_property(tr, "scale", target * 1.18, 0.12) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(tr, "scale", target, 0.35) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_polvere(tr.position + Vector2(tr.size.x * 0.5, 0.0))
 
 
 func _baseline() -> Vector2:
@@ -102,6 +166,7 @@ func sincronizza(era: int, n: int) -> void:
 			nodo.queue_free()
 	_edifici_nodi.clear()
 	_edifici_sprite.clear()
+	_slot_tipo.clear()
 	_slot_usati = 0
 	var quanti: int = mini(n, _slots().size())
 	for i in quanti:
@@ -182,12 +247,22 @@ func _posa_edificio(animato: bool) -> TextureRect:
 	tr.position = Vector2(px - dim.x * 0.5, py - dim.y)
 	var ombra: TextureRect = _ombra(px, py, dim.x, animato)
 	tr.modulate = _tinta_prosperita
+	# Edificio interattivo: cliccabile per essere migliorato (stile Clash of Clans).
+	var slot_idx: int = _slot_usati
+	tr.mouse_filter = Control.MOUSE_FILTER_STOP
+	tr.set_meta("slot", slot_idx)
+	tr.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	tr.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
+			edificio_cliccato.emit(slot_idx))
 	_suolo.add_child(tr)
 	_edifici_nodi.append(tr)
 	_edifici_sprite.append(tr)
+	_slot_tipo.append(idx)
 	if ombra != null:
 		_edifici_nodi.append(ombra)
 	_slot_usati += 1
+	_aggiorna_livello_edificio(slot_idx)
 	if animato:
 		tr.modulate.a = 0.0
 		tr.scale = Vector2(0.6, 0.2)  # schiacciato, sorge

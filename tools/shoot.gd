@@ -38,6 +38,18 @@ func _run() -> void:
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 6)
 	await _shot("res://scenes/main.tscn", "shot_era1_campo")
+	# Villaggio migliorabile: alcuni edifici a livello 2-3 (stelle + scala crescente).
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 6)
+	GameState.edifici_livelli = {"1_0": 3, "1_2": 2, "1_5": 2}
+	await _shot("res://scenes/main.tscn", "shot_villaggio_upgrade")
+	# Pannello di upgrade aperto su un edificio (Palizzata -> Militare).
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 6)
+	GameState.costruzione = 60
+	GameState.tesoro = 50
+	await _shot("res://scenes/main.tscn", "shot_upgrade_panel", Callable(), func(inst: Node) -> void:
+		inst._apri_pannello_edificio(5), 0.9)
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	GameState.scienza = 9   # sotto il prereq di Progetto Scientifico (15): opzione bloccata

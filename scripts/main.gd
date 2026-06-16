@@ -104,6 +104,21 @@ const STAT_LABELS: Dictionary = {
 	"costruzione": "Costruzione",
 }
 
+# --- Villaggio migliorabile (D046): ogni tipo-edificio sviluppa una stat tematica.
+# Migliorare costa Tesoro ed è gated dalla Costruzione (il dominio del Costruttore).
+const EDIFICIO_NOME_ERA: Dictionary = {
+	1: {0: "Tenda", 1: "Capanna", 2: "Totem", 3: "Focolare", 4: "Essiccatoio", 5: "Palizzata"},
+	2: {0: "Tempio", 1: "Mercato", 2: "Torre", 3: "Fonderia", 4: "Mura", 5: "Archivio"},
+}
+const EDIFICIO_STAT_ERA: Dictionary = {
+	1: {0: "popolo", 1: "popolo", 2: "scienza", 3: "legge", 4: "costruzione", 5: "militare"},
+	2: {0: "legge", 1: "diplomazia", 2: "spionaggio", 3: "costruzione", 4: "militare", 5: "scienza"},
+}
+# Per raggiungere il livello-chiave: costo Tesoro, Costruzione minima, bonus alla stat.
+const UPGRADE_COSTO: Dictionary = {2: 10, 3: 16}
+const UPGRADE_GATE_COSTR: Dictionary = {2: 30, 3: 55}
+const UPGRADE_BONUS: Dictionary = {2: 6, 3: 9}
+
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
 # Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
 # Finche' il terreno non esiste si usa come fallback la scena dipinta.
@@ -154,6 +169,7 @@ var narrative_tween: Tween = null
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 var atmosfera: CPUParticles2D = null
+var edificio_panel: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -178,6 +194,8 @@ func _ready() -> void:
 	GameState.popolazione_changed.connect(_on_popolazione_changed)
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
+	if village != null:
+		village.edificio_cliccato.connect(_on_edificio_cliccato)
 	call_button.pressed.connect(_apri_decisione)
 	_stile_call_button()
 	_set_decision_visible(false)
@@ -508,7 +526,7 @@ func _setup_hud() -> void:
 	hud_container.add_child(spacer4)
 	var tasti: Label = Label.new()
 	tasti.name = "Tasti"
-	tasti.text = "L  Ledger      ESC  Pausa"
+	tasti.text = "Clicca un edificio per migliorarlo\nL  Ledger      ESC  Pausa"
 	tasti.add_theme_font_size_override("font_size", 14)
 	tasti.modulate = Color(1, 1, 1, 0.45)
 	hud_container.add_child(tasti)
@@ -1426,6 +1444,9 @@ func _debug_input(keycode: int) -> void:
 
 
 func _on_escape() -> void:
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		_chiudi_pannello_edificio()
+		return
 	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
 		_close_ledger_if_open()
 		return
@@ -1461,6 +1482,144 @@ func _close_ledger_if_open() -> void:
 	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
 		ledger_screen_instance.queue_free()
 		ledger_screen_instance = null
+
+
+# --- Villaggio migliorabile (D046) ------------------------------------------
+
+func _on_edificio_cliccato(slot: int) -> void:
+	# Solo nella vista villaggio: niente upgrade durante decisione/transizione/drop.
+	if processing_drop or in_transizione_era:
+		return
+	if $UI/ConsigliereProposer.visible:
+		return
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		return
+	_apri_pannello_edificio(slot)
+
+
+func _apri_pannello_edificio(slot: int) -> void:
+	var era: int = GameState.era_corrente
+	var tipo: int = village.tipo_at(slot)
+	if tipo < 0:
+		return
+	var lv: int = GameState.livello_edificio(era, slot)
+	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
+	var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
+
+	edificio_panel = CanvasLayer.new()
+	edificio_panel.layer = 12
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.02, 0.015, 0.03, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_chiudi_pannello_edificio())
+	edificio_panel.add_child(dim)
+
+	var box: PanelContainer = PanelContainer.new()
+	box.add_theme_stylebox_override("panel", _stile_pannello())
+	box.mouse_filter = Control.MOUSE_FILTER_STOP
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 0.5
+	box.anchor_bottom = 0.5
+	box.offset_left = -235.0
+	box.offset_right = 235.0
+	box.offset_top = -205.0
+	box.offset_bottom = 205.0
+	edificio_panel.add_child(box)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 12)
+	box.add_child(vb)
+
+	var titolo: Label = Label.new()
+	var tfont: Font = _font_titoli()
+	if tfont != null:
+		titolo.add_theme_font_override("font", tfont)
+	titolo.text = "%s — Livello %d" % [nome, lv]
+	titolo.add_theme_font_size_override("font_size", 28)
+	titolo.add_theme_color_override("font_color", Color(0.93, 0.82, 0.5))
+	titolo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(titolo)
+
+	var stat_lbl: Label = Label.new()
+	stat_lbl.text = "Sviluppa: %s" % STAT_LABELS.get(stat, stat)
+	stat_lbl.add_theme_font_size_override("font_size", 17)
+	stat_lbl.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62))
+	stat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(stat_lbl)
+
+	var sep: ColorRect = ColorRect.new()
+	sep.color = Color(0.5, 0.38, 0.22, 0.4)
+	sep.custom_minimum_size = Vector2(0, 1)
+	vb.add_child(sep)
+
+	if lv >= GameState.EDIFICIO_LIVELLO_MAX:
+		var maxlbl: Label = Label.new()
+		maxlbl.text = "Già al massimo livello.\nIl popolo non sa costruire più in alto."
+		maxlbl.add_theme_font_size_override("font_size", 17)
+		maxlbl.add_theme_color_override("font_color", Color(0.72, 0.67, 0.55))
+		maxlbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(maxlbl)
+	else:
+		var next: int = lv + 1
+		var costo: int = int(UPGRADE_COSTO[next])
+		var gate: int = int(UPGRADE_GATE_COSTR[next])
+		var bonus: int = int(UPGRADE_BONUS[next])
+		var ok_tesoro: bool = GameState.get_stat("tesoro") >= costo
+		var ok_gate: bool = GameState.get_stat("costruzione") >= gate
+		var info: Label = Label.new()
+		info.text = "Migliora a Livello %d:  +%d %s" % [next, bonus, STAT_LABELS.get(stat, stat)]
+		info.add_theme_font_size_override("font_size", 18)
+		info.add_theme_color_override("font_color", Color(0.9, 0.86, 0.74))
+		info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(info)
+		var costo_lbl: Label = Label.new()
+		costo_lbl.text = "Costo: %d Tesoro  (hai %d)" % [costo, GameState.get_stat("tesoro")]
+		costo_lbl.add_theme_font_size_override("font_size", 16)
+		costo_lbl.add_theme_color_override("font_color",
+			Color(0.6, 1, 0.6) if ok_tesoro else Color(1, 0.6, 0.55))
+		costo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(costo_lbl)
+		var gate_lbl: Label = Label.new()
+		gate_lbl.text = "Richiede Costruzione ≥ %d  (hai %d)" % [gate, GameState.get_stat("costruzione")]
+		gate_lbl.add_theme_font_size_override("font_size", 16)
+		gate_lbl.add_theme_color_override("font_color",
+			Color(0.6, 1, 0.6) if ok_gate else Color(1, 0.6, 0.55))
+		gate_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(gate_lbl)
+		var migliora_btn: Button = Button.new()
+		migliora_btn.text = "Migliora"
+		migliora_btn.disabled = not (ok_tesoro and ok_gate)
+		migliora_btn.pressed.connect(func() -> void:
+			_esegui_upgrade(era, slot, stat, costo, bonus))
+		vb.add_child(migliora_btn)
+
+	var chiudi: Button = Button.new()
+	chiudi.text = "Chiudi"
+	chiudi.pressed.connect(_chiudi_pannello_edificio)
+	vb.add_child(chiudi)
+
+	add_child(edificio_panel)
+
+
+func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) -> void:
+	if GameState.get_stat("tesoro") < costo:
+		return
+	GameState.modifica_stat("tesoro", -costo)
+	GameState.modifica_stat(stat, bonus)
+	GameState.migliora_edificio(era, slot)
+	AudioManager.play_sfx("quest_complete")
+	SaveSystem.save_run()
+	_chiudi_pannello_edificio()
+
+
+func _chiudi_pannello_edificio() -> void:
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		edificio_panel.queue_free()
+	edificio_panel = null
 
 
 func _reset_run() -> void:
