@@ -32,32 +32,31 @@ vuoto scuro, testo piccolo), e mancanza di un **componente UI condiviso** (tema)
    sotto il titolo, **pulsanti bronzo** (oro primario / outline secondario), tabella costi allineata
    con icone risorsa. *(scrim+tema fatti; resta la tabella costi + thumbnail edificio)*
 2. `[x]` **[STYLE] Tutti i pulsanti in stile bronzo** (tema globale `UiStyle`).
-3. `[ ]` **[LAYOUT] Ingrandire il cluster decisione +30-40% e centrarlo** verticalmente: lo spazio
-   vuoto della caverna deve essere cornice, non maggioranza dello schermo.
+3. `[x]` **[LAYOUT] Ingrandire il cluster decisione e centrarlo** — proposer 175px/30px, righe
+   ridistribuite, "memoria" cross-era spostata nella fascia alta. Meno spazio morto.
 4. `[x]` **[STYLE] Testo decisione ~23px off-white caldo**, leggibile.
-5. `[ ]` **[ICON] Icone strategia = medaglioni circolari bronzo** (riusa lo stile dei medaglioni
-   artefatto del Ledger, che è il miglior icon-work del gioco).
-6. `[ ]` **[LAYOUT] Incorniciare il pannello stat di sinistra** (colonna pergamena ~300px, numeri
-   allineati a destra, margini coerenti).
+5. `[x]` **[ICON] Icone strategia = medaglioni circolari bronzo** (via codice, coerenti col Ledger).
+6. `[ ]` **[LAYOUT] Incorniciare il pannello stat di sinistra** (l'HUDPanel ha già cornice bronzo;
+   resta da rifinire allineamento numeri/margini).
 7. `[ ]` **[STYLE] Status chip (Inflazione/Conflitto) e Rapporti come badge bronzo** con icona/bordo.
 8. `[x]` **[LAYOUT] Scrim modale più scuro** (0.72) + pannelli centrati.
-9. `[ ]` **[SMOOTH] CTA "...ATTENDE IL TUO PARERE/DECIDI"** con riga bronzo + pulse; hover-glow
-   coerente sulle piazzole costruibili.
-10. `[ ]` **[STYLE] Stati "bloccati" del Ledger** (silhouette + lucchetto in medaglione) invece di "???";
-    separatori verticali tra le colonne.
-11. `[ ]` **[STYLE] Scrim dietro il testo** su schermate art-heavy (epilogo, cartiglio sul titolo mappa).
+9. `[~]` **[SMOOTH] CTA "...DECIDI"** già stilizzata e pulsa; resta hover-glow coerente sulle piazzole.
+10. `[ ]` **[STYLE] Stati "bloccati" del Ledger** (silhouette + lucchetto in medaglione) invece di "???".
+11. `[x]` **[STYLE] Scrim dietro il testo** epilogo rinforzato (3 stop). Resta il cartiglio titolo mappa.
 12. `[ ]` **[STYLE] Cornice/ornamenti d'angolo** sulle viste "pagina" (Ledger, Menu, Mappa) → tomo, non web.
 
-**Smoothness trasversale**: fade 150-200ms su apertura/chiusura modali e transizioni; hover su ogni
-elemento interattivo. (Tecniche: Theme unico, Tween set_trans/ease, modulate, StyleBoxFlat shadow.)
+**Smoothness**: `[x]` fade-in 0.16s sui pannelli modali; `[x]` tema unico (Tween/StyleBox). Resta:
+transizioni tra viste, hover su altri elementi.
 
 ## 4. Roadmap gameplay villaggio (prossime fette)
 
-1. **Scegli cosa costruire**: sul lotto vuoto, 2-3 edifici a scelta (vera agency da builder).
-2. **Vista villaggio gestionale**: pannello con elenco edifici, produzione dettagliata, hover-info.
-3. **Posta in gioco**: catastrofi che danneggiano edifici (rovina→ricostruisci); traguardi del
+1. `[x]` **Scegli cosa costruire**: il lotto apre "Cosa costruire?" coi tipi-edificio dell'era a
+   scelta — specializzazione (militare/economico/sapere). `village.costruisci(tipo)`.
+2. `[ ]` **Vista villaggio gestionale**: pannello con elenco edifici, produzione dettagliata, hover-info.
+3. `[ ]` **Posta in gioco**: catastrofi che danneggiano edifici (rovina→ricostruisci); traguardi del
    villaggio che sbloccano bonus/eventi/lore (milestone stile Lapse/Clash).
-4. **Bilanciamento**: verificare che l'economia Risorse non trivializzi i finali (oggi 6/6 ok).
+4. `[~]` **Bilanciamento**: i finali restano 6/6 (le sim non usano il villaggio); il villaggio è una
+   leva extra player-driven. Da tenere d'occhio se rende troppo facile raggiungere una soglia.
 
 ## 5. Asset che serviranno (da generare — pipeline Perplexity→Nano Banana/Lovable)
 
