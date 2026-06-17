@@ -24,7 +24,7 @@ const COL_LABEL_DISABILITATO: Color = Color(0.85, 0.5, 0.42)
 var _consumed: bool = false
 var _disabled: bool = false
 var _disabled_reason: String = ""
-var _med: Panel = null
+var _med: Control = null
 var _hover_tween: Tween = null
 
 
@@ -41,28 +41,39 @@ func _ready() -> void:
 # Medaglione circolare bronzo dietro l'icona: i token strategia diventano emblemi
 # coerenti coi medaglioni-artefatto del Ledger (audit UI #5), senza nuova arte.
 func _crea_medaglione() -> void:
-	if has_node("Medaglione"):
+	if has_node("Medaglione") or _med != null:
 		return
-	var med: Panel = Panel.new()
-	med.name = "Medaglione"
-	med.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	med.anchor_left = 0.5
-	med.anchor_right = 0.5
-	med.offset_left = -62.0
-	med.offset_right = 62.0
-	med.offset_top = 14.0
-	med.offset_bottom = 138.0
-	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.17, 0.12, 0.08, 0.94)
-	sb.border_color = Color(0.66, 0.49, 0.27)
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(62)
-	sb.shadow_color = Color(0, 0, 0, 0.45)
-	sb.shadow_size = 7
-	med.add_theme_stylebox_override("panel", sb)
-	add_child(med)
-	move_child(med, 1)
-	_med = med
+	var node: Control
+	var tex: Texture2D = UiStyle.ui_texture("medallion")
+	if tex != null:
+		# Anello bronzo dipinto (§8g) al posto del cerchio a codice.
+		var tr: TextureRect = TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		node = tr
+	else:
+		var med: Panel = Panel.new()
+		var sb: StyleBoxFlat = StyleBoxFlat.new()
+		sb.bg_color = Color(0.17, 0.12, 0.08, 0.94)
+		sb.border_color = Color(0.66, 0.49, 0.27)
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(62)
+		sb.shadow_color = Color(0, 0, 0, 0.45)
+		sb.shadow_size = 7
+		med.add_theme_stylebox_override("panel", sb)
+		node = med
+	node.name = "Medaglione"
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.anchor_left = 0.5
+	node.anchor_right = 0.5
+	node.offset_left = -64.0
+	node.offset_right = 64.0
+	node.offset_top = 12.0
+	node.offset_bottom = 140.0
+	add_child(node)
+	move_child(node, 1)
+	_med = node
 
 
 func _refresh() -> void:
