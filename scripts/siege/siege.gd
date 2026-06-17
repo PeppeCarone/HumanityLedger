@@ -190,10 +190,11 @@ func _costruisci_scena() -> void:
 		sfondo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui.add_child(sfondo)
 
-	# Le 3 corsie.
+	# Le 3 corsie. Con lo sfondo dipinto la banda è solo un velo scuro (l'arte traspare);
+	# senza sfondo è piena, così le corsie restano leggibili sul fondo nero.
 	for y in LANE_Y:
 		var terra: ColorRect = ColorRect.new()
-		terra.color = Color(0.16, 0.12, 0.09, 0.95)
+		terra.color = Color(0.10, 0.07, 0.05, 0.34) if bg_tex != null else Color(0.16, 0.12, 0.09, 0.95)
 		terra.position = Vector2(VILLAGGIO_X, y - 24.0)
 		terra.size = Vector2(SPAWN_X - VILLAGGIO_X + 40.0, 48.0)
 		terra.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -298,7 +299,9 @@ func _crea_piazzole() -> void:
 # Decoro del campo (tutto in _ui, sotto le entità e le piazzole): villaggio fortificato
 # con porte allineate alle corsie, chevron che indicano il verso d'avanzata, lato spawn.
 func _crea_decoro() -> void:
-	var bordo: Color = Color(0.3, 0.22, 0.14, 0.7)
+	var ha_campo: bool = _siege_bg_tex() != null
+	# Col campo dipinto i bordi-corsia si fanno bronzo (definiscono la pista senza coprirla).
+	var bordo: Color = Color(0.55, 0.42, 0.26, 0.5) if ha_campo else Color(0.3, 0.22, 0.14, 0.7)
 	var chev: Color = Color(0.42, 0.32, 0.2, 0.22)
 	for y in LANE_Y:
 		for dy in [-24.0, 24.0]:

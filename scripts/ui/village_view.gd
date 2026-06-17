@@ -558,8 +558,10 @@ func aggiorna_prosperita(popolo: int, tesoro: int) -> void:
 			t.tween_property(nodo, "modulate", tinta, 1.2)
 
 
-# Mostra l'effetto della conseguenza al centro del villaggio.
-func applica_conseguenza(tipo: String) -> void:
+# Mostra l'effetto della conseguenza al centro del villaggio. `intensita` (≈0.8–1.6,
+# dal delta-stat maggiore della scelta) scala dimensione e durata del burst: J7 — una
+# svolta forte "pesa" di più a schermo di un aggiustamento minore.
+func applica_conseguenza(tipo: String, intensita: float = 1.0) -> void:
 	var dati: Dictionary = FX_CONSEGUENZA.get(tipo, FX_CONSEGUENZA["neutro"])
 	if tipo == "costruzione":
 		costruisci()
@@ -567,6 +569,7 @@ func applica_conseguenza(tipo: String) -> void:
 	var p: String = FX % int(dati["idx"])
 	if not ResourceLoader.exists(p):
 		return
+	var fattore: float = clampf(intensita, 0.75, 1.6)
 	var s: Vector2 = _baseline()
 	var tex: Texture2D = load(p)
 	var tr: TextureRect = TextureRect.new()
@@ -574,8 +577,8 @@ func applica_conseguenza(tipo: String) -> void:
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	# normalizza l'altezza (gli sprite fx hanno dimensioni native diverse)
-	var dim: Vector2 = Vector2(tex.get_size()) * minf(1.0, 340.0 / float(tex.get_height()))
+	# normalizza l'altezza (gli sprite fx hanno dimensioni native diverse) × intensità
+	var dim: Vector2 = Vector2(tex.get_size()) * minf(1.5, 320.0 * fattore / float(tex.get_height()))
 	tr.size = dim
 	tr.pivot_offset = dim * 0.5
 	tr.position = Vector2(s.x * 0.5 - dim.x * 0.5, _base_y() * s.y - dim.y * 0.62)
@@ -583,7 +586,7 @@ func applica_conseguenza(tipo: String) -> void:
 	_fx.add_child(tr)
 	var t: Tween = create_tween()
 	t.tween_property(tr, "modulate:a", 0.85, 0.35)
-	t.parallel().tween_property(tr, "scale", Vector2.ONE * 1.15, 1.1).from(Vector2.ONE * 0.7)
-	t.tween_interval(0.5)
-	t.tween_property(tr, "modulate:a", 0.0, 0.7)
+	t.parallel().tween_property(tr, "scale", Vector2.ONE * (1.0 + 0.18 * fattore), 1.1).from(Vector2.ONE * 0.7)
+	t.tween_interval(0.4 + 0.45 * fattore)
+	t.tween_property(tr, "modulate:a", 0.0, 0.55 + 0.35 * fattore)
 	t.tween_callback(tr.queue_free)

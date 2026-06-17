@@ -47,6 +47,9 @@ const COLOR_EFF_OSTILE: Color = Color(0.95, 0.55, 0.5)
 # Soglia oltre la quale un rapporto vale come patto/ostilita' "attiva".
 const SOGLIA_RAPPORTO: int = 2
 
+# J8: ultimo valore mostrato per civiltà, per accendere il flash solo su ciò che cambia.
+var _rapporti_prec: Dictionary = {}
+
 # colori distinti per accoppiare ogni opzione al consigliere bersaglio (card <-> zona)
 const ACCENT_PALETTE: Array[Color] = [
 	Color(0.95, 0.78, 0.4),
@@ -1152,7 +1155,7 @@ func _on_item_dropped(data: Dictionary) -> void:
 	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
 	_chiudi_decisione_morbida()
 	if village != null:
-		village.applica_conseguenza(tipo_cons)
+		village.applica_conseguenza(tipo_cons, _intensita_conseguenza(option.effetto))
 		if tipo_cons == "costruzione":
 			var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1)) + 1
 			GameState.set_flag("villaggio_n", n)
@@ -1169,6 +1172,20 @@ func _on_item_dropped(data: Dictionary) -> void:
 	current_step += 1
 	_show_current_decision()
 	processing_drop = false
+
+
+func _intensita_conseguenza(eff: Effect) -> float:
+	# J7: intensità del burst dal cambiamento più grande della scelta (stat, rapporti,
+	# popolazione). Delta tipici 3–12 → fattore ~0.99–1.40; svolte estreme fino a ~1.6.
+	if eff == null:
+		return 1.0
+	var m: int = 0
+	for k in eff.stat_delta:
+		m = maxi(m, absi(int(eff.stat_delta[k])))
+	for civ in eff.rapporti_civilta:
+		m = maxi(m, absi(int(eff.rapporti_civilta[civ])))
+	m = maxi(m, absi(int(eff.popolazione_delta)))
+	return clampf(0.85 + float(m) / 22.0, 0.85, 1.6)
 
 
 func _tipo_conseguenza(eff: Effect) -> String:
@@ -1380,8 +1397,22 @@ func _refresh_rapporti() -> void:
 		sb.content_margin_bottom = 5
 		badge.add_theme_stylebox_override("panel", sb)
 		badge.add_child(row)
+		# J8: ingresso a cascata; flash colorato se il rapporto è appena cambiato.
+		var idx: int = rapporti_box.get_child_count()
+		var cambiato: bool = not _rapporti_prec.is_empty() \
+			and _rapporti_prec.has(civ_id) and int(_rapporti_prec[civ_id]) != valore
+		badge.modulate = Color(1, 1, 1, 0)
 		rapporti_box.add_child(badge)
+		var tw: Tween = create_tween()
+		tw.tween_interval(0.04 * idx)
+		tw.tween_property(badge, "modulate:a", 1.0, 0.22)
+		if cambiato:
+			var su: bool = valore > int(_rapporti_prec[civ_id])
+			var pop: Color = Color(1.5, 1.5, 1.5) if su else Color(1.6, 1.15, 1.1)
+			tw.tween_property(badge, "modulate", pop, 0.12)
+			tw.tween_property(badge, "modulate", Color.WHITE, 0.55)
 	rapporti_label.text = "Rapporti:" if qualcuno else ""
+	_rapporti_prec = GameState.rapporti_civilta.duplicate()
 
 
 func _refresh_effetti_duraturi() -> void:
@@ -2047,6 +2078,7 @@ func _separatore_panel() -> ColorRect:
 
 func _reset_run() -> void:
 	GameState.reset_run()
+	_rapporti_prec.clear()   # J8: nuova run, niente flash da valori vecchi
 	_show_narrative("")
 	in_transizione_era = false
 	if siege_instance != null and is_instance_valid(siege_instance):
