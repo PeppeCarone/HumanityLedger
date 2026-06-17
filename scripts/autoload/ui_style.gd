@@ -1,13 +1,37 @@
 extends Node
 
-# Tema globale: look bronzo coerente per TUTTI i Button (+ font di default), così
-# ogni finestra, menu e pannello modale ha lo stesso stile curato invece dei grigi
-# di sistema. Gli override per-nodo (es. CallButton) mantengono comunque la priorità.
+# Tema globale + infrastruttura di REDESIGN ESTETICO (vedi Docs/13-redesign-estetico.md).
+#
+# Look bronzo coerente per TUTTI i Button (+ font di default), così ogni finestra, menu e
+# pannello modale ha lo stesso stile curato invece dei grigi di sistema. Gli override
+# per-nodo (es. CallButton) mantengono comunque la priorità.
+#
+# INFRASTRUTTURA ASSET: questo autoload sa caricare cornici (via StyleBoxTexture) e icone
+# da cartelle dedicate, con FALLBACK alla resa attuale (StyleBoxFlat) se il PNG non c'è.
+# Conseguenza: appena trascini gli asset generati (prompt in Docs/08 §P8/§P9) nelle
+# cartelle, il gioco li usa AUTOMATICAMENTE — nessun'altra modifica richiesta.
+#
+#   Assets/art/ui/    panel.png · button_normal|hover|pressed|disabled|focus.png · chip.png
+#                     tooltip.png · divider.png · corner_tl|tr|bl|br.png · medallion.png
+#                     medallion_glow.png · bar_frame.png · bar_fill.png · cartouche.png
+#                     parchment.png · ring_select|focus|upgrade.png · plot_pad.png
+#   Assets/art/icons/ stats/<stat>.png · strategie/<id>.png · risorse.png
+#                     action/<nome>.png · ledger/<nome>.png · keys/<k>.png · siege/<unit>.png
 
 const FONT_CORPO: String = "res://Assets/fonts/Alegreya.ttf"
 
 const COL_BORDO: Color = Color(0.60, 0.44, 0.24)
 const COL_BORDO_HOVER: Color = Color(0.93, 0.72, 0.38)
+
+const UI_DIR: String = "res://Assets/art/ui/"
+const ICON_DIR: String = "res://Assets/art/icons/"
+# Margini 9-slice (angoli) e padding contenuto di default per le cornici-texture.
+const PANEL_PATCH: int = 28
+const PANEL_CONTENT: int = 20
+const BUTTON_PATCH: int = 18
+const BUTTON_CONTENT: int = 12
+
+var _tex_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -16,23 +40,120 @@ func _ready() -> void:
 		theme.default_font = load(FONT_CORPO)
 	theme.default_font_size = 18
 
-	theme.set_stylebox("normal", "Button", _btn_sb(Color(0.13, 0.09, 0.06, 0.95), COL_BORDO))
-	theme.set_stylebox("hover", "Button", _btn_sb(Color(0.19, 0.13, 0.08, 0.97), COL_BORDO_HOVER))
-	theme.set_stylebox("pressed", "Button", _btn_sb(Color(0.10, 0.07, 0.05, 0.98), COL_BORDO_HOVER))
-	theme.set_stylebox("disabled", "Button", _btn_sb(Color(0.11, 0.10, 0.09, 0.55), Color(0.42, 0.37, 0.30, 0.5)))
-	theme.set_stylebox("focus", "Button", _btn_sb(Color(0.16, 0.11, 0.07, 0.0), COL_BORDO_HOVER))
+	# Pulsanti: usa le texture §8b se presenti, altrimenti lo stile bronzo a codice.
+	theme.set_stylebox("normal", "Button", _button_sb("normal", Color(0.13, 0.09, 0.06, 0.95), COL_BORDO))
+	theme.set_stylebox("hover", "Button", _button_sb("hover", Color(0.19, 0.13, 0.08, 0.97), COL_BORDO_HOVER))
+	theme.set_stylebox("pressed", "Button", _button_sb("pressed", Color(0.10, 0.07, 0.05, 0.98), COL_BORDO_HOVER))
+	theme.set_stylebox("disabled", "Button", _button_sb("disabled", Color(0.11, 0.10, 0.09, 0.55), Color(0.42, 0.37, 0.30, 0.5)))
+	theme.set_stylebox("focus", "Button", _button_sb("focus", Color(0.16, 0.11, 0.07, 0.0), COL_BORDO_HOVER))
 	theme.set_color("font_color", "Button", Color(0.95, 0.88, 0.68))
 	theme.set_color("font_hover_color", "Button", Color(1.0, 0.94, 0.76))
 	theme.set_color("font_pressed_color", "Button", Color(0.88, 0.80, 0.60))
 	theme.set_color("font_disabled_color", "Button", Color(0.58, 0.53, 0.45))
 
-	# Tooltip coerente (sfondo scuro bordo bronzo) invece del bianco di sistema.
-	var tip: StyleBoxFlat = _btn_sb(Color(0.08, 0.06, 0.05, 0.96), COL_BORDO)
-	tip.set_content_margin_all(8)
+	# Tooltip coerente (texture §8d o fallback scuro bordo bronzo) invece del bianco.
+	var tip: StyleBox = _tooltip_sb()
 	theme.set_stylebox("panel", "TooltipPanel", tip)
 	theme.set_color("font_color", "TooltipLabel", Color(0.92, 0.86, 0.72))
 
 	get_tree().root.theme = theme
+
+
+# --- API pubblica (usata da main.gd, village_view.gd, siege.gd, ...) ---------
+
+# Cornice pannello: texture §8a se presente, altrimenti il bronzo a codice attuale.
+func panel_stylebox() -> StyleBox:
+	var tex: Texture2D = ui_texture("panel")
+	if tex != null:
+		return _sb_texture(tex, PANEL_PATCH, PANEL_CONTENT)
+	return _panel_flat_fallback()
+
+
+# Chip/badge tinto (rapporti, effetti duraturi). `tinta` colora bordo/fondo nel fallback
+# e fa da modulate sulla texture §8c se presente.
+func chip_stylebox(tinta: Color = COL_BORDO) -> StyleBox:
+	var tex: Texture2D = ui_texture("chip")
+	if tex != null:
+		var sb: StyleBoxTexture = _sb_texture(tex, 14, 8)
+		sb.modulate_color = Color(tinta.r, tinta.g, tinta.b, 1.0)
+		return sb
+	var f: StyleBoxFlat = StyleBoxFlat.new()
+	f.bg_color = Color(0.12, 0.09, 0.07, 0.85)
+	f.border_color = Color(tinta.r, tinta.g, tinta.b, 0.7)
+	f.set_border_width_all(1)
+	f.set_corner_radius_all(6)
+	f.content_margin_left = 8
+	f.content_margin_right = 8
+	f.content_margin_top = 5
+	f.content_margin_bottom = 5
+	return f
+
+
+# Texture UI generica da Assets/art/ui/<nome>.png (cornici d'angolo, cartiglio,
+# pergamena, anelli, divisori, barre, medaglione...). null se non esiste.
+func ui_texture(nome: String) -> Texture2D:
+	return _carica(UI_DIR + nome + ".png")
+
+
+# Icona da Assets/art/icons/<categoria>/<nome>.png. null se non esiste (il chiamante
+# tiene la sua resa attuale come fallback).
+func icona(categoria: String, nome: String) -> Texture2D:
+	return _carica(ICON_DIR + categoria + "/" + nome + ".png")
+
+
+# True se esiste un medaglione-cornice per incorniciare le icone in modo coerente.
+func ha_medaglione() -> bool:
+	return ui_texture("medallion") != null
+
+
+# --- Interni -----------------------------------------------------------------
+
+func _carica(path: String) -> Texture2D:
+	if _tex_cache.has(path):
+		return _tex_cache[path]
+	var tex: Texture2D = load(path) if ResourceLoader.exists(path) else null
+	_tex_cache[path] = tex
+	return tex
+
+
+func _sb_texture(tex: Texture2D, patch: int, content: int) -> StyleBoxTexture:
+	var sb: StyleBoxTexture = StyleBoxTexture.new()
+	sb.texture = tex
+	sb.set_texture_margin_all(patch)
+	sb.set_content_margin_all(content)
+	return sb
+
+
+func _button_sb(stato: String, bg: Color, bordo: Color) -> StyleBox:
+	var tex: Texture2D = ui_texture("button_" + stato)
+	if tex != null:
+		return _sb_texture(tex, BUTTON_PATCH, BUTTON_CONTENT)
+	return _btn_sb(bg, bordo)
+
+
+func _tooltip_sb() -> StyleBox:
+	var tex: Texture2D = ui_texture("tooltip")
+	if tex != null:
+		return _sb_texture(tex, 16, 8)
+	var tip: StyleBoxFlat = _btn_sb(Color(0.08, 0.06, 0.05, 0.96), COL_BORDO)
+	tip.set_content_margin_all(8)
+	return tip
+
+
+# Fallback identico a main.gd._stile_pannello (resa attuale dei pannelli).
+func _panel_flat_fallback() -> StyleBoxFlat:
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.11, 0.085, 0.07, 0.84)
+	sb.border_color = Color(0.5, 0.38, 0.22, 0.95)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 18
+	sb.content_margin_bottom = 18
+	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.shadow_size = 6
+	return sb
 
 
 func _btn_sb(bg: Color, bordo: Color) -> StyleBoxFlat:

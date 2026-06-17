@@ -184,6 +184,7 @@ var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 var atmosfera: CPUParticles2D = null
 var edificio_panel: CanvasLayer = null
+var siege_instance: CanvasLayer = null
 
 
 func _ready() -> void:
@@ -443,19 +444,10 @@ func _applica_cornici() -> void:
 		panel.add_theme_stylebox_override("panel", _stile_pannello())
 
 
-func _stile_pannello() -> StyleBoxFlat:
-	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.11, 0.085, 0.07, 0.84)
-	sb.border_color = Color(0.5, 0.38, 0.22, 0.95)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(8)
-	sb.content_margin_left = 22
-	sb.content_margin_right = 22
-	sb.content_margin_top = 18
-	sb.content_margin_bottom = 18
-	sb.shadow_color = Color(0, 0, 0, 0.45)
-	sb.shadow_size = 6
-	return sb
+func _stile_pannello() -> StyleBox:
+	# Cornice centralizzata in UiStyle: usa la texture §8a se presente in Assets/art/ui/,
+	# altrimenti il bronzo a codice (fallback identico). Vedi Docs/13-redesign-estetico.md.
+	return UiStyle.panel_stylebox()
 
 
 func _setup_hud() -> void:
@@ -642,10 +634,18 @@ func _avvia_prossima_quest() -> void:
 	in_attesa_quest = false
 	var q: Quest = _prossima_quest_disponibile()
 	if q == null:
+		# Fine era: prima della transizione c'e' L'Assedio (boss fight TD), una volta
+		# sola per era. Vedi Docs/11-boss-fight.md. Superato l'Assedio si prosegue.
 		if GameState.era_corrente == 1 and GameState.has_flag("era1_completata"):
-			_show_transizione_a_era2()
+			if not GameState.has_flag("era1_assedio_fatto"):
+				_avvia_assedio(1)
+			else:
+				_show_transizione_a_era2()
 		elif GameState.era_corrente == 2 and GameState.has_flag("era2_completata"):
-			_show_ending()
+			if not GameState.has_flag("era2_assedio_fatto"):
+				_avvia_assedio(2)
+			else:
+				_show_ending()
 		else:
 			_show_attesa_quest()
 		return
@@ -853,6 +853,34 @@ func _mostra_mappa_mondo(da_era: int, a_era: int, titolo: String, sottotitolo: S
 	mappa.configura(da_era, a_era, titolo, sottotitolo)
 	mappa.chiuso.connect(_avvia_prossima_quest, CONNECT_ONE_SHOT)
 	add_child(mappa)
+
+
+# --- L'Assedio (boss fight TD di fine era) ----------------------------------
+
+func _avvia_assedio(era: int) -> void:
+	if siege_instance != null and is_instance_valid(siege_instance):
+		return
+	_set_decision_visible(false)
+	call_button.visible = false
+	arriving_portrait.visible = false
+	siege_instance = SiegeArena.new()
+	siege_instance.configura(era)   # PRIMA di add_child: legge le stat della run
+	siege_instance.assedio_concluso.connect(_on_assedio_concluso.bind(era), CONNECT_ONE_SHOT)
+	add_child(siege_instance)
+
+
+func _on_assedio_concluso(esito: String, era: int) -> void:
+	GameState.set_flag("era%d_assedio_fatto" % era, true)
+	GameState.flag_narrativi["era%d_assedio_esito" % era] = esito
+	if siege_instance != null and is_instance_valid(siege_instance):
+		siege_instance.queue_free()
+	siege_instance = null
+	# Trionfo: piccolo trofeo (ricompense piene in Fase F). Sopraffatto: si avanza
+	# comunque (no game over D024); conseguenze in Fase F.
+	if esito == "trionfo":
+		GameState.modifica_risorse(15)
+	SaveSystem.save_run()
+	_avvia_prossima_quest()
 
 
 func _show_ending() -> void:
@@ -1472,6 +1500,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _debug_input(keycode: int) -> void:
 	match keycode:
 		KEY_R: _reset_run()
+		KEY_B: _avvia_assedio(GameState.era_corrente)   # prova L'Assedio al volo
 		KEY_1: GameState.modifica_stat("militare", 5)
 		KEY_2: GameState.modifica_stat("tesoro", 5)
 		KEY_3: GameState.modifica_stat("diplomazia", 5)
@@ -2020,6 +2049,9 @@ func _reset_run() -> void:
 	GameState.reset_run()
 	_show_narrative("")
 	in_transizione_era = false
+	if siege_instance != null and is_instance_valid(siege_instance):
+		siege_instance.queue_free()
+		siege_instance = null
 	if ending_instance != null and is_instance_valid(ending_instance):
 		ending_instance.queue_free()
 		ending_instance = null

@@ -135,6 +135,30 @@ func _run() -> void:
 	print("SHOT shot_worldmap ", wimg.get_size())
 	wm.queue_free()
 	await get_tree().process_frame
+	# L'Assedio (Fase B): "le stat diventano l'esercito". Istanziato via script (niente
+	# .tscn): 3 corsie, villaggio+HP a sinistra, 4 unita' scalate dalle stat, alleati/
+	# ostili dai rapporti con le civilta'.
+	GameState.reset_run()
+	GameState.costruzione = 55
+	GameState.militare = 60
+	GameState.tesoro = 45
+	GameState.scienza = 50
+	GameState.spionaggio = 45
+	GameState.rapporti_civilta["clan_bisonte"] = 4    # alleato -> truppa gratis
+	GameState.rapporti_civilta["popolo_nebbie"] = -3  # ostile -> rinforza i nemici
+	var siege: CanvasLayer = SiegeArena.new()
+	siege.configura(1)
+	get_tree().root.add_child(siege)
+	siege.schiera_unita_test(0, "tiratore")     # corsia 0
+	siege.schiera_unita_test(3, "bloccatore")   # corsia 1
+	siege.schiera_unita_test(7, "sciamano")     # corsia 2
+	siege.schiera_unita_test(8, "totem")        # corsia 2
+	await get_tree().create_timer(3.0).timeout
+	var simg: Image = get_viewport().get_texture().get_image()
+	simg.save_png(OUT + "shot_assedio.png")
+	print("SHOT shot_assedio ", simg.get_size())
+	siege.queue_free()
+	await get_tree().process_frame
 	# Ledger con artefatti misti: semina SOLO in memoria (niente save -> niente
 	# scrittura del ledger.json reale). Per questo va tenuto come ultimo shot.
 	GameState.reset_run()

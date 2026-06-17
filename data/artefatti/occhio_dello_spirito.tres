@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/artefatto.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/data/effect.gd" id="2"]
-[ext_resource type="Texture2D" path="res://Assets/art/stats/spionaggio.png" id="3"]
+[ext_resource type="Texture2D" path="res://Assets/art/ledger/occhio_dello_spirito.png" id="3"]
 
 [sub_resource type="Resource" id="eff_occhio"]
 script = ExtResource("2")
