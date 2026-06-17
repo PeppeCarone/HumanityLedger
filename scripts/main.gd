@@ -441,11 +441,13 @@ func _font_titoli() -> Font:
 
 
 func _applica_cornici() -> void:
+	# Pannelli sempre-visibili: stile PULITO (non la cornice ornata, che qui affolla e si
+	# stira). La cornice ricca resta ai modali (vedi _nuovo_pannello_modale).
 	for node_path in ["UI/HUDPanel", "UI/ConsigliereProposer", "UI/DecisionPanel"]:
 		var panel: Control = get_node_or_null(node_path)
 		if panel == null:
 			continue
-		panel.add_theme_stylebox_override("panel", _stile_pannello())
+		panel.add_theme_stylebox_override("panel", UiStyle.panel_clean())
 
 
 func _stile_pannello() -> StyleBox:

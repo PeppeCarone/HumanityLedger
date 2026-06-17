@@ -62,12 +62,31 @@ func _ready() -> void:
 
 # --- API pubblica (usata da main.gd, village_view.gd, siege.gd, ...) ---------
 
-# Cornice pannello: texture §8a se presente, altrimenti il bronzo a codice attuale.
+# Cornice pannello ORNATA (texture §8a 9-slice): SOLO per modali centrati e box
+# raccolti, dove la cornice ricca sta bene. Per HUD/pannelli grandi usa panel_clean().
 func panel_stylebox() -> StyleBox:
 	var tex: Texture2D = ui_texture("panel")
 	if tex != null:
 		return _sb_texture(tex, PANEL_PATCH, PANEL_CONTENT)
 	return _panel_flat_fallback()
+
+
+# Pannello PULITO: cuoio scuro semi-trasparente con bordo bronzo sottile. Per i pannelli
+# sempre-visibili (HUD, dialogo, barra decisione): leggibile, ordinato, non invadente —
+# così il villaggio e il testo restano i protagonisti.
+func panel_clean() -> StyleBoxFlat:
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.094, 0.075, 0.057, 0.88)
+	sb.border_color = Color(0.46, 0.35, 0.21, 0.8)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 13
+	sb.content_margin_bottom = 13
+	sb.shadow_color = Color(0, 0, 0, 0.40)
+	sb.shadow_size = 5
+	return sb
 
 
 # Chip/badge tinto (rapporti, effetti duraturi). `tinta` colora bordo/fondo nel fallback
