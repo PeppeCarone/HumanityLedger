@@ -20,6 +20,7 @@ func _ready() -> void:
 	continua_btn.pressed.connect(_on_continua)
 	ledger_btn.pressed.connect(_on_ledger)
 	esci_btn.pressed.connect(_on_esci)
+	_usa_tema_globale()
 	_stilizza_primario()
 	_aggiungi_tagline()
 	_setup_hover()
@@ -32,26 +33,20 @@ func _ready() -> void:
 	AudioManager.play_music_id("menu")
 
 
-# "Nuova Partita" è l'azione principale: barra-accento a sinistra, bordo oro, più grande.
+# Tutti i pulsanti del menu usano il tema globale (cornici §P8 con fallback bronzo),
+# togliendo gli override flat del .tscn: coerenza totale con i pulsanti in-gioco.
+func _usa_tema_globale() -> void:
+	for b in [nuova_btn, continua_btn, ledger_btn, esci_btn]:
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			b.remove_theme_stylebox_override(st)
+
+
+# "Nuova Partita" è l'azione principale: porta sempre la cornice "accesa" (lo stato hover)
+# come stato normale, così spicca, ed è un po' più grande.
 func _stilizza_primario() -> void:
-	var n: StyleBoxFlat = StyleBoxFlat.new()
-	n.bg_color = Color(0.17, 0.12, 0.07, 0.92)
-	n.border_color = Color(0.90, 0.70, 0.37, 1.0)
-	n.set_border_width_all(2)
-	n.border_width_left = 5
-	n.set_corner_radius_all(6)
-	n.content_margin_left = 20
-	n.content_margin_right = 18
-	n.content_margin_top = 13
-	n.content_margin_bottom = 13
-	nuova_btn.add_theme_stylebox_override("normal", n)
-	var h: StyleBoxFlat = n.duplicate()
-	h.bg_color = Color(0.25, 0.18, 0.10, 0.96)
-	h.border_color = Color(1.0, 0.85, 0.47, 1.0)
-	nuova_btn.add_theme_stylebox_override("hover", h)
-	nuova_btn.add_theme_stylebox_override("focus", h)
-	nuova_btn.add_theme_stylebox_override("pressed", h)
-	nuova_btn.add_theme_font_size_override("font_size", 31)
+	var acceso: StyleBox = nuova_btn.get_theme_stylebox("hover", "Button")
+	nuova_btn.add_theme_stylebox_override("normal", acceso)
+	nuova_btn.add_theme_font_size_override("font_size", 32)
 
 
 # Sottotitolo evocativo sopra i pulsanti: dice in una riga di cosa parla il gioco.

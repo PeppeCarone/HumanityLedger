@@ -25,9 +25,10 @@ const COL_BORDO_HOVER: Color = Color(0.93, 0.72, 0.38)
 
 const UI_DIR: String = "res://Assets/art/ui/"
 const ICON_DIR: String = "res://Assets/art/icons/"
-# Margini 9-slice (angoli) e padding contenuto di default per le cornici-texture.
-const PANEL_PATCH: int = 28
-const PANEL_CONTENT: int = 20
+# Margini 9-slice (angoli) e padding contenuto, calibrati sui frame §P8 reali:
+# panel.png ha angoli ornati ~84px; button_*.png capi ornati ~60×22.
+const PANEL_PATCH: int = 84
+const PANEL_CONTENT: int = 30
 const BUTTON_PATCH: int = 18
 const BUTTON_CONTENT: int = 12
 
@@ -127,7 +128,18 @@ func _sb_texture(tex: Texture2D, patch: int, content: int) -> StyleBoxTexture:
 func _button_sb(stato: String, bg: Color, bordo: Color) -> StyleBox:
 	var tex: Texture2D = ui_texture("button_" + stato)
 	if tex != null:
-		return _sb_texture(tex, BUTTON_PATCH, BUTTON_CONTENT)
+		# Capi ornati larghi ma bordo alto/basso sottile: margini 9-slice asimmetrici.
+		var sb: StyleBoxTexture = StyleBoxTexture.new()
+		sb.texture = tex
+		sb.texture_margin_left = 60
+		sb.texture_margin_right = 60
+		sb.texture_margin_top = 22
+		sb.texture_margin_bottom = 22
+		sb.content_margin_left = 28
+		sb.content_margin_right = 28
+		sb.content_margin_top = 10
+		sb.content_margin_bottom = 10
+		return sb
 	return _btn_sb(bg, bordo)
 
 
