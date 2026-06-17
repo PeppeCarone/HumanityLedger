@@ -24,11 +24,18 @@ const COL_LABEL_DISABILITATO: Color = Color(0.85, 0.5, 0.42)
 var _consumed: bool = false
 var _disabled: bool = false
 var _disabled_reason: String = ""
+var _med: Panel = null
+var _hover_tween: Tween = null
 
 
 func _ready() -> void:
 	_crea_medaglione()
 	_refresh()
+	# Affordance "prendimi": al passaggio del mouse la carta si solleva e il medaglione
+	# si accende d'oro. Niente durante il drag o se è bloccata/usata.
+	mouse_entered.connect(_hover_in)
+	mouse_exited.connect(_hover_out)
+	pivot_offset = custom_minimum_size * Vector2(0.5, 0.5)
 
 
 # Medaglione circolare bronzo dietro l'icona: i token strategia diventano emblemi
@@ -55,6 +62,7 @@ func _crea_medaglione() -> void:
 	med.add_theme_stylebox_override("panel", sb)
 	add_child(med)
 	move_child(med, 1)
+	_med = med
 
 
 func _refresh() -> void:
@@ -94,6 +102,32 @@ func _refresh() -> void:
 			lbl.add_theme_color_override("font_color", COL_LABEL_NORMALE)
 		mouse_default_cursor_shape = Control.CURSOR_DRAG
 		tooltip_text = hint_text
+
+
+func _attivabile() -> bool:
+	return not _disabled and not _consumed and not get_viewport().gui_is_dragging()
+
+
+func _hover_in() -> void:
+	if not _attivabile():
+		return
+	pivot_offset = size * 0.5
+	if _hover_tween != null and _hover_tween.is_valid():
+		_hover_tween.kill()
+	_hover_tween = create_tween().set_parallel()
+	_hover_tween.tween_property(self, "scale", Vector2(1.06, 1.06), 0.13) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if _med != null:
+		_hover_tween.tween_property(_med, "self_modulate", Color(1.35, 1.18, 0.82), 0.13)
+
+
+func _hover_out() -> void:
+	if _hover_tween != null and _hover_tween.is_valid():
+		_hover_tween.kill()
+	_hover_tween = create_tween().set_parallel()
+	_hover_tween.tween_property(self, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_SINE)
+	if _med != null:
+		_hover_tween.tween_property(_med, "self_modulate", Color.WHITE, 0.16)
 
 
 func set_disabled(value: bool, reason: String = "") -> void:
