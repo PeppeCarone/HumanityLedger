@@ -34,10 +34,11 @@ l'impressione "prototipo" sui pochi punti ancora deboli.
   via `StyleBox`/9-patch procedurale.
 - [ ] **[C] Tabella costi nel modale build/upgrade** (`10` #1): righe costo allineate
   con icona risorsa + thumbnail edificio. (Scrim e tema bronzo già fatti.)
-- [ ] **[C] J7 — Conseguenze con intensità**: il delta maggiore scala dimensione/durata
-  dell'FX; la guerra colpisce un edificio, l'alleanza si diffonde su due slot.
-- [ ] **[C] J8 — Rapporti civiltà animati**: flash sul cambio + slide d'ingresso delle
-  righe (oggi statiche).
+- [x] **[C] J7 — Conseguenze con intensità**: il delta maggiore scala dimensione/durata
+  dell'FX (`village_view.applica_conseguenza(tipo, intensita)` + `main._intensita_conseguenza`).
+  *Resta opzionale: guerra che colpisce un edificio, alleanza su due slot.*
+- [x] **[C] J8 — Rapporti civiltà animati**: flash colorato sul cambio + ingresso a cascata
+  delle righe (`main._refresh_rapporti`, stato `_rapporti_prec`).
 - [ ] **[C] J12 — Vignette animata vista decisione** (tinta viola se mystery) — dipende
   dallo shader del primo punto.
 - [ ] **[C] J15 — Bandierine alleanza sul villaggio** (riusa gli sprite ambasciatori).
@@ -128,6 +129,13 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   `unit_<archetipo>`, `enemy`) e `fx/` (proiettili), + icone barra da `icons/siege/` via
   `UiStyle.icona`, tutto **fallback-safe**. Prompt §P7/§P9g in `Docs/08` riallineati alla Fase B
   (nomi-file esatti, righe "Fase B ✓"). Swap verificato a schermo con PNG segnaposto (poi rimossi).
+- **2026-06-17 (5)** — **PUSHATO su origin/main** (`7e294fb` codice Fase B+hook, `49da081` asset,
+  `52569aa` polish). **Integrati ~55 asset generati dall'utente** (P0–P7): edifici villaggio
+  era1+2 (12×3 stadi), terreni `.jpg`, sfondi scena, Assedio Era 1 (campo/roccaforte/unità/
+  nemico/proiettili), 4 eventi paleolitici, artefatto Occhio (+`.tres`), icona spionaggio,
+  fx conseguenze. Tutto verificato a schermo. **Polish:** corsie Assedio trasparenti sul campo
+  dipinto, J7 (conseguenze con intensità), J8 (rapporti animati). **Manca arte:** Assedio Era 2,
+  boss, UI kit §P8, icone §P9.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
