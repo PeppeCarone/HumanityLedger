@@ -182,6 +182,7 @@ var pause_instance: CanvasLayer = null
 var era_card: CanvasLayer = null
 var stat_tweens: Dictionary = {}
 var stat_icon_nodes: Dictionary = {}
+var stat_bar_fills: Dictionary = {}   # barra 0–100 per ogni stat (colpo d'occhio sulla forza)
 var narrative_tween: Tween = null
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
@@ -456,36 +457,58 @@ func _stile_pannello() -> StyleBox:
 func _setup_hud() -> void:
 	stat_value_labels.clear()
 	stat_icon_nodes.clear()
+	stat_bar_fills.clear()
 	for stat_name in GameState.STAT_NAMES:
 		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 9)
 		var icon: TextureRect = TextureRect.new()
-		icon.custom_minimum_size = Vector2(30, 30)
+		icon.custom_minimum_size = Vector2(34, 34)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var icon_path: String = STAT_ICON_DIR + stat_name + ".png"
 		if ResourceLoader.exists(icon_path):
 			icon.texture = load(icon_path)
 		row.add_child(icon)
 		stat_icon_nodes[stat_name] = icon
-		# Nome a sinistra (tenue), valore a destra (bold chiaro): gerarchia da
-		# pannello di comando, non lista di debug.
+		# Colonna: riga "nome … valore" + barra 0–100. Da pannello di comando, non da debug.
+		var col: VBoxContainer = VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		col.add_theme_constant_override("separation", 3)
+		row.add_child(col)
+		var topline: HBoxContainer = HBoxContainer.new()
+		topline.add_theme_constant_override("separation", 6)
+		col.add_child(topline)
 		var nome_lbl: Label = Label.new()
 		nome_lbl.text = STAT_LABELS[stat_name]
-		nome_lbl.add_theme_font_size_override("font_size", 16)
-		nome_lbl.add_theme_color_override("font_color", Color(0.78, 0.72, 0.60))
+		nome_lbl.add_theme_font_size_override("font_size", 15)
+		nome_lbl.add_theme_color_override("font_color", Color(0.80, 0.73, 0.60))
 		nome_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nome_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(nome_lbl)
+		topline.add_child(nome_lbl)
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
 		label.text = str(GameState.get_stat(stat_name))
 		label.add_theme_font_size_override("font_size", 19)
-		label.add_theme_color_override("font_color", Color(0.97, 0.93, 0.82))
+		label.add_theme_color_override("font_color", Color(0.98, 0.94, 0.84))
+		label.custom_minimum_size = Vector2(30, 0)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(label)
-		hud_container.add_child(row)
+		topline.add_child(label)
 		stat_value_labels[stat_name] = label
+		var track: ColorRect = ColorRect.new()
+		track.color = Color(0.17, 0.13, 0.09, 0.9)
+		track.custom_minimum_size = Vector2(0, 6)
+		track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(track)
+		var fill: ColorRect = ColorRect.new()
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		track.add_child(fill)
+		stat_bar_fills[stat_name] = fill
+		_aggiorna_barra_stat(stat_name, GameState.get_stat(stat_name))
+		hud_container.add_child(row)
 	var spacer_a: Control = Control.new()
 	spacer_a.custom_minimum_size = Vector2(0, 8)
 	hud_container.add_child(spacer_a)
@@ -1247,6 +1270,23 @@ func _clear_children(node: Node) -> void:
 		c.queue_free()
 
 
+# Riempie la barra 0–100 della stat e la colora dal bronzo (debole) all'oro (forte).
+func _aggiorna_barra_stat(nome: String, valore: int) -> void:
+	var fill: ColorRect = stat_bar_fills.get(nome)
+	if fill == null or not is_instance_valid(fill):
+		return
+	var frac: float = clampf(float(valore) / float(GameState.STAT_MAX), 0.0, 1.0)
+	fill.anchor_left = 0.0
+	fill.anchor_top = 0.0
+	fill.anchor_bottom = 1.0
+	fill.anchor_right = frac
+	fill.offset_left = 0.0
+	fill.offset_top = 0.0
+	fill.offset_right = 0.0
+	fill.offset_bottom = 0.0
+	fill.color = Color(0.52, 0.40, 0.24).lerp(Color(0.98, 0.82, 0.46), frac)
+
+
 func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	var label: Label = stat_value_labels.get(nome)
 	if label == null:
@@ -1257,8 +1297,10 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 	stat_tweens[nome] = tween
 	tween.tween_method(
 		func(value: float) -> void:
+			var iv: int = int(round(value))
 			if is_instance_valid(label):
-				label.text = str(int(round(value))),
+				label.text = str(iv)
+			_aggiorna_barra_stat(nome, iv),
 		float(vecchio),
 		float(nuovo),
 		STAT_TWEEN_DURATION,
