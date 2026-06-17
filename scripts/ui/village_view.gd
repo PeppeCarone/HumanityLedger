@@ -50,7 +50,7 @@ const SLOTS_ERA: Dictionary = {
 		{"x": 0.33, "y": 0.960, "s": 1.02},
 	],
 }
-const SCALA_EDIFICIO: float = 0.78
+const SCALA_EDIFICIO: float = 0.66
 
 # Tabellone (D046): quando esiste il terreno dedicato dell'era, gli edifici si
 # dispongono sulle piazzole della radura/spianata come in un board di strategia.
@@ -142,17 +142,19 @@ func _aggiorna_plot_costruibile() -> void:
 		if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
 			plot_cliccato.emit(next_slot))
 	var pad: TextureRect = TextureRect.new()
-	pad.texture = _disc_texture()
+	# Anello dorato a terra (asset §8k) invece del disco-gradiente che sembrava un falò.
+	var ring: Texture2D = UiStyle.ui_texture("ring_select")
+	pad.texture = ring if ring != null else _disc_texture()
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pad.stretch_mode = TextureRect.STRETCH_SCALE
-	pad.size = Vector2(pad_w, pad_w * 0.5)
-	pad.position = Vector2(0, pad_w * 0.5)
-	pad.modulate = Color(0.98, 0.84, 0.46, 0.35)
+	pad.size = Vector2(pad_w, pad_w * 0.52)
+	pad.position = Vector2(0, pad_w * 0.46)
+	pad.modulate = Color(1, 1, 1, 0.75) if ring != null else Color(0.98, 0.84, 0.46, 0.35)
 	holder.add_child(pad)
 	var plus: Label = Label.new()
 	plus.text = "+"
-	plus.add_theme_font_size_override("font_size", 56)
+	plus.add_theme_font_size_override("font_size", 44)
 	plus.add_theme_color_override("font_color", Color(1.0, 0.9, 0.55))
 	plus.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.95))
 	plus.add_theme_constant_override("outline_size", 6)
@@ -282,21 +284,23 @@ func _aggiorna_glow_affordance(slot: int) -> void:
 	if vuole and ring == null:
 		ring = TextureRect.new()
 		ring.name = "AffordGlow"
-		ring.texture = _disc_texture()
+		# Anello "potenziabile" (asset §8k) a terra: chiaro, non un alone di fuoco.
+		var up: Texture2D = UiStyle.ui_texture("ring_upgrade")
+		ring.texture = up if up != null else _disc_texture()
 		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ring.stretch_mode = TextureRect.STRETCH_SCALE
-		var w: float = tr.size.x * 0.95
-		ring.size = Vector2(w, w * 0.42)
-		ring.position = Vector2(tr.size.x * 0.5 - w * 0.5, tr.size.y - w * 0.30)
-		ring.modulate = Color(1.0, 0.84, 0.4, 0.0)
+		var w: float = tr.size.x * 0.9
+		ring.size = Vector2(w, w * 0.5)
+		ring.position = Vector2(tr.size.x * 0.5 - w * 0.5, tr.size.y - w * 0.36)
+		ring.modulate = Color(1, 1, 1, 0.0)
 		tr.add_child(ring)
 		tr.move_child(ring, 0)  # dietro la sagoma dell'edificio
 		var t: Tween = ring.create_tween()
 		t.set_loops()
 		t.set_trans(Tween.TRANS_SINE)
-		t.tween_property(ring, "modulate:a", 0.55, 0.75)
-		t.tween_property(ring, "modulate:a", 0.16, 0.75)
+		t.tween_property(ring, "modulate:a", 0.85, 0.8)
+		t.tween_property(ring, "modulate:a", 0.4, 0.8)
 		ring.set_meta("tw", t)
 	elif not vuole and ring != null:
 		var t: Variant = ring.get_meta("tw", null)

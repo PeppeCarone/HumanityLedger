@@ -1940,15 +1940,15 @@ func _float_risorse(n: int) -> void:
 func _setup_resource_bar() -> void:
 	var bar: PanelContainer = PanelContainer.new()
 	bar.name = "ResourceBar"
-	bar.add_theme_stylebox_override("panel", _stile_pannello())
+	# Barra compatta che si adatta al contenuto e resta centrata in alto (niente cornice
+	# ornata stirata: quella su una striscia larga e sottile fa pessima figura).
+	bar.add_theme_stylebox_override("panel", UiStyle.panel_clean())
 	bar.anchor_left = 0.5
 	bar.anchor_right = 0.5
-	bar.offset_left = -300.0
-	bar.offset_right = 300.0
-	bar.offset_top = 14.0
-	bar.offset_bottom = 74.0
+	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	bar.offset_top = 12.0
 	var hb: HBoxContainer = HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 18)
+	hb.add_theme_constant_override("separation", 12)
 	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	bar.add_child(hb)
 	var ic: TextureRect = TextureRect.new()
@@ -1975,14 +1975,6 @@ func _setup_resource_bar() -> void:
 	produzione_label.add_theme_color_override("font_color", Color(0.62, 0.92, 0.62))
 	produzione_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hb.add_child(produzione_label)
-	var sep: VSeparator = VSeparator.new()
-	hb.add_child(sep)
-	var hint: Label = Label.new()
-	hint.text = "Costruisci e potenzia il villaggio"
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Color(0.78, 0.72, 0.6))
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hb.add_child(hint)
 	$UI.add_child(bar)
 
 
