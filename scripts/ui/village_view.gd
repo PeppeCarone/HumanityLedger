@@ -56,7 +56,7 @@ const SCALA_EDIFICIO: float = 0.66
 # dispongono sulle piazzole della radura/spianata come in un board di strategia.
 # Il fronte-centro resta libero per il CallButton (x 0.40-0.72, y > 0.81).
 const SLOTS_BOARD: Array[Dictionary] = [
-	{"x": 0.50, "y": 0.560, "s": 0.90},
+	{"x": 0.49, "y": 0.600, "s": 1.05},
 	{"x": 0.33, "y": 0.620, "s": 0.95},
 	{"x": 0.67, "y": 0.620, "s": 0.95},
 	{"x": 0.25, "y": 0.780, "s": 1.05},
