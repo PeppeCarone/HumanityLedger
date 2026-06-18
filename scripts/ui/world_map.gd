@@ -162,6 +162,7 @@ func _ready() -> void:
 		_layer_node(nome).modulate.a = da.get(nome, 0.0)
 
 	_crea_markers()
+	_avvia_nubi()
 
 	var t: Tween = create_tween()
 	# fase 1: sfondo + titoli appaiono insieme
@@ -296,6 +297,14 @@ func _crea_rotta(da: Vector2, a: Vector2, rapporto: int, mapscala: float) -> Tex
 	tr.rotation = (a - da).angle()
 	tr.modulate = Color(1, 1, 1, 0.0)
 	tr.set_meta("alpha_target", 0.75)
+	# Flusso luminoso lungo la rotta (commercio oro / guerra rossa): la via "pulsa".
+	var fl: String = "res://Assets/shaders/flow.gdshader"
+	if ResourceLoader.exists(fl):
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = load(fl)
+		mat.set_shader_parameter("glow",
+			Vector3(0.95, 0.4, 0.3) if rapporto < 0 else Vector3(1.0, 0.86, 0.5))
+		tr.material = mat
 	return tr
 
 
@@ -347,6 +356,7 @@ func _mostra_markers_iniziali() -> void:
 		var t: Tween = create_tween()
 		t.tween_interval(randf() * 0.3)
 		t.tween_property(primitivo, "modulate:a", 1.0, 0.6)
+		t.tween_callback(_idle_marker.bind(primitivo))
 
 
 func _cresci_insediamenti() -> void:
@@ -364,6 +374,7 @@ func _cresci_insediamenti() -> void:
 			t.parallel().tween_property(evoluto, "scale", Vector2.ONE * 1.06, 0.7).from(Vector2.ONE * 0.85)
 			if primitivo != null:
 				t.parallel().tween_property(primitivo, "modulate:a", 0.0, 0.5)
+			t.tween_callback(_idle_marker.bind(evoluto))
 			ritardo += 0.18
 		if fx != null:
 			_avvia_pulse(fx)
@@ -380,6 +391,54 @@ func _mostra_diplomazia() -> void:
 		t.tween_interval(ritardo)
 		t.tween_property(nodo, "modulate:a", bersaglio, 0.9).set_trans(Tween.TRANS_SINE)
 		ritardo += 0.15
+
+
+# Respiro idle dell'insediamento (scala dolce attorno alla base): la città è viva.
+func _idle_marker(tr: TextureRect) -> void:
+	if tr == null or not is_instance_valid(tr):
+		return
+	var amp: float = randf_range(0.02, 0.038)
+	var dur: float = randf_range(1.6, 2.4)
+	var t: Tween = tr.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(tr, "scale", Vector2.ONE * (1.0 + amp), dur)
+	t.tween_property(tr, "scale", Vector2.ONE * (1.0 - amp * 0.5), dur)
+
+
+# Ombre di nubi che scorrono lente sulla terra: luce viva, niente nuovi asset.
+func _avvia_nubi() -> void:
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	for i in range(3):
+		var tr: TextureRect = TextureRect.new()
+		tr.texture = _soft_blob()
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_SCALE
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var w: float = vp.x * randf_range(0.42, 0.72)
+		tr.size = Vector2(w, w * 0.5)
+		tr.position = Vector2(randf_range(-w, vp.x), vp.y * randf_range(0.12, 0.62))
+		tr.modulate = Color(0.05, 0.04, 0.06, randf_range(0.08, 0.15))
+		map_root.add_child(tr)
+		var dur: float = randf_range(22.0, 34.0)
+		var t: Tween = tr.create_tween()
+		t.set_loops()
+		t.tween_property(tr, "position:x", vp.x + w, dur)
+		t.tween_callback(func() -> void: tr.position.x = -w)
+
+
+func _soft_blob() -> GradientTexture2D:
+	var g: Gradient = Gradient.new()
+	g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	g.offsets = PackedFloat32Array([0.0, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	return tex
 
 
 func _avvia_pulse(fx: TextureRect) -> void:

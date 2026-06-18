@@ -199,6 +199,12 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   suolo, isolata allo sfondo) + **pulviscolo ambientale** che deriva sul campo (`siege._avvia_ambient`:
   braci arancioni Era 2 / polvere calda Era 1, dietro le entità). Verificato a schermo. Restano
   opzionali: vento-vertex su tetti/alberi, godrays caverna, parallax/nubi, mappa-mondo animata.
+- **2026-06-18 (7)** — **Animazione procedurale (pass 4) — mappa-mondo viva.** Rotte con **flusso
+  luminoso** (`Assets/shaders/flow.gdshader`, banda che scorre, oro commercio / rosso guerra),
+  **pulse idle su tutti gli insediamenti** (`_idle_marker`, non solo la capitale), **ombre di nubi**
+  che scorrono lente sulla terra (`_avvia_nubi`/`_soft_blob`). Verificato (`shot_worldmap`). Con questo
+  tutte le schermate principali (villaggio, decisione, Assedio, mappa) sono animate; 3 shader riusabili
+  (fire_flicker, heat_haze, flow). Restano marginali: vento-vertex, godrays caverna, transizioni viste.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
