@@ -205,6 +205,11 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   che scorrono lente sulla terra (`_avvia_nubi`/`_soft_blob`). Verificato (`shot_worldmap`). Con questo
   tutte le schermate principali (villaggio, decisione, Assedio, mappa) sono animate; 3 shader riusabili
   (fire_flicker, heat_haze, flow). Restano marginali: vento-vertex, godrays caverna, transizioni viste.
+- **2026-06-18 (8)** — **Animazione pass 5 + fix.** Corretto il Ken Burns della vista decisione: ora
+  anima `decision_bg` (lo sfondo dipinto VISIBILE) invece di `scene_bg` (coperto) — prima non si vedeva.
+  Aggiunti **godrays** nella caverna (fascio caldo che ondeggia, `main._crea_godray`, gated a `BG_CAVERNA`,
+  riposizionato a destra fuori dal pannello proponente). Vento-vertex saltato (già coperto dal dondolio
+  edifici). Verificato a schermo.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*

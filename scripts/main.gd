@@ -190,6 +190,7 @@ var atmosfera: CPUParticles2D = null
 var edificio_panel: CanvasLayer = null
 var siege_instance: CanvasLayer = null
 var _idle_decisione_tweens: Array[Tween] = []
+var _godray: Control = null
 
 
 func _ready() -> void:
@@ -287,14 +288,18 @@ func _avvia_idle_decisione() -> void:
 		pt.tween_property(proposer_portrait, "scale", Vector2(1.012, 1.012), 2.2)
 		pt.tween_property(proposer_portrait, "scale", Vector2.ONE, 2.2)
 		_idle_decisione_tweens.append(pt)
-	if scene_bg != null and is_instance_valid(scene_bg):
-		scene_bg.pivot_offset = scene_bg.size * 0.5
+	# Ken Burns sullo sfondo DIPINTO della decisione (decision_bg, quello visibile: copre
+	# scene_bg). In caverna aggiunge anche dei raggi di luce che ondeggiano (godrays).
+	if decision_bg != null and is_instance_valid(decision_bg):
+		decision_bg.pivot_offset = decision_bg.size * 0.5
 		var bt: Tween = create_tween()
 		bt.set_loops()
 		bt.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		bt.tween_property(scene_bg, "scale", Vector2(1.06, 1.06), 11.0)
-		bt.tween_property(scene_bg, "scale", Vector2(1.02, 1.02), 11.0)
+		bt.tween_property(decision_bg, "scale", Vector2(1.06, 1.06), 11.0)
+		bt.tween_property(decision_bg, "scale", Vector2(1.02, 1.02), 11.0)
 		_idle_decisione_tweens.append(bt)
+		if _scena_corrente() == BG_CAVERNA:
+			_crea_godray()
 
 
 func _ferma_idle_decisione() -> void:
@@ -304,8 +309,51 @@ func _ferma_idle_decisione() -> void:
 	_idle_decisione_tweens.clear()
 	if proposer_portrait != null and is_instance_valid(proposer_portrait):
 		proposer_portrait.scale = Vector2.ONE
-	if scene_bg != null and is_instance_valid(scene_bg):
-		scene_bg.scale = Vector2.ONE   # tabellone villaggio 1:1, niente zoom
+	if decision_bg != null and is_instance_valid(decision_bg):
+		decision_bg.scale = Vector2.ONE
+	if _godray != null and is_instance_valid(_godray):
+		_godray.queue_free()
+	_godray = null
+
+
+# Raggio di luce dall'alto (godray) nella caverna: fascio caldo che ondeggia piano,
+# come polvere illuminata che scende dall'apertura. Additivo, tenue. Niente asset.
+func _crea_godray() -> void:
+	var grad: Gradient = Gradient.new()
+	grad.colors = PackedColorArray([
+		Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.0)])
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	var tex: GradientTexture2D = GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0.0, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 128
+	tex.height = 8
+	var beam: TextureRect = TextureRect.new()
+	beam.texture = tex
+	beam.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	beam.stretch_mode = TextureRect.STRETCH_SCALE
+	beam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	beam.size = Vector2(vp.x * 0.24, vp.y * 1.25)
+	beam.pivot_offset = Vector2(beam.size.x * 0.5, 0.0)
+	# Spostato a destra: l'area caverna visibile (il centro è coperto dal pannello proponente).
+	beam.position = Vector2(vp.x * 0.80 - beam.size.x * 0.5, -vp.y * 0.12)
+	beam.rotation = deg_to_rad(13.0)
+	beam.modulate = Color(1.0, 0.92, 0.68, 0.0)
+	if decision_bg != null and is_instance_valid(decision_bg):
+		decision_bg.add_child(beam)
+	else:
+		$UI.add_child(beam)
+	_godray = beam
+	var t: Tween = beam.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(beam, "modulate:a", 0.16, 3.0)
+	t.parallel().tween_property(beam, "rotation", deg_to_rad(16.0), 3.0)
+	t.tween_property(beam, "modulate:a", 0.07, 3.0)
+	t.parallel().tween_property(beam, "rotation", deg_to_rad(11.0), 3.0)
 
 
 func _chiudi_decisione_morbida() -> void:
