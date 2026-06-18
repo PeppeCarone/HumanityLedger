@@ -189,6 +189,7 @@ var in_transizione_era: bool = false
 var atmosfera: CPUParticles2D = null
 var edificio_panel: CanvasLayer = null
 var siege_instance: CanvasLayer = null
+var _idle_decisione_tweens: Array[Tween] = []
 
 
 func _ready() -> void:
@@ -267,6 +268,44 @@ func _set_decision_visible(mostra: bool) -> void:
 	# Il richiamo appare solo se c'e' una memoria da citare per questa decisione.
 	if richiamo_label != null:
 		richiamo_label.visible = mostra and _richiamo_pendente != ""
+	if mostra:
+		_avvia_idle_decisione()
+	else:
+		_ferma_idle_decisione()
+
+
+# Vita nella vista decisione (procedurale, nessun asset): il ritratto del proponente
+# "respira" e lo sfondo dipinto fa un lentissimo zoom (Ken Burns). Si ferma e si azzera
+# tornando al villaggio (dove lo sfondo è il tabellone 1:1).
+func _avvia_idle_decisione() -> void:
+	_ferma_idle_decisione()
+	if proposer_portrait != null and is_instance_valid(proposer_portrait):
+		proposer_portrait.pivot_offset = proposer_portrait.size * Vector2(0.5, 1.0)
+		var pt: Tween = create_tween()
+		pt.set_loops()
+		pt.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		pt.tween_property(proposer_portrait, "scale", Vector2(1.012, 1.012), 2.2)
+		pt.tween_property(proposer_portrait, "scale", Vector2.ONE, 2.2)
+		_idle_decisione_tweens.append(pt)
+	if scene_bg != null and is_instance_valid(scene_bg):
+		scene_bg.pivot_offset = scene_bg.size * 0.5
+		var bt: Tween = create_tween()
+		bt.set_loops()
+		bt.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		bt.tween_property(scene_bg, "scale", Vector2(1.06, 1.06), 11.0)
+		bt.tween_property(scene_bg, "scale", Vector2(1.02, 1.02), 11.0)
+		_idle_decisione_tweens.append(bt)
+
+
+func _ferma_idle_decisione() -> void:
+	for t in _idle_decisione_tweens:
+		if t != null and t.is_valid():
+			t.kill()
+	_idle_decisione_tweens.clear()
+	if proposer_portrait != null and is_instance_valid(proposer_portrait):
+		proposer_portrait.scale = Vector2.ONE
+	if scene_bg != null and is_instance_valid(scene_bg):
+		scene_bg.scale = Vector2.ONE   # tabellone villaggio 1:1, niente zoom
 
 
 func _chiudi_decisione_morbida() -> void:
@@ -2451,6 +2490,7 @@ func _separatore_panel() -> ColorRect:
 
 func _reset_run() -> void:
 	GameState.reset_run()
+	_ferma_idle_decisione()
 	_rapporti_prec.clear()   # J8: nuova run, niente flash da valori vecchi
 	_show_narrative("")
 	in_transizione_era = false

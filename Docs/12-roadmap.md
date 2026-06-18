@@ -182,5 +182,13 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   scale-pop + shake); testo decisioni più arioso. Verificato a schermo. Resta opzionale lato utente:
   rigenerare `roccaforte` Era 2 painterly (prompt §P7 7c).
 
+- **2026-06-18 (4)** — **Animazione procedurale (pass 1) — "il gioco non è più statico".** Scelta:
+  animare in-engine senza nuovi asset (shader/tween) invece di sprite a frame. Fatto: edifici del
+  villaggio con **idle-sway** attorno alla base (ampiezza/durata random, desincronizzati,
+  `village_view._idle_edificio`); vista decisione con **ritratto che respira** + **Ken Burns** sullo
+  sfondo dipinto (`main._avvia/_ferma_idle_decisione`, azzerato nel villaggio per tenere il tabellone
+  1:1). Verificato a schermo. Prossimi increment: idle unità/boss nell'Assedio, shader (shimmer
+  acqua/calore, vento, godrays), parallax. Sfondi §P1 (caverna/accampamento/città-notte) integrati.
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*

@@ -453,7 +453,27 @@ func _posa_edificio(animato: bool, tipo_forzato: int = -1) -> TextureRect:
 		t.parallel().tween_property(tr, "scale", Vector2.ONE, 0.7) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_polvere(Vector2(px, py))
+		t.tween_callback(_idle_edificio.bind(tr))
+	else:
+		_idle_edificio(tr)
 	return tr
+
+
+# Respiro/oscillazione idle dell'edificio: lieve dondolio attorno alla base (pivot in
+# basso), come mosso dal vento. Ampiezza/durata random per desincronizzare gli edifici
+# → il villaggio sembra "vivo" senza nuovi asset. La rotazione non tocca scale/modulate
+# (usati da livello/prosperità/upgrade), quindi non confligge.
+func _idle_edificio(tr: TextureRect) -> void:
+	if not is_instance_valid(tr):
+		return
+	var amp: float = deg_to_rad(randf_range(0.5, 1.2))
+	var dur: float = randf_range(2.1, 3.3)
+	tr.rotation = randf_range(-amp, amp)   # fase iniziale random
+	var t: Tween = tr.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(tr, "rotation", amp, dur)
+	t.tween_property(tr, "rotation", -amp, dur)
 
 
 # Ombra di contatto ellittica sotto l'edificio: lo ancora al terreno.
