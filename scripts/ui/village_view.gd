@@ -378,6 +378,12 @@ func _fuoco_centrale() -> void:
 	tr.position = Vector2(float(slot["x"]) * s.x - dim.x * 0.5,
 		float(slot["y"]) * s.y - dim.y * 0.72)
 	tr.modulate = Color(1.0, 0.85, 0.55, 0.3)
+	# Flicker organico via shader (oltre al pulse di alpha): la luce del fuoco vibra.
+	var sh_path: String = "res://Assets/shaders/fire_flicker.gdshader"
+	if ResourceLoader.exists(sh_path):
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = load(sh_path)
+		tr.material = mat
 	_suolo.add_child(tr)
 	_suolo.move_child(tr, 0)
 	_edifici_nodi.append(tr)
@@ -386,6 +392,33 @@ func _fuoco_centrale() -> void:
 	t.set_trans(Tween.TRANS_SINE)
 	t.tween_property(tr, "modulate:a", 0.5, 1.4)
 	t.tween_property(tr, "modulate:a", 0.25, 1.4)
+	_avvia_braci(Vector2(float(slot["x"]) * s.x, float(slot["y"]) * s.y - 30.0))
+
+
+# Braci/scintille che salgono dal fuoco centrale: il cuore del villaggio è vivo.
+func _avvia_braci(pos: Vector2) -> void:
+	var p: CPUParticles2D = CPUParticles2D.new()
+	p.position = pos
+	p.amount = 16
+	p.lifetime = 1.7
+	p.preprocess = 1.7
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 12.0
+	p.direction = Vector2(0, -1)
+	p.spread = 24.0
+	p.gravity = Vector2(5, -44)
+	p.initial_velocity_min = 16.0
+	p.initial_velocity_max = 40.0
+	p.scale_amount_min = 0.05
+	p.scale_amount_max = 0.13
+	p.texture = _disc_texture()
+	var ramp: Gradient = Gradient.new()
+	ramp.colors = PackedColorArray([
+		Color(1.0, 0.78, 0.35, 0.95), Color(0.85, 0.3, 0.12, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 1.0])
+	p.color_ramp = ramp
+	_suolo.add_child(p)
+	_edifici_nodi.append(p)   # ripulito alla prossima sincronizza
 
 
 func _slots() -> Array:

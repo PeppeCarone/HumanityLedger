@@ -45,6 +45,19 @@ func _ready() -> void:
 	hp = hp_max
 
 
+# Idle-bob: il difensore "respira" oscillando di poco in verticale (avviato dall'arena
+# DOPO il posizionamento). Random per desincronizzare; non tocca scale (usata dal recoil).
+func avvia_idle() -> void:
+	var base_y: float = position.y
+	var amp: float = randf_range(1.5, 3.0)
+	var dur: float = randf_range(1.0, 1.6)
+	var t: Tween = create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(self, "position:y", base_y - amp, dur)
+	t.tween_property(self, "position:y", base_y, dur)
+
+
 func _process(delta: float) -> void:
 	if arena == null:
 		return

@@ -1031,6 +1031,7 @@ func _piazza(tipo: String, slot: int, pos: Vector2, corsia: int, alleato: bool =
 	_difensori.append(d)
 	_world.add_child(d)
 	d.global_position = pos
+	d.avvia_idle()
 	if slot >= 0:
 		_plot_occupato[slot] = true
 		if slot < _plot_markers.size() and is_instance_valid(_plot_markers[slot]):
@@ -1124,6 +1125,7 @@ func _schiera_alleati() -> void:
 		_difensori.append(d)
 		_world.add_child(d)
 		d.global_position = pos
+		d.avvia_idle()
 
 
 # Usato dallo shoot harness per popolare lo screenshot senza click reali.

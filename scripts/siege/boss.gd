@@ -39,6 +39,10 @@ func _process(delta: float) -> void:
 		return
 	_bt += delta
 
+	# Respiro: il bestione si solleva e si abbassa di poco (più marcato in furia).
+	var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
+	scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
+
 	# Furia a meta' HP: abilita' piu' frequenti, corpo che vira al rosso.
 	if not _in_furia and float(hp) <= float(hp_max) * furia_soglia:
 		_in_furia = true

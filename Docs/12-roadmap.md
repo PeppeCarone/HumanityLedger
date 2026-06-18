@@ -187,8 +187,13 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   villaggio con **idle-sway** attorno alla base (ampiezza/durata random, desincronizzati,
   `village_view._idle_edificio`); vista decisione con **ritratto che respira** + **Ken Burns** sullo
   sfondo dipinto (`main._avvia/_ferma_idle_decisione`, azzerato nel villaggio per tenere il tabellone
-  1:1). Verificato a schermo. Prossimi increment: idle unità/boss nell'Assedio, shader (shimmer
-  acqua/calore, vento, godrays), parallax. Sfondi §P1 (caverna/accampamento/città-notte) integrati.
+  1:1). Verificato a schermo. Sfondi §P1 (caverna/accampamento/città-notte) integrati.
+- **2026-06-18 (5)** — **Animazione procedurale (pass 2).** Assedio vivo: difensori con idle-bob
+  (`defender.avvia_idle`), **boss che respira** (`boss._process` scale breathing, più marcato in
+  furia). Villaggio: **braci** che salgono dal fuoco (`_avvia_braci`) + **shader di flicker** sul
+  bagliore (`Assets/shaders/fire_flicker.gdshader`). Verificato a schermo, nessun errore shader.
+  Restano (pass 3, opzionali): shimmer acqua/calore, vento-vertex su tetti/alberi, godrays caverna,
+  parallax/nubi, mappa-mondo animata.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
