@@ -184,6 +184,10 @@ func _ready() -> void:
 	_prepara_ondate()
 	AudioManager.play_sfx("era_transition")
 	_attivo = true
+	# Onboarding: spiega lo schieramento alla prima partita (resta finché non si agisce).
+	if _info_label != null:
+		_info_label.text = "Scegli un'unità qui sotto ↓ poi clicca una piazzola ✦ per schierarla."
+		_info_label.modulate = Color.WHITE
 
 
 func _process(delta: float) -> void:

@@ -38,15 +38,21 @@ func _costruisci() -> void:
 	box.anchor_right = 0.5
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = -300.0
-	box.offset_right = 300.0
-	box.offset_top = -250.0
-	box.offset_bottom = 250.0
+	box.offset_left = -360.0
+	box.offset_right = 360.0
+	box.offset_top = -270.0
+	box.offset_bottom = 270.0
 	dim.add_child(box)
 
+	var margine: MarginContainer = MarginContainer.new()
+	margine.add_theme_constant_override("margin_left", 28)
+	margine.add_theme_constant_override("margin_right", 28)
+	margine.add_theme_constant_override("margin_top", 16)
+	margine.add_theme_constant_override("margin_bottom", 16)
+	box.add_child(margine)
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 14)
-	box.add_child(vb)
+	margine.add_child(vb)
 
 	var titolo: Label = Label.new()
 	titolo.text = "Opzioni"

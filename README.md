@@ -15,6 +15,8 @@ Progetto universitario (esame di Sviluppo di Videogiochi) sviluppato da 2 person
 - **2 ere** in sequenza con transizione cinematografica: Era 1 Paleolitica → Era 2 Regno Mitico, collegate da una mappa-mondo dipinta che mostra il mondo trasformarsi.
 - **~40 decisioni** narrative (drag-and-drop) distribuite su **7 quest**, con **16 consiglieri** unici (8 per era), ciascuno con ritratto, archetipo e voce.
 - **8 stat** (Militare, Tesoro, Diplomazia, Scienza, Legge, Spionaggio, Popolo, Costruzione) + Popolazione, con **9 strategie politiche** e prerequisiti dinamici.
+- **L'Assedio** — boss fight tower-defense di fine era: le tue **stat diventano l'esercito**, difendi il villaggio su 3 corsie da ondate annunciate + un **boss** (mammut Era 1, drago Era 2) con abilità telegrafate. L'esito (immacolata/trionfo/fatica/sopraffatto) modula ricompense e un trofeo nel Ledger, senza game over.
+- **Menu Opzioni**: volumi musica/effetti, schermo intero, risoluzione, rigioca tutorial (persistiti).
 - **Catastrofi** ed eventi del mondo che interrompono il flusso (carestie, pesti, rivolte, vertici diplomatici…).
 - **Civiltà rivali** con rapporti dinamici (alleati/ostili) e ambasciatori.
 - **Trama mystery parallela** che alcune scelte sbloccano, con un sesto finale dedicato.
@@ -47,6 +49,7 @@ Apri `project.godot` con Godot 4.6 e premi **F5**. La scena iniziale è il menu 
 | Tasto | Azione |
 |---|---|
 | Mouse (drag-and-drop) | Trascina un'azione sul consigliere che la sostiene |
+| **V** | Apri/chiudi la vista gestionale del Villaggio |
 | **L** | Apri/chiudi il Ledger |
 | **ESC** | Pausa / chiudi pannello |
 | **INVIO** | Avanza la transizione tra ere |

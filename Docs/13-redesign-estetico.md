@@ -91,5 +91,12 @@ Assets/art/icons/   stats/<stat>.png · strategie/<id>.png · risorse.png
 - **2026-06-17** — Scritto il manifesto completo (UI Kit §P8 + Icone §P9 in `08`) e
   questa mappa di redesign + cablaggio. Prossimo: generare gli asset prioritari (1–2) e
   introdurre l'helper `UiStyle` con fallback. Nessun cablaggio fatto ancora.
+- **2026-06-18** — **UI-kit generato e cablato.** `Assets/art/ui/` contiene panel, button (5
+  stati), chip, 4 corner, divider, medallion(+glow), `bar_frame`/`bar_fill`, cartouche, parchment,
+  `ring_select`/`ring_upgrade`/`ring_focus`, `plot_pad`, `chip_{ally,hostile,gold}`. In uso via
+  `UiStyle` (pannelli/pulsanti/tooltip globali, medaglioni, anelli villaggio) e nell'Assedio
+  (`bar_frame`/`boss_bar` per le barre, `cartouche`/`wave_banner` per i banner). Icone stat (8) e
+  strategie (9) presenti in `art/stats|strategie`. Restano opzionali: §P9 medaglioni "unificati"
+  (icons/stats|strategie/...) e glifi tasti §9f — il set attuale è già coerente e finito.
 
 *File vivo. Prompt: `Docs/08-asset-prompts.md` (P0–P9).*

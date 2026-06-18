@@ -167,5 +167,13 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   + prompt completi del mancante (boss, Assedio Era 2, icone unità, nemici per-tipo, §P10 stendardo).
   **Resta:** asset (vedi `08`), Sprint 5 esame (opzioni/build/anti-debug). **Non committato.**
 
+- **2026-06-18 (2)** — **Asset integrati + Sprint 5 + commit/push.** Tutti gli asset Assedio/UI
+  generati dall'utente organizzati e cablati (boss Era1/2, set Era2, icone, cornici, stendardo;
+  orientamento difensori/nemici corretto). **Menu Opzioni** completo + persistenza, **pass anti-debug**
+  verificato, export preset rifinito (build `.exe` = passo manuale, templates non installati qui).
+  Polish da playtest: pannello Opzioni allargato, onboarding schieramento Assedio. Doc `08`/`10`/`12`/`13`
+  + README aggiornati. Rimosso `Consigliere.png`. **Committato e pushato su `upstream/main`** (PeppeCarone),
+  commit `1767b34`. Resta opzionale: Era 3, §P9 medaglioni unificati, build `.exe` (manuale).
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
