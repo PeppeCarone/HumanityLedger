@@ -566,7 +566,7 @@ func _setup_hud() -> void:
 	hud_container.add_child(spacer4)
 	var tasti: Label = Label.new()
 	tasti.name = "Tasti"
-	tasti.text = "Clicca un edificio per migliorarlo\nL  Ledger      ESC  Pausa"
+	tasti.text = "Clicca un edificio per migliorarlo\nV  Villaggio      L  Ledger      ESC  Pausa"
 	tasti.add_theme_font_size_override("font_size", 14)
 	tasti.modulate = Color(1, 1, 1, 0.45)
 	hud_container.add_child(tasti)
@@ -633,6 +633,7 @@ func _aggiorna_sfondo_era() -> void:
 		village.sincronizza(GameState.era_corrente, n)
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
 		_refresh_potenziabili()
+		_refresh_bandiere_alleati()
 
 
 func _aggiorna_scena_decisione() -> void:
@@ -903,12 +904,62 @@ func _on_assedio_concluso(esito: String, era: int) -> void:
 	if siege_instance != null and is_instance_valid(siege_instance):
 		siege_instance.queue_free()
 	siege_instance = null
-	# Trionfo: piccolo trofeo (ricompense piene in Fase F). Sopraffatto: si avanza
-	# comunque (no game over D024); conseguenze in Fase F.
-	if esito == "trionfo":
-		GameState.modifica_risorse(15)
+	_applica_esito_assedio(esito)
 	SaveSystem.save_run()
 	_avvia_prossima_quest()
+
+
+# Ricompense / conseguenze dell'Assedio (Fase F). No game over (D024): anche "sopraffatto"
+# avanza. La vittoria sblocca il "Trofeo dell'Assedio" nel Ledger; l'immacolata una lore
+# rara; la sconfitta una lore cupa + un contraccolpo da ricostruire (mai azzera i progressi).
+func _applica_esito_assedio(esito: String) -> void:
+	var nota: String = ""
+	match esito:
+		"immacolata":
+			GameState.modifica_risorse(28)
+			GameState.modifica_stat("costruzione", 5)
+			GameState.modifica_stat("popolo", 4)
+			Ledger.unlock_lore("lore_trofeo_assedio")
+			Ledger.unlock_lore("lore_assedio_immacolato")
+			nota = "Difesa immacolata: il popolo esce dall'assedio più forte di prima.\n+28 Risorse · +5 Costruzione · +4 Popolo"
+		"trionfo":
+			GameState.modifica_risorse(16)
+			GameState.modifica_stat("costruzione", 3)
+			Ledger.unlock_lore("lore_trofeo_assedio")
+			nota = "Il villaggio ha retto.\n+16 Risorse · +3 Costruzione"
+		"fatica":
+			GameState.modifica_risorse(8)
+			GameState.modifica_popolazione(-4)
+			Ledger.unlock_lore("lore_trofeo_assedio")
+			nota = "Vittoria a caro prezzo.\n+8 Risorse · −4 Popolazione"
+		"sopraffatto":
+			GameState.modifica_popolazione(-8)
+			Ledger.unlock_lore("lore_assedio_sopraffatto")
+			var crollato: String = _danneggia_edificio_assedio()
+			nota = "Le mura hanno ceduto: −8 Popolazione."
+			if crollato != "":
+				nota += "\n%s crolla di un livello: andrà ricostruito." % crollato
+	if nota != "":
+		_toast_traguardo("L'Assedio" if esito != "sopraffatto" else "Dopo l'Assedio", nota)
+
+
+# Sciagura dell'Assedio sopraffatto: abbatte di un livello un edificio già migliorato
+# (mai sotto 1). Riusa la logica delle catastrofi. Ritorna il nome dell'edificio o "".
+func _danneggia_edificio_assedio() -> String:
+	if village == null:
+		return ""
+	var era: int = GameState.era_corrente
+	var candidati: Array = []
+	for s in range(village.slot_count()):
+		if GameState.livello_edificio(era, s) > 1:
+			candidati.append(s)
+	if candidati.is_empty():
+		return ""
+	var slot: int = candidati[randi() % candidati.size()]
+	var tipo: int = village.tipo_at(slot)
+	GameState.danneggia_edificio(era, slot)
+	village.danneggia(slot)
+	return EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Un edificio")
 
 
 func _show_ending() -> void:
@@ -1457,6 +1508,18 @@ func _refresh_rapporti() -> void:
 			tw.tween_property(badge, "modulate", Color.WHITE, 0.55)
 	rapporti_label.text = "Rapporti:" if qualcuno else ""
 	_rapporti_prec = GameState.rapporti_civilta.duplicate()
+	_refresh_bandiere_alleati()
+
+
+# J15 — Pianta uno stendardo sul villaggio per ogni civilta' alleata (rapporto >= soglia).
+func _refresh_bandiere_alleati() -> void:
+	if village == null:
+		return
+	var ids: Array = []
+	for civ_id in GameState.rapporti_civilta.keys():
+		if int(GameState.rapporti_civilta[civ_id]) >= SOGLIA_RAPPORTO:
+			ids.append(civ_id)
+	village.mostra_bandiere_alleati(ids)
 
 
 func _refresh_effetti_duraturi() -> void:
@@ -1563,6 +1626,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	match event.keycode:
 		KEY_L: _toggle_ledger()
+		KEY_V: _toggle_villaggio()
 		KEY_ENTER, KEY_KP_ENTER:
 			if in_transizione_era:
 				_entra_era2()
@@ -1688,6 +1752,10 @@ func _apri_pannello_edificio(slot: int) -> void:
 	titolo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(titolo)
 
+	var thumb_tex: Texture2D = _tex_edificio(era, tipo)
+	if thumb_tex != null:
+		vb.add_child(_thumb_edificio(thumb_tex))
+
 	var stat_lbl: Label = Label.new()
 	stat_lbl.text = "Sviluppa: %s" % STAT_LABELS.get(stat, stat)
 	stat_lbl.add_theme_font_size_override("font_size", 17)
@@ -1720,20 +1788,10 @@ func _apri_pannello_edificio(slot: int) -> void:
 		info.add_theme_color_override("font_color", Color(0.9, 0.86, 0.74))
 		info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(info)
-		var costo_lbl: Label = Label.new()
-		costo_lbl.text = "Costo: %d Risorse  (hai %d)" % [costo, GameState.risorse]
-		costo_lbl.add_theme_font_size_override("font_size", 16)
-		costo_lbl.add_theme_color_override("font_color",
-			Color(0.6, 1, 0.6) if ok_risorse else Color(1, 0.6, 0.55))
-		costo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		vb.add_child(costo_lbl)
-		var gate_lbl: Label = Label.new()
-		gate_lbl.text = "Richiede Costruzione ≥ %d  (hai %d)" % [gate, GameState.get_stat("costruzione")]
-		gate_lbl.add_theme_font_size_override("font_size", 16)
-		gate_lbl.add_theme_color_override("font_color",
-			Color(0.6, 1, 0.6) if ok_gate else Color(1, 0.6, 0.55))
-		gate_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		vb.add_child(gate_lbl)
+		vb.add_child(_riga_costo(_icona_risorse(), "Costo:",
+			"%d Risorse  (hai %d)" % [costo, GameState.risorse], ok_risorse))
+		vb.add_child(_riga_costo(_icona_stat_tex("costruzione"), "Costruzione:",
+			"≥ %d  (hai %d)" % [gate, GameState.get_stat("costruzione")], ok_gate))
 		var migliora_btn: Button = Button.new()
 		migliora_btn.text = "Migliora"
 		migliora_btn.disabled = not (ok_risorse and ok_gate)
@@ -1750,7 +1808,7 @@ func _apri_pannello_edificio(slot: int) -> void:
 	_anima_apertura_pannello()
 
 
-func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) -> void:
+func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int, da_lista: bool = false) -> void:
 	if GameState.risorse < costo:
 		return
 	GameState.modifica_risorse(-costo)
@@ -1761,6 +1819,219 @@ func _esegui_upgrade(era: int, slot: int, stat: String, costo: int, bonus: int) 
 	_refresh_potenziabili()
 	_check_traguardi_villaggio()
 	_chiudi_pannello_edificio()
+	# Dalla vista gestionale: si resta nel pannello (ricaricato coi nuovi valori).
+	if da_lista:
+		_apri_pannello_villaggio()
+
+
+# --- Vista villaggio gestionale (doc 10 §4.2) -------------------------------
+# Pannello d'insieme: elenco di tutti gli edifici con livello, stat sviluppata e
+# Risorse prodotte/turno, con upgrade da un unico posto. Tasto V (o click-out/ESC).
+
+func _toggle_villaggio() -> void:
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		_chiudi_pannello_edificio()
+		return
+	if processing_drop or in_transizione_era:
+		return
+	if $UI/ConsigliereProposer.visible:
+		return
+	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
+		return
+	_apri_pannello_villaggio()
+
+
+func _apri_pannello_villaggio() -> void:
+	if village == null:
+		return
+	var era: int = GameState.era_corrente
+	edificio_panel = CanvasLayer.new()
+	edificio_panel.layer = 12
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.02, 0.015, 0.03, 0.72)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_chiudi_pannello_edificio())
+	edificio_panel.add_child(dim)
+
+	var box: PanelContainer = PanelContainer.new()
+	box.add_theme_stylebox_override("panel", _stile_pannello())
+	box.mouse_filter = Control.MOUSE_FILTER_STOP
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 0.5
+	box.anchor_bottom = 0.5
+	box.offset_left = -300.0
+	box.offset_right = 300.0
+	box.offset_top = -250.0
+	box.offset_bottom = 250.0
+	edificio_panel.add_child(box)
+
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	box.add_child(vb)
+
+	vb.add_child(_lbl_titolo("Il Villaggio"))
+	var prod: int = _produzione_per_turno()
+	vb.add_child(_lbl("Risorse %d    ·    Produzione +%d/turno    ·    Popolazione %d" % [
+		GameState.risorse, prod, GameState.popolazione], 15, Color(0.86, 0.80, 0.64)))
+	vb.add_child(_separatore_panel())
+
+	if village.slot_count() == 0:
+		vb.add_child(_lbl("Nessun edificio ancora.\nTocca il segno + a terra per costruire il primo.",
+			16, Color(0.78, 0.72, 0.6)))
+	else:
+		var scroll: ScrollContainer = ScrollContainer.new()
+		scroll.custom_minimum_size = Vector2(0, 300)
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		vb.add_child(scroll)
+		var lista: VBoxContainer = VBoxContainer.new()
+		lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lista.add_theme_constant_override("separation", 6)
+		scroll.add_child(lista)
+		for s in range(village.slot_count()):
+			lista.add_child(_riga_edificio(era, s))
+
+	var liberi: int = village.slot_max() - village.slot_count()
+	if liberi > 0:
+		vb.add_child(_separatore_panel())
+		vb.add_child(_lbl("%d lotto/i libero/i — tocca il segno + a terra per costruire." % liberi,
+			14, Color(0.74, 0.68, 0.56)))
+
+	var chiudi: Button = Button.new()
+	chiudi.text = "Chiudi"
+	chiudi.pressed.connect(_chiudi_pannello_edificio)
+	vb.add_child(chiudi)
+
+	add_child(edificio_panel)
+	_anima_apertura_pannello()
+
+
+# Una riga della vista gestionale: icona stat + nome/stelle + dettaglio produzione,
+# e un pulsante Migliora (o "Max") allineato a destra.
+func _riga_edificio(era: int, slot: int) -> Control:
+	var tipo: int = village.tipo_at(slot)
+	var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
+	var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
+	var lv: int = GameState.livello_edificio(era, slot)
+	var eco: bool = bool(EDIFICIO_ECONOMICO.get(era, {}).get(tipo, false))
+	var contributo: int = lv * (2 if eco else 1)
+
+	var riga: PanelContainer = PanelContainer.new()
+	riga.add_theme_stylebox_override("panel", UiStyle.chip_stylebox())
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 10)
+	riga.add_child(hb)
+
+	var ic: TextureRect = TextureRect.new()
+	ic.custom_minimum_size = Vector2(30, 30)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ict: Texture2D = _icona_stat_tex(stat)
+	if ict != null:
+		ic.texture = ict
+	hb.add_child(ic)
+
+	var col: VBoxContainer = VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.add_theme_constant_override("separation", 1)
+	hb.add_child(col)
+	var titolo: Label = Label.new()
+	titolo.text = nome + ("  " + "★".repeat(lv - 1) if lv > 1 else "")
+	titolo.add_theme_font_size_override("font_size", 18)
+	titolo.add_theme_color_override("font_color", Color(0.95, 0.88, 0.66))
+	col.add_child(titolo)
+	var sub: Label = Label.new()
+	sub.text = "Sviluppa %s  ·  +%d Risorse/turno%s" % [
+		STAT_LABELS.get(stat, stat), contributo, "  ·  Risorse ×2" if eco else ""]
+	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_color_override("font_color", Color(0.78, 0.72, 0.6))
+	col.add_child(sub)
+
+	if lv >= GameState.EDIFICIO_LIVELLO_MAX:
+		var maxl: Label = Label.new()
+		maxl.text = "Max"
+		maxl.add_theme_font_size_override("font_size", 15)
+		maxl.add_theme_color_override("font_color", Color(0.7, 0.66, 0.55))
+		maxl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb.add_child(maxl)
+	else:
+		var nx: int = lv + 1
+		var costo: int = int(UPGRADE_COSTO[nx])
+		var gate: int = int(UPGRADE_GATE_COSTR[nx])
+		var bonus: int = int(UPGRADE_BONUS[nx])
+		var ok: bool = GameState.risorse >= costo and GameState.get_stat("costruzione") >= gate
+		var b: Button = Button.new()
+		b.text = "Migliora (%d)" % costo
+		b.disabled = not ok
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		b.tooltip_text = "Livello %d → %d:  +%d %s\nCosto %d Risorse · Costruzione ≥ %d (hai %d)" % [
+			lv, nx, bonus, STAT_LABELS.get(stat, stat), costo, gate, GameState.get_stat("costruzione")]
+		var era_c: int = era
+		var slot_c: int = slot
+		var stat_c: String = stat
+		var costo_c: int = costo
+		var bonus_c: int = bonus
+		b.pressed.connect(func() -> void:
+			_esegui_upgrade(era_c, slot_c, stat_c, costo_c, bonus_c, true))
+		hb.add_child(b)
+	return riga
+
+
+func _icona_stat_tex(stat: String) -> Texture2D:
+	var p: String = STAT_ICON_DIR + stat + ".png"
+	return load(p) if ResourceLoader.exists(p) else null
+
+
+# Sprite base dell'edificio (per le thumbnail nei modali build/upgrade).
+func _tex_edificio(era: int, tipo: int) -> Texture2D:
+	var p: String = "res://Assets/art/villaggio/era%d/%02d.png" % [era, tipo]
+	return load(p) if ResourceLoader.exists(p) else null
+
+
+# Icona della valuta "Risorse": dedicata se esiste, altrimenti proxy Costruzione.
+func _icona_risorse() -> Texture2D:
+	var p: String = "res://Assets/art/icons/risorse.png"
+	if ResourceLoader.exists(p):
+		return load(p)
+	return _icona_stat_tex("costruzione")
+
+
+# Thumbnail centrata dell'edificio per la testa dei modali.
+func _thumb_edificio(tex: Texture2D) -> TextureRect:
+	var thumb: TextureRect = TextureRect.new()
+	thumb.texture = tex
+	thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	thumb.custom_minimum_size = Vector2(0, 92)
+	thumb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return thumb
+
+
+# Riga di costo allineata: icona + "Etichetta valore", verde se soddisfatto.
+func _riga_costo(icon: Texture2D, etichetta: String, valore: String, ok: bool) -> HBoxContainer:
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 8)
+	if icon != null:
+		var ic: TextureRect = TextureRect.new()
+		ic.texture = icon
+		ic.custom_minimum_size = Vector2(24, 24)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb.add_child(ic)
+	var l: Label = Label.new()
+	l.text = "%s  %s" % [etichetta, valore]
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", Color(0.62, 0.95, 0.62) if ok else Color(1.0, 0.6, 0.55))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hb.add_child(l)
+	return hb
 
 
 func _anima_apertura_pannello() -> void:
@@ -2016,9 +2287,9 @@ func _apri_pannello_costruzione(_slot: int) -> void:
 	var ok: bool = ok_risorse and ok_gate
 	var vb: VBoxContainer = _nuovo_pannello_modale()
 	vb.add_child(_lbl_titolo("Cosa costruire?"))
-	vb.add_child(_lbl("Costo %d Risorse (hai %d) · Costruzione ≥ %d (hai %d)" % [
-		BUILD_COSTO, GameState.risorse, BUILD_GATE_COSTR, GameState.get_stat("costruzione")],
-		15, Color(0.62, 0.95, 0.62) if ok else Color(1.0, 0.7, 0.5)))
+	vb.add_child(_riga_costo(_icona_risorse(), "Costo:",
+		"%d Risorse (hai %d)  ·  Costruzione ≥ %d (hai %d)" % [
+		BUILD_COSTO, GameState.risorse, BUILD_GATE_COSTR, GameState.get_stat("costruzione")], ok))
 	vb.add_child(_separatore_panel())
 	var tipi: Array = nomi.keys()
 	tipi.sort()
@@ -2030,6 +2301,11 @@ func _apri_pannello_costruzione(_slot: int) -> void:
 		var b: Button = Button.new()
 		b.text = "%s   +%d %s%s" % [nome, BUILD_BONUS, STAT_LABELS.get(stat, stat), extra]
 		b.disabled = not ok
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var bt: Texture2D = _tex_edificio(era, int(tipo))
+		if bt != null:
+			b.icon = bt
+			b.add_theme_constant_override("icon_max_width", 38)
 		var tipo_c: int = int(tipo)
 		var stat_c: String = stat
 		b.pressed.connect(func() -> void: _esegui_build(tipo_c, stat_c))

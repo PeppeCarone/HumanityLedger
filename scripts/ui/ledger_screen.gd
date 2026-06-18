@@ -111,6 +111,18 @@ const LORE_REGISTRY: Dictionary = {
 		"titolo": "La Scelta Finale",
 		"testo": "L'ultima decisione dello spirito. Ogni era confluisce qui, e il Ledger registra ciò che siamo diventati."
 	},
+	"lore_trofeo_assedio": {
+		"titolo": "Il Trofeo dell'Assedio",
+		"testo": "La bestia cadde sotto le mura. Il popolo seppellì le sue zanne ai piedi del fuoco: finché restano lì, nessuno dimentica la notte in cui il villaggio tenne."
+	},
+	"lore_assedio_immacolato": {
+		"titolo": "La Difesa Immacolata",
+		"testo": "Non una pietra cadde, non un nome si perse. Si racconta che lo spirito quella notte non chiuse occhio, e che il nemico lo sapeva."
+	},
+	"lore_assedio_sopraffatto": {
+		"titolo": "La Notte in cui le Mura Cedettero",
+		"testo": "Il villaggio fu travolto, ma lo spirito non muore con la pietra. Dalle ceneri il popolo ricostruì, più povero e più sveglio: certe lezioni si pagano una volta sola."
+	},
 	"lore_peste": {
 		"titolo": "La Peste",
 		"testo": "Il morbo salì dalla porta del fiume e raddoppiò ogni quattro giorni. Il regno imparò a combattere un nemico senza bandiera."

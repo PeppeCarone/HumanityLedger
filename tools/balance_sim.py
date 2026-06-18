@@ -178,6 +178,51 @@ def simulate(target_stats, target_key, want_mystery):
     return state, notes
 
 
+def assedio_check(stats, pop, era, ostili=0):
+    """Euristico di bilanciamento de L'Assedio (mirror di siege.gd._prepara_ondate +
+    _crea_unita + configura). NON e' un game over (D024): stima solo se una difesa
+    tipica copre la minaccia. ratio>=1.4 comodo · >=0.9 sfida · <0.9 duro (ma vincibile).
+    L'efficienza di fuoco (EFF) sconta range/targeting/sovrapposizione del TD."""
+    EFF = 0.18
+    ef = 1.0 + 0.18 * (era - 1)
+    of = 1.0 + 0.12 * ostili
+    waves = [(4 + ostili, 18), (6 + ostili, 26), (4 + ostili, 50)]
+    bounties = [2, 3, 4]
+    enemy_hp = sum(n * round(hp * ef * of) for n, hp in waves)
+    boss_hp = round((300 + 45 * ostili) * ef)
+    threat = enemy_hp + boss_hp
+    village_hp = 70 + stats["costruzione"] + pop // 4
+    budget = 12 + stats["tesoro"] // 22 + stats["popolo"] // 18
+    bounty = sum(n * b for (n, _), b in zip(waves, bounties)) + 14
+    n_units = min(9, (budget + bounty) // 5)
+    dps_tir = (6 + stats["militare"] // 9) / 0.8
+    dps_tot = (6 + (stats["scienza"] + stats["spionaggio"]) // 14) / 1.5
+    avg_dps = (dps_tir + dps_tot) / 2.0
+    duration = 42.0 * ef
+    capacity = n_units * avg_dps * duration * EFF + village_hp
+    ratio = capacity / threat
+    verdict = "comodo" if ratio >= 1.4 else ("sfida" if ratio >= 0.9 else "duro")
+    return dict(threat=threat, boss_hp=boss_hp, village_hp=village_hp,
+                n_units=n_units, ratio=ratio, verdict=verdict)
+
+
+def assedio_report():
+    print("\n=== ASSEDIO (boss fight, euristico — no game over) ===")
+    profili = {
+        "fine-era tipica": ({"militare": 50, "tesoro": 50, "diplomazia": 45, "scienza": 50,
+                             "legge": 45, "spionaggio": 45, "popolo": 50, "costruzione": 55}, 45),
+        "militare trascurato": ({"militare": 25, "tesoro": 45, "diplomazia": 40, "scienza": 35,
+                                 "legge": 40, "spionaggio": 30, "popolo": 45, "costruzione": 40}, 40),
+    }
+    for nome, (stats, pop) in profili.items():
+        for era in (1, 2):
+            r = assedio_check(stats, pop, era)
+            print(f"  [{r['verdict']:6s}] {nome:20s} era{era}: "
+                  f"HP villaggio={r['village_hp']} · unità~{r['n_units']} · "
+                  f"minaccia={r['threat']} (boss {r['boss_hp']}) · ratio={r['ratio']:.2f}")
+    print("  (atteso: tipica = sfida/comodo · trascurato = sfida/duro, sempre vincibile)")
+
+
 def main():
     print("=== BALANCE CHECK ===  (start stat=30, pop=40)\n")
     for name, (cond, key) in FINALI.items():
@@ -194,6 +239,7 @@ def main():
         for n in notes:
             print("        " + n)
     print("\n(le simulazioni sono greedy verso ciascun finale; FAIL = finale non raggiungibile)")
+    assedio_report()
 
 
 if __name__ == "__main__":

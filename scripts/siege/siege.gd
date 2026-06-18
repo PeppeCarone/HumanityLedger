@@ -12,7 +12,27 @@ class_name SiegeArena
 # Fase B = solo codice, niente boss (Fase C) e ondate complete data-driven (Fase D).
 # Tutto disegnato via _draw / Control: nessun asset richiesto.
 
-signal assedio_concluso(esito: String)   # "trionfo" | "sopraffatto"
+signal assedio_concluso(esito: String)   # immacolata | trionfo | fatica | sopraffatto
+
+# Schermata d'esito per ciascun risultato (Fase F). Vinto = tutto tranne "sopraffatto".
+const ESITO_INFO: Dictionary = {
+	"immacolata": {
+		"titolo": "DIFESA IMMACOLATA",
+		"testo": "Non una pietra è caduta.\nIl nemico si è infranto sulle mura intatte.",
+		"colore": Color(1.0, 0.9, 0.55)},
+	"trionfo": {
+		"titolo": "TRIONFO",
+		"testo": "Il villaggio resiste all'assalto.\nLo spirito può attraversare l'era.",
+		"colore": Color(0.95, 0.84, 0.5)},
+	"fatica": {
+		"titolo": "RESISTENZA A FATICA",
+		"testo": "Le mura reggono, ma a caro prezzo.\nSi prosegue, provati.",
+		"colore": Color(0.9, 0.78, 0.5)},
+	"sopraffatto": {
+		"titolo": "VILLAGGIO SOPRAFFATTO",
+		"testo": "Le difese cedono, ma lo spirito sopravvive.\nSi attraversa l'era, feriti.",
+		"colore": Color(0.9, 0.5, 0.45)},
+}
 
 const VILLAGGIO_X: float = 300.0
 const SPAWN_X: float = 1830.0
@@ -71,7 +91,13 @@ var _villaggio_label: Label = null
 var _tex_cache: Dictionary = {}
 var _enemies: Array[SiegeEnemy] = []
 var _blocchi: Array[SiegeDefender] = []
+var _difensori: Array[SiegeDefender] = []   # tutti i difensori (per le AoE/stun del boss)
+var _boss: SiegeBoss = null
 var _spawn_queue: Array = []          # [{t, hp, vel, bounty, danno, corsia}]
+var _ondate: Array = []               # ondate dell'era: [{nome, spawns:[spec]}] (Fase D)
+var _ondata_idx: int = -1
+var _in_pausa: bool = false
+var _pausa_fino: float = 0.0
 var _plot_pos: Array[Vector2] = []
 var _plot_corsia: Array[int] = []
 var _plot_markers: Array[Control] = []
@@ -87,6 +113,10 @@ var _risorse_label: Label = null
 var _info_label: Label = null
 var _ondata_label: Label = null
 var _diplo_label: Label = null
+var _boss_box: Control = null
+var _boss_fill: ColorRect = null
+var _boss_maschera: ColorRect = null   # con boss_bar.png: copre da destra gli HP persi
+var _boss_label: Label = null
 
 
 # Chiamare PRIMA di add_child: alimenta la difesa dalle statistiche della run
@@ -140,6 +170,11 @@ func _fx_tex(nome: String) -> Texture2D:
 	return _carica_tex(SIEGE_DIR + "fx/%s.png" % nome)
 
 
+# Cornice UI dell'Assedio condivisa: Assets/art/siege/ui/<nome>.png (boss_bar, wave_banner).
+func _siege_ui_tex(nome: String) -> Texture2D:
+	return _carica_tex(SIEGE_DIR + "ui/%s.png" % nome)
+
+
 func _ready() -> void:
 	layer = 20
 	if _skin.is_empty():
@@ -155,13 +190,29 @@ func _process(delta: float) -> void:
 	if not _attivo or _concluso:
 		return
 	_tempo += delta
+	# Pausa di rischieramento tra le ondate: alla scadenza parte la successiva.
+	if _in_pausa:
+		if _tempo >= _pausa_fino:
+			_lancia_prossima_ondata()
+		return
 	while not _spawn_queue.is_empty() and _tempo >= float(_spawn_queue[0]["t"]):
 		var d: Dictionary = _spawn_queue.pop_front()
-		_spawn_enemy(d)
+		if bool(d.get("boss", false)):
+			_spawn_boss(d)
+		else:
+			_spawn_enemy(d)
 	_pulisci_enemies()
 	_aggiorna_ondata_label()
+	if _boss != null and is_instance_valid(_boss):
+		_aggiorna_boss_hp()
+	# Ondata ripulita: o vittoria (era l'ultima) o pausa prima della prossima.
 	if _spawn_queue.is_empty() and _enemies.is_empty():
-		_termina("trionfo")
+		if _ondata_idx + 1 >= _ondate.size():
+			_termina(_esito_vittoria())
+		else:
+			_in_pausa = true
+			_pausa_fino = _tempo + 3.5
+			_mostra_banner("Rischiera le difese…")
 
 
 # --- Costruzione scena (placeholder) ---------------------------------------
@@ -425,6 +476,7 @@ func _crea_hud() -> void:
 	_hp_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
 	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	track.add_child(_hp_fill)
+	_decora_barra(track)
 
 	# Risorse + ondata (in alto a destra).
 	_risorse_label = Label.new()
@@ -555,22 +607,77 @@ func _card_style(selezionata: bool, accessibile: bool) -> StyleBoxFlat:
 
 # --- Ondate / nemici --------------------------------------------------------
 
+# Nomi-ondata per era (telegrafia/intel). L'ultima è sempre il boss.
+const NOMI_ONDATA: Dictionary = {
+	1: ["Il branco si avvicina", "La mandria infuria", "Le grandi bestie scendono"],
+	2: ["I predoni all'orizzonte", "I non-morti avanzano", "I colossi di pietra"],
+}
+
+# Fase D: ondate crescenti data-driven (tabella per era), ritmo "wave burst" con pause di
+# rischieramento, scalate da era e civiltà ostili. L'ultima ondata è il BOSS.
 func _prepara_ondate() -> void:
-	# Fase B: 2 raffiche distribuite sulle 3 corsie, rinforzate dalle civiltà ostili
-	# (scaling completo data-driven in Fase D). Ritmo "wave burst".
-	var fattore_hp: float = 1.0 + 0.12 * float(_ostili_civ.size())
+	_ondate.clear()
+	_ondata_idx = -1
+	var ef: float = 1.0 + 0.18 * float(era - 1)            # forza per era
+	var of: float = 1.0 + 0.12 * float(_ostili_civ.size()) # rinforzo dei nemici ostili
 	var extra: int = _ostili_civ.size()
-	var corsia: int = 0
-	var t: float = 1.6
-	for i in range(5 + extra):
-		_spawn_queue.append({"t": t, "hp": int(round(18 * fattore_hp)), "vel": 70.0, "bounty": 2, "danno": 8, "corsia": corsia})
-		corsia = (corsia + 1) % LANE_Y.size()
-		t += 1.0
-	t += 3.5   # respiro tra le ondate
-	for i in range(6 + extra):
-		_spawn_queue.append({"t": t, "hp": int(round(28 * fattore_hp)), "vel": 82.0, "bounty": 3, "danno": 10, "corsia": corsia})
-		corsia = (corsia + 1) % LANE_Y.size()
-		t += 0.95
+	var nomi: Array = NOMI_ONDATA.get(era, NOMI_ONDATA[1])
+	# 3 ondate "normali" a difficoltà crescente + boss.
+	var base: Array = [
+		{"n": 4 + extra, "hp": 18, "vel": 70.0, "danno": 8,  "bounty": 2, "gap": 1.0},
+		{"n": 6 + extra, "hp": 26, "vel": 82.0, "danno": 9,  "bounty": 3, "gap": 0.85},
+		{"n": 4 + extra, "hp": 50, "vel": 60.0, "danno": 14, "bounty": 4, "gap": 1.3},
+	]
+	for i in range(base.size()):
+		var b: Dictionary = base[i]
+		var spawns: Array = []
+		for k in range(int(b["n"])):
+			spawns.append({
+				"hp": int(round(float(b["hp"]) * ef * of)),
+				"vel": float(b["vel"]),
+				"danno": int(round(float(b["danno"]) * ef)),
+				"bounty": int(b["bounty"]),
+				"corsia": k % LANE_Y.size(),
+				"gap": float(b["gap"]),
+			})
+		_ondate.append({"nome": str(nomi[i % nomi.size()]), "spawns": spawns})
+	# Ondata finale: il BOSS dell'era.
+	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
+	var boss_hp: int = int(round((300 + 45 * float(extra)) * ef))
+	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
+		{"boss": true, "hp": boss_hp, "vel": 34.0, "bounty": 14, "danno": 45,
+			"corsia": 1, "nome": nome_boss, "gap": 0.0}]})
+	# Avvio: breve attesa, poi la prima ondata (col suo banner).
+	_in_pausa = true
+	_pausa_fino = _tempo + 1.4
+
+
+# Lancia l'ondata successiva: riempie la coda di spawn e annuncia il banner.
+func _lancia_prossima_ondata() -> void:
+	_in_pausa = false
+	_ondata_idx += 1
+	if _ondata_idx >= _ondate.size():
+		return
+	var w: Dictionary = _ondate[_ondata_idx]
+	var t: float = _tempo + 0.7
+	for s in w["spawns"]:
+		var d: Dictionary = (s as Dictionary).duplicate()
+		d["t"] = t
+		_spawn_queue.append(d)
+		t += float(s.get("gap", 0.9))
+	_mostra_banner(_testo_banner(w))
+	if bool(w.get("boss", false)):
+		AudioManager.play_sfx("era_transition")
+
+
+# Testo del banner d'ondata; con Spionaggio alto rivela la composizione (intel).
+func _testo_banner(w: Dictionary) -> String:
+	var n: int = _ondata_idx + 1
+	var tot: int = _ondate.size()
+	var testo: String = "Ondata %d / %d — %s" % [n, tot, str(w["nome"])]
+	if not bool(w.get("boss", false)) and GameState.get_stat("spionaggio") >= 45:
+		testo += "\n(Spionaggio: %d nemici in arrivo)" % (w["spawns"] as Array).size()
+	return testo
 
 
 func _spawn_enemy(d: Dictionary) -> void:
@@ -596,6 +703,8 @@ func _on_enemy_morto(e: SiegeEnemy, bounty: int) -> void:
 	_enemies.erase(e)
 	risorse += bounty
 	_aggiorna_risorse()
+	if is_instance_valid(e):
+		_morte_poof(e.global_position, e.colore)
 
 
 func _on_enemy_arrivato(e: SiegeEnemy, danno: int) -> void:
@@ -603,6 +712,7 @@ func _on_enemy_arrivato(e: SiegeEnemy, danno: int) -> void:
 	hp_villaggio = maxi(0, hp_villaggio - danno)
 	_aggiorna_hp()
 	_scuoti()
+	_flash_danno()
 	AudioManager.play_sfx("stat_down")
 	if hp_villaggio <= 0:
 		_termina("sopraffatto")
@@ -612,6 +722,153 @@ func _pulisci_enemies() -> void:
 	for i in range(_enemies.size() - 1, -1, -1):
 		if not is_instance_valid(_enemies[i]):
 			_enemies.remove_at(i)
+
+
+# --- Boss (Fase C) ----------------------------------------------------------
+
+func _spawn_boss(d: Dictionary) -> void:
+	var b: SiegeBoss = SiegeBoss.new()
+	b.hp_max = int(d.get("hp", 320))
+	b.hp = b.hp_max
+	b.velocita = float(d.get("vel", 34.0))
+	b.bounty = int(d.get("bounty", 14))
+	b.danno_villaggio = int(d.get("danno", 40))
+	b.danno_melee = 14
+	b.villaggio_x = VILLAGGIO_X
+	b.corsia = int(d.get("corsia", 1))
+	b.raggio = 64.0
+	b.arena = self
+	b.legge = GameState.get_stat("legge")
+	b.nome_boss = str(d.get("nome", "Il Colosso"))
+	b.sprite = _siege_tex("boss")
+	_world.add_child(b)
+	b.global_position = Vector2(SPAWN_X - 30.0, LANE_Y[b.corsia])
+	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
+	b.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(b, dn))
+	b.furia_entrata.connect(func() -> void:
+		_flash_info("%s È INFURIATO" % b.nome_boss.to_upper())
+		scuoti_forte())
+	_enemies.append(b)
+	_boss = b
+	_crea_barra_boss(b.nome_boss)
+	_boss_entrata(b)
+
+
+func _boss_entrata(b: SiegeBoss) -> void:
+	# Ingresso cinematico: shake + banner; la barra HP appare in dissolvenza.
+	scuoti_forte()
+	AudioManager.play_sfx("stat_down")
+	_flash_info("%s SI AVVICINA" % b.nome_boss.to_upper())
+	if _boss_box != null:
+		_boss_box.modulate.a = 0.0
+		var t: Tween = create_tween()
+		t.tween_property(_boss_box, "modulate:a", 1.0, 0.6)
+
+
+func _on_boss_morto(b: SiegeEnemy) -> void:
+	_enemies.erase(b)
+	risorse += 14
+	_aggiorna_risorse()
+	_boss = null
+	if _boss_box != null and is_instance_valid(_boss_box):
+		var t: Tween = create_tween()
+		t.tween_property(_boss_box, "modulate:a", 0.0, 0.5)
+		t.tween_callback(_boss_box.queue_free)
+		_boss_box = null
+		_boss_maschera = null
+		_boss_fill = null
+	scuoti_forte()
+	AudioManager.play_sfx("ledger_unlock")
+
+
+func _crea_barra_boss(nome: String) -> void:
+	if _boss_box != null and is_instance_valid(_boss_box):
+		_boss_box.queue_free()
+	var box: PanelContainer = PanelContainer.new()
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.06, 0.06, 0.92)
+	sb.border_color = Color(0.7, 0.3, 0.26)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(6)
+	sb.set_content_margin_all(8)
+	box.add_theme_stylebox_override("panel", sb)
+	box.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	box.offset_left = 520.0
+	box.offset_right = -520.0
+	box.offset_top = 90.0
+	box.offset_bottom = 150.0
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(box)
+	_boss_box = box
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 3)
+	box.add_child(vb)
+	_boss_label = Label.new()
+	_boss_label.text = nome
+	_boss_label.add_theme_font_size_override("font_size", 18)
+	_boss_label.add_theme_color_override("font_color", Color(0.95, 0.62, 0.45))
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(_boss_label)
+	var track: ColorRect = ColorRect.new()
+	track.color = Color(0.22, 0.1, 0.1, 0.95)
+	track.custom_minimum_size = Vector2(0.0, 22.0)
+	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(track)
+	_boss_fill = null
+	_boss_maschera = null
+	var bar_tex: Texture2D = _siege_ui_tex("boss_bar")
+	if bar_tex != null:
+		# Arte dedicata §P7 7k: il canale rosso è dipinto; una maschera scura nel canale
+		# copre gli HP persi (da destra), lasciando visibili i capi ornati.
+		track.color = Color(0, 0, 0, 0)
+		var np: NinePatchRect = NinePatchRect.new()
+		np.texture = bar_tex
+		np.patch_margin_left = 72
+		np.patch_margin_right = 72
+		np.patch_margin_top = 20
+		np.patch_margin_bottom = 20
+		np.set_anchors_preset(Control.PRESET_FULL_RECT)
+		np.offset_left = -10.0
+		np.offset_right = 10.0
+		np.offset_top = -14.0
+		np.offset_bottom = 14.0
+		np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		track.add_child(np)
+		var canale: Control = Control.new()
+		canale.set_anchors_preset(Control.PRESET_FULL_RECT)
+		canale.offset_left = 66.0
+		canale.offset_right = -66.0
+		canale.offset_top = 3.0
+		canale.offset_bottom = -3.0
+		canale.clip_contents = true
+		canale.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		track.add_child(canale)
+		_boss_maschera = ColorRect.new()
+		_boss_maschera.color = Color(0.05, 0.025, 0.03, 0.92)
+		_boss_maschera.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_boss_maschera.anchor_left = 1.0   # pieno = nessuna copertura
+		_boss_maschera.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		canale.add_child(_boss_maschera)
+	else:
+		_boss_fill = ColorRect.new()
+		_boss_fill.color = Color(0.85, 0.28, 0.24)
+		_boss_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		_boss_fill.anchor_right = 1.0
+		_boss_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		track.add_child(_boss_fill)
+		_decora_barra(track)
+
+
+func _aggiorna_boss_hp() -> void:
+	if _boss == null or not is_instance_valid(_boss):
+		return
+	var frac: float = clampf(float(_boss.hp) / float(maxi(_boss.hp_max, 1)), 0.0, 1.0)
+	if _boss_maschera != null and is_instance_valid(_boss_maschera):
+		_boss_maschera.anchor_left = frac   # copre il canale da frac a destra
+	elif _boss_fill != null and is_instance_valid(_boss_fill):
+		_boss_fill.anchor_right = frac
+		_boss_fill.color = Color(0.95, 0.45, 0.25) if frac <= _boss.furia_soglia else Color(0.85, 0.28, 0.24)
 
 
 # --- API usate da difensori/nemici/proiettili (disaccoppiamento) ------------
@@ -668,6 +925,51 @@ func nemici_in_area(pos: Vector2, raggio: float) -> Array:
 	return out
 
 
+# --- API per il boss (Fase C) -----------------------------------------------
+
+func difensori_in_area(pos: Vector2, raggio: float) -> Array:
+	var out: Array = []
+	for i in range(_difensori.size() - 1, -1, -1):
+		var d: SiegeDefender = _difensori[i]
+		if d == null or not is_instance_valid(d):
+			_difensori.remove_at(i)
+			continue
+		if pos.distance_to(d.global_position) <= raggio:
+			out.append(d)
+	return out
+
+
+func danno_area_difensori(pos: Vector2, raggio: float, danno: int) -> void:
+	for d in difensori_in_area(pos, raggio):
+		if is_instance_valid(d):
+			d.colpisci(danno)
+
+
+func stordisci_difensori(durata: float) -> void:
+	for i in range(_difensori.size() - 1, -1, -1):
+		var d: SiegeDefender = _difensori[i]
+		if d == null or not is_instance_valid(d):
+			_difensori.remove_at(i)
+			continue
+		d.stordisci(durata)
+
+
+func scuoti_forte() -> void:
+	var t: Tween = create_tween()
+	for i in range(6):
+		t.tween_property(self, "offset", Vector2(randf_range(-14, 14), randf_range(-9, 9)), 0.045)
+	t.tween_property(self, "offset", Vector2.ZERO, 0.1)
+
+
+func segnala_abilita_boss(nome: String) -> void:
+	var etich: Dictionary = {
+		"pestone": "PESTONE — scansati!",
+		"ruggito": "RUGGITO — i difensori vacillano",
+		"carica": "CARICA — il boss sfonda!",
+	}
+	_flash_info(etich.get(nome, nome))
+
+
 func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggio: float = 0.0) -> void:
 	var p: SiegeProjectile = SiegeProjectile.new()
 	p.bersaglio = bersaglio
@@ -721,6 +1023,7 @@ func _piazza(tipo: String, slot: int, pos: Vector2, corsia: int, alleato: bool =
 	if d.ruolo == "blocco":
 		_blocchi.append(d)
 		d.distrutto.connect(_on_blocco_distrutto)
+	_difensori.append(d)
 	_world.add_child(d)
 	d.global_position = pos
 	if slot >= 0:
@@ -777,6 +1080,7 @@ func _schiera_alleati() -> void:
 		d.slot = -1
 		d.colore = Color(0.55, 0.92, 0.6)
 		d.danno = maxi(5, d.danno - 1)
+		_difensori.append(d)
 		_world.add_child(d)
 		d.global_position = pos
 
@@ -792,7 +1096,27 @@ func schiera_difensore_test(slot: int) -> void:
 	schiera_unita_test(slot, "tiratore")
 
 
+# Usato dallo shoot harness: fa entrare subito il boss (salta le ondate).
+func spawn_boss_test(abilita_subito: bool = false) -> void:
+	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
+	_spawn_boss({"boss": true, "hp": 320, "vel": 34.0, "danno": 45, "corsia": 1, "nome": nome_boss})
+	if abilita_subito and _boss != null:
+		# Salta l'entrata e forza un'abilità imminente (per lo screenshot del telegrafo).
+		_boss._stato = "marcia"
+		_boss._bt = 0.0
+		_boss._abil_t = 0.3
+
+
 # --- Esito ------------------------------------------------------------------
+
+# Esito di vittoria graduato dall'HP del villaggio rimasto (Fase F).
+func _esito_vittoria() -> String:
+	if hp_villaggio >= hp_villaggio_max:
+		return "immacolata"
+	if hp_villaggio >= int(hp_villaggio_max * 0.4):
+		return "trionfo"
+	return "fatica"
+
 
 func _termina(esito: String) -> void:
 	if _concluso:
@@ -803,7 +1127,8 @@ func _termina(esito: String) -> void:
 
 
 func _mostra_esito(esito: String) -> void:
-	var trionfo: bool = esito == "trionfo"
+	var vinto: bool = esito != "sopraffatto"
+	var info: Dictionary = ESITO_INFO.get(esito, ESITO_INFO["trionfo"])
 	var dim: ColorRect = ColorRect.new()
 	dim.color = Color(0.02, 0.015, 0.03, 0.72)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -834,15 +1159,14 @@ func _mostra_esito(esito: String) -> void:
 	box.add_child(vb)
 
 	var t1: Label = Label.new()
-	t1.text = "TRIONFO" if trionfo else "VILLAGGIO SOPRAFFATTO"
+	t1.text = str(info["titolo"])
 	t1.add_theme_font_size_override("font_size", 38)
-	t1.add_theme_color_override("font_color", Color(0.95, 0.84, 0.5) if trionfo else Color(0.9, 0.5, 0.45))
+	t1.add_theme_color_override("font_color", info["colore"])
 	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(t1)
 
 	var t2: Label = Label.new()
-	t2.text = ("Il villaggio resiste all'assalto.\nLo spirito può attraversare l'era." if trionfo
-		else "Le difese cedono, ma lo spirito sopravvive.\nSi attraversa l'era, feriti.")
+	t2.text = str(info["testo"])
 	t2.add_theme_font_size_override("font_size", 17)
 	t2.add_theme_color_override("font_color", Color(0.85, 0.8, 0.68))
 	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -853,7 +1177,7 @@ func _mostra_esito(esito: String) -> void:
 	continua.pressed.connect(func() -> void: assedio_concluso.emit(esito))
 	vb.add_child(continua)
 
-	if not trionfo:
+	if esito == "sopraffatto":
 		var riprova: Button = Button.new()
 		riprova.text = "Riprova l'Assedio"
 		riprova.pressed.connect(func() -> void:
@@ -861,7 +1185,7 @@ func _mostra_esito(esito: String) -> void:
 			_riprova())
 		vb.add_child(riprova)
 
-	AudioManager.play_sfx("ledger_unlock" if trionfo else "stat_down")
+	AudioManager.play_sfx("ledger_unlock" if vinto else "stat_down")
 
 
 func _riprova() -> void:
@@ -869,6 +1193,11 @@ func _riprova() -> void:
 		c.queue_free()
 	_enemies.clear()
 	_blocchi.clear()
+	_difensori.clear()
+	_boss = null
+	if _boss_box != null and is_instance_valid(_boss_box):
+		_boss_box.queue_free()
+		_boss_box = null
 	_spawn_queue.clear()
 	for i in range(_plot_occupato.size()):
 		_plot_occupato[i] = false
@@ -904,7 +1233,54 @@ func _aggiorna_risorse() -> void:
 
 func _aggiorna_ondata_label() -> void:
 	if _ondata_label != null:
-		_ondata_label.text = "Nemici in arrivo: %d  ·  in campo: %d" % [_spawn_queue.size(), _enemies.size()]
+		var n: int = clampi(_ondata_idx + 1, 0, _ondate.size())
+		_ondata_label.text = "Ondata %d / %d  ·  in campo: %d" % [n, _ondate.size(), _enemies.size()]
+
+
+# Banner d'ondata (telegrafia): cartiglio bronzo (§8i) se presente, altrimenti label nuda.
+func _mostra_banner(testo: String) -> void:
+	var holder: Control = Control.new()
+	holder.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	holder.offset_top = 196.0
+	holder.offset_bottom = 320.0
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Cartiglio dedicato dell'Assedio (§P7 7k) se presente, altrimenti il cartouche UI-kit.
+	var cart: Texture2D = _siege_ui_tex("wave_banner")
+	if cart == null:
+		cart = UiStyle.ui_texture("cartouche")
+	if cart != null:
+		var np: NinePatchRect = NinePatchRect.new()
+		np.texture = cart
+		np.patch_margin_left = 80
+		np.patch_margin_right = 80
+		np.patch_margin_top = 30
+		np.patch_margin_bottom = 30
+		np.anchor_left = 0.5
+		np.anchor_right = 0.5
+		np.offset_left = -380.0
+		np.offset_right = 380.0
+		np.offset_top = 0.0
+		np.offset_bottom = 124.0
+		np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(np)
+	var lbl: Label = Label.new()
+	lbl.text = testo
+	lbl.add_theme_font_size_override("font_size", 32)
+	lbl.add_theme_color_override("font_color", Color(0.97, 0.86, 0.52))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	lbl.add_theme_constant_override("outline_size", 6)
+	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(lbl)
+	_ui.add_child(holder)
+	holder.modulate.a = 0.0
+	var t: Tween = create_tween()
+	t.tween_property(holder, "modulate:a", 1.0, 0.3)
+	t.tween_interval(1.5)
+	t.tween_property(holder, "modulate:a", 0.0, 0.5)
+	t.tween_callback(holder.queue_free)
 
 
 func _aggiorna_diplo() -> void:
@@ -933,6 +1309,65 @@ func _scuoti() -> void:
 	for i in range(4):
 		t.tween_property(self, "offset", Vector2(randf_range(-7, 7), randf_range(-4, 4)), 0.05)
 	t.tween_property(self, "offset", Vector2.ZERO, 0.08)
+
+
+# Cornice bronzo del UI kit (§8h) sopra una barra HP: la traccia/riempimento restano
+# dietro, il frame ornato (centro trasparente) la incornicia. Fallback-safe: niente frame
+# se l'asset manca (resta la barra a colori). Vedi Docs/13-redesign-estetico.md.
+func _decora_barra(track: Control) -> void:
+	var frame: Texture2D = UiStyle.ui_texture("bar_frame")
+	if frame == null:
+		return
+	var np: NinePatchRect = NinePatchRect.new()
+	np.texture = frame
+	np.set_anchors_preset(Control.PRESET_FULL_RECT)
+	np.patch_margin_left = 26
+	np.patch_margin_right = 26
+	np.patch_margin_top = 5
+	np.patch_margin_bottom = 5
+	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.add_child(np)
+
+
+# Sbuffo di morte di un nemico: scintille brevi + alone, juice senza asset.
+func _morte_poof(pos: Vector2, col: Color) -> void:
+	var p: CPUParticles2D = CPUParticles2D.new()
+	p.texture = _disc_texture()
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 12
+	p.lifetime = 0.5
+	p.direction = Vector2(-0.4, -1.0)
+	p.spread = 180.0
+	p.gravity = Vector2(0, 240)
+	p.initial_velocity_min = 60.0
+	p.initial_velocity_max = 160.0
+	p.scale_amount_min = 0.18
+	p.scale_amount_max = 0.4
+	var ramp: Gradient = Gradient.new()
+	ramp.colors = PackedColorArray([
+		Color(col.r, col.g, col.b, 0.95), Color(0.4, 0.25, 0.2, 0.0)])
+	ramp.offsets = PackedFloat32Array([0.0, 1.0])
+	p.color_ramp = ramp
+	_world.add_child(p)
+	p.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_interval(0.9)
+	t.tween_callback(p.queue_free)
+
+
+# Lampo rosso di vignetta quando il villaggio incassa: feedback di danno chiaro.
+func _flash_danno() -> void:
+	var fl: ColorRect = ColorRect.new()
+	fl.color = Color(0.7, 0.1, 0.08, 0.0)
+	fl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(fl)
+	var t: Tween = create_tween()
+	t.tween_property(fl, "color:a", 0.30, 0.06)
+	t.tween_property(fl, "color:a", 0.0, 0.4)
+	t.tween_callback(fl.queue_free)
 
 
 func _disc_texture() -> GradientTexture2D:

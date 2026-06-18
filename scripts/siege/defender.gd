@@ -37,6 +37,8 @@ var arena: Node = null              # SiegeArena (API: bersaglio_per/lancia_proi
 
 const REACH_BLOCCO: float = 52.0
 var _cooldown: float = 0.0
+var _vita_t: float = 0.0
+var _stun_fino: float = -1.0
 
 
 func _ready() -> void:
@@ -46,6 +48,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if arena == null:
 		return
+	_vita_t += delta
+	if _vita_t < _stun_fino:
+		return   # stordito dal Ruggito del boss
 	if _cooldown > 0.0:
 		_cooldown -= delta
 		return
@@ -82,6 +87,27 @@ func subisci_danno(d: int) -> void:
 	if hp <= 0:
 		distrutto.emit(slot)
 		queue_free()
+
+
+# Danno ad area dal boss (Pestone): colpisce QUALSIASI ruolo. Se l'HP cade, l'unità
+# è distrutta (libera la piazzola). Distinto da subisci_danno (solo melee sul blocco).
+func colpisci(d: int) -> void:
+	hp -= d
+	queue_redraw()
+	modulate = Color(1.6, 0.7, 0.6)
+	var t: Tween = create_tween()
+	t.tween_property(self, "modulate", Color.WHITE, 0.22)
+	if hp <= 0:
+		distrutto.emit(slot)
+		queue_free()
+
+
+# Stordimento dal Ruggito del boss: l'unità non agisce per `dur` secondi.
+func stordisci(dur: float) -> void:
+	_stun_fino = _vita_t + dur
+	modulate = Color(0.7, 0.7, 0.95)
+	var t: Tween = create_tween()
+	t.tween_property(self, "modulate", Color.WHITE, minf(dur, 0.6))
 
 
 # Per il bloccatore: vivo finché ha HP. Gli altri ruoli non vengono mai ingaggiati.

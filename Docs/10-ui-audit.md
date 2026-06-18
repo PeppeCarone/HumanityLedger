@@ -28,9 +28,10 @@ vuoto scuro, testo piccolo), e mancanza di un **componente UI condiviso** (tema)
 
 `[x]` fatto · `[~]` parziale · `[ ]` da fare. Tag: [STYLE] [LAYOUT] [ICON] [SMOOTH].
 
-1. `[~]` **[STYLE] Componente modale bronzo condiviso** (build+upgrade): cornice pergamena, riga
-   sotto il titolo, **pulsanti bronzo** (oro primario / outline secondario), tabella costi allineata
-   con icone risorsa. *(scrim+tema fatti; resta la tabella costi + thumbnail edificio)*
+1. `[x]` **[STYLE] Componente modale bronzo condiviso** (build+upgrade): cornice pergamena, riga
+   sotto il titolo, **pulsanti bronzo**, tabella costi allineata con icona Risorsa/Costruzione
+   (`_riga_costo`) e **thumbnail edificio** in testa al modale upgrade; i pulsanti del modale build
+   mostrano l'icona-edificio. *(scrim+tema già fatti)*
 2. `[x]` **[STYLE] Tutti i pulsanti in stile bronzo** (tema globale `UiStyle`).
 3. `[x]` **[LAYOUT] Ingrandire il cluster decisione e centrarlo** — proposer 175px/30px, righe
    ridistribuite, "memoria" cross-era spostata nella fascia alta. Meno spazio morto.
@@ -53,7 +54,9 @@ transizioni tra viste, hover su altri elementi.
 
 1. `[x]` **Scegli cosa costruire**: il lotto apre "Cosa costruire?" coi tipi-edificio dell'era a
    scelta — specializzazione (militare/economico/sapere). `village.costruisci(tipo)`.
-2. `[ ]` **Vista villaggio gestionale**: pannello con elenco edifici, produzione dettagliata, hover-info.
+2. `[x]` **Vista villaggio gestionale** (tasto **V**): pannello d'insieme con elenco edifici
+   (icona stat + nome + stelle livello), produzione Risorse/turno per edificio + totale,
+   popolazione, e upgrade da un unico posto (tooltip con costo/gate/bonus). `main._apri_pannello_villaggio`/`_riga_edificio`; ricarica in-place dopo l'upgrade. Verificato a schermo (`shot_villaggio_panel`).
 3. `[x]` **Posta in gioco**: traguardi del villaggio con ricompense+toast (Lapse/Clash); catastrofi
    (forte calo popolazione) che danneggiano un edificio migliorato di un livello (rovina→ricostruisci,
    non punitivo). Resta opzionale: traguardi che sbloccano *lore* nel Ledger.

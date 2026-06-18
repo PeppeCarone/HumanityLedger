@@ -31,22 +31,28 @@ var _sfx_cursor: int = 0
 var _cache: Dictionary = {}
 var _muted: bool = false
 var _current_music_path: String = ""
+# Volumi lineari 0..1 (slider del Menu Opzioni); applicati come offset sui dB base.
+var _music_vol: float = 0.8
+var _sfx_vol: float = 0.85
+# Video (Menu Opzioni): persistiti e applicati all'avvio.
+var _fullscreen: bool = false
+var _win_size: Vector2i = Vector2i.ZERO   # (0,0) = non forzare
 
 
 func _ready() -> void:
 	_load_settings()
 	_music_player = AudioStreamPlayer.new()
 	_music_player.name = "MusicPlayer"
-	_music_player.volume_db = MUSIC_VOLUME_DB
 	_music_player.bus = "Master"
 	add_child(_music_player)
 	for i in MAX_CONCURRENT_SFX:
 		var p: AudioStreamPlayer = AudioStreamPlayer.new()
 		p.name = "Sfx_%d" % i
-		p.volume_db = SFX_VOLUME_DB
 		p.bus = "Master"
 		add_child(p)
 		_sfx_pool.append(p)
+	_applica_volumi()
+	_applica_video()
 	Ledger.lore_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
 	Ledger.evento_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
 	Ledger.artefatto_unlocked.connect(func(_id: String) -> void: play_sfx("ledger_unlock"))
@@ -119,15 +125,95 @@ func toggle_muted() -> bool:
 	return _muted
 
 
+# --- Volumi (Menu Opzioni) --------------------------------------------------
+
+func _vol_db(lin: float, base: float) -> float:
+	if lin <= 0.001:
+		return -60.0
+	return base + linear_to_db(lin)
+
+
+func _applica_volumi() -> void:
+	if _music_player != null:
+		_music_player.volume_db = _vol_db(_music_vol, MUSIC_VOLUME_DB)
+	for p in _sfx_pool:
+		p.volume_db = _vol_db(_sfx_vol, SFX_VOLUME_DB)
+
+
+func set_music_volume(v: float) -> void:
+	_music_vol = clampf(v, 0.0, 1.0)
+	_applica_volumi()
+	_save_settings()
+
+
+func set_sfx_volume(v: float) -> void:
+	_sfx_vol = clampf(v, 0.0, 1.0)
+	_applica_volumi()
+	_save_settings()
+
+
+func music_volume() -> float:
+	return _music_vol
+
+
+func sfx_volume() -> float:
+	return _sfx_vol
+
+
+# --- Video (Menu Opzioni) ---------------------------------------------------
+
+func _applica_video() -> void:
+	DisplayServer.window_set_mode(
+		DisplayServer.WINDOW_MODE_FULLSCREEN if _fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+	if not _fullscreen and _win_size.x > 0:
+		DisplayServer.window_set_size(_win_size)
+		var screen: Vector2i = DisplayServer.screen_get_size()
+		DisplayServer.window_set_position((screen - _win_size) / 2)
+
+
+func set_fullscreen(value: bool) -> void:
+	_fullscreen = value
+	_applica_video()
+	_save_settings()
+
+
+func is_fullscreen() -> bool:
+	return _fullscreen
+
+
+func set_resolution(size: Vector2i) -> void:
+	_win_size = size
+	if not _fullscreen:
+		_applica_video()
+	_save_settings()
+
+
+func resolution() -> Vector2i:
+	return _win_size
+
+
+# --- Persistenza ------------------------------------------------------------
+
 func _load_settings() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
 	if cfg.load(SETTINGS_PATH) != OK:
 		return
 	_muted = cfg.get_value("audio", "muted", false)
+	_music_vol = float(cfg.get_value("audio", "music_vol", _music_vol))
+	_sfx_vol = float(cfg.get_value("audio", "sfx_vol", _sfx_vol))
+	_fullscreen = bool(cfg.get_value("video", "fullscreen", false))
+	var w: int = int(cfg.get_value("video", "win_w", 0))
+	var h: int = int(cfg.get_value("video", "win_h", 0))
+	_win_size = Vector2i(w, h)
 
 
 func _save_settings() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
 	cfg.load(SETTINGS_PATH)
 	cfg.set_value("audio", "muted", _muted)
+	cfg.set_value("audio", "music_vol", _music_vol)
+	cfg.set_value("audio", "sfx_vol", _sfx_vol)
+	cfg.set_value("video", "fullscreen", _fullscreen)
+	cfg.set_value("video", "win_w", _win_size.x)
+	cfg.set_value("video", "win_h", _win_size.y)
 	cfg.save(SETTINGS_PATH)

@@ -2,6 +2,7 @@ extends Control
 
 const GAME_SCENE: String = "res://scenes/main.tscn"
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
+const OPTIONS_SCENE: PackedScene = preload("res://scenes/ui/options_menu.tscn")
 const BG_PATH: String = "res://Assets/art/ui/main_menu_bg.png"
 
 @onready var background: TextureRect = $Background
@@ -11,6 +12,8 @@ const BG_PATH: String = "res://Assets/art/ui/main_menu_bg.png"
 @onready var esci_btn: Button = $Buttons/Esci
 
 var ledger_instance: CanvasLayer = null
+var options_instance: CanvasLayer = null
+var opzioni_btn: Button = null
 
 
 func _ready() -> void:
@@ -26,6 +29,17 @@ func _ready() -> void:
 	_setup_hover()
 	for b in [nuova_btn, continua_btn, ledger_btn, esci_btn]:
 		b.pressed.connect(func() -> void: AudioManager.play_sfx("ui_click"))
+	# Pulsante Opzioni (deliverable d'esame): inserito prima di "Esci", tema globale.
+	opzioni_btn = Button.new()
+	opzioni_btn.text = "Opzioni"
+	$Buttons.add_child(opzioni_btn)
+	$Buttons.move_child(opzioni_btn, esci_btn.get_index())
+	opzioni_btn.pressed.connect(_on_opzioni)
+	opzioni_btn.pressed.connect(func() -> void: AudioManager.play_sfx("ui_click"))
+	opzioni_btn.mouse_entered.connect(_hover_in.bind(opzioni_btn))
+	opzioni_btn.mouse_exited.connect(_hover_out.bind(opzioni_btn))
+	opzioni_btn.focus_entered.connect(_hover_in.bind(opzioni_btn))
+	opzioni_btn.focus_exited.connect(_hover_out.bind(opzioni_btn))
 	var ha_save: bool = SaveSystem.exists_run()
 	continua_btn.disabled = not ha_save
 	if not ha_save:
@@ -125,6 +139,13 @@ func _on_ledger() -> void:
 		return
 	ledger_instance = LEDGER_SCENE.instantiate()
 	add_child(ledger_instance)
+
+
+func _on_opzioni() -> void:
+	if options_instance != null and is_instance_valid(options_instance):
+		return
+	options_instance = OPTIONS_SCENE.instantiate()
+	add_child(options_instance)
 
 
 func _on_esci() -> void:

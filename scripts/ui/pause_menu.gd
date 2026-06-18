@@ -1,12 +1,15 @@
 extends CanvasLayer
 
 const MENU_SCENE: String = "res://scenes/main_menu.tscn"
+const OPTIONS_SCENE: PackedScene = preload("res://scenes/ui/options_menu.tscn")
 
 signal resumed
 
 @onready var audio_btn: Button = $Dim/Panel/VBox/Audio
 @onready var riprendi_btn: Button = $Dim/Panel/VBox/Riprendi
 @onready var menu_btn: Button = $Dim/Panel/VBox/TornaMenu
+
+var options_instance: CanvasLayer = null
 
 
 @onready var titolo: Label = $Dim/Panel/VBox/Titolo
@@ -25,7 +28,7 @@ func _ready() -> void:
 		fv.base_font = load(cinzel_path)
 		fv.variation_opentype = {"wght": 700}
 		titolo.add_theme_font_override("font", fv)
-	_refresh_audio_label()
+	audio_btn.text = "Opzioni"
 	riprendi_btn.grab_focus()
 
 
@@ -35,17 +38,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		resumed.emit()
 
 
-func _refresh_audio_label() -> void:
-	audio_btn.text = "Audio: Off" if AudioManager.is_muted() else "Audio: On"
-
-
 func _on_riprendi() -> void:
 	resumed.emit()
 
 
 func _on_audio() -> void:
-	AudioManager.toggle_muted()
-	_refresh_audio_label()
+	# Il pulsante "Opzioni" apre l'overlay (volumi, mute, schermo, risoluzione, tutorial).
+	if options_instance != null and is_instance_valid(options_instance):
+		return
+	options_instance = OPTIONS_SCENE.instantiate()
+	add_child(options_instance)
 
 
 func _on_menu() -> void:

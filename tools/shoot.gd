@@ -30,6 +30,7 @@ func _shot(path: String, name: String, setup: Callable = Callable(), post: Calla
 func _run() -> void:
 	GameState.reset_run()
 	await _shot("res://scenes/main_menu.tscn", "shot_menu")
+	await _shot("res://scenes/ui/options_menu.tscn", "shot_opzioni", Callable(), Callable(), 0.6)
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
 	await _shot("res://scenes/main.tscn", "shot_era1", Callable(), func(inst: Node) -> void:
@@ -61,6 +62,20 @@ func _run() -> void:
 	GameState.tesoro = 40
 	await _shot("res://scenes/main.tscn", "shot_build_panel", Callable(), func(inst: Node) -> void:
 		inst._apri_pannello_costruzione(2), 0.9)
+	# Vista villaggio gestionale (tasto V): elenco edifici, produzione, upgrade in un posto.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 5)
+	GameState.costruzione = 60
+	GameState.tesoro = 50
+	GameState.risorse = 40
+	GameState.edifici_livelli = {"1_0": 3, "1_2": 2, "1_4": 2}
+	await _shot("res://scenes/main.tscn", "shot_villaggio_panel", Callable(), func(inst: Node) -> void:
+		inst._apri_pannello_villaggio(), 0.9)
+	# J15: bandierine degli alleati radicate ai margini del villaggio.
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 5)
+	GameState.rapporti_civilta = {"clan_bisonte": 4, "impero_sole": 3}
+	await _shot("res://scenes/main.tscn", "shot_villaggio_alleati", Callable(), Callable(), 1.0)
 	# Toast traguardo del villaggio.
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 4)
@@ -158,6 +173,58 @@ func _run() -> void:
 	simg.save_png(OUT + "shot_assedio.png")
 	print("SHOT shot_assedio ", simg.get_size())
 	siege.queue_free()
+	await get_tree().process_frame
+	# Assedio Fase C: il BOSS in campo (entrata + barra HP dedicata in alto).
+	GameState.reset_run()
+	GameState.costruzione = 55
+	GameState.militare = 60
+	GameState.scienza = 50
+	GameState.legge = 40
+	var siegeb: CanvasLayer = SiegeArena.new()
+	siegeb.configura(1)
+	get_tree().root.add_child(siegeb)
+	siegeb.schiera_unita_test(0, "tiratore")
+	siegeb.schiera_unita_test(4, "bloccatore")
+	siegeb.schiera_unita_test(7, "totem")
+	siegeb.spawn_boss_test(true)
+	await get_tree().create_timer(0.65).timeout
+	var bimg: Image = get_viewport().get_texture().get_image()
+	bimg.save_png(OUT + "shot_assedio_boss.png")
+	print("SHOT shot_assedio_boss ", bimg.get_size())
+	siegeb.queue_free()
+	await get_tree().process_frame
+	# Assedio Era 2 (drago + set Era 2): verifica gli asset Era 2.
+	GameState.reset_run()
+	GameState.era_corrente = 2
+	GameState.costruzione = 55
+	GameState.militare = 60
+	GameState.scienza = 50
+	var siege2: CanvasLayer = SiegeArena.new()
+	siege2.configura(2)
+	get_tree().root.add_child(siege2)
+	siege2.schiera_unita_test(0, "tiratore")
+	siege2.schiera_unita_test(4, "bloccatore")
+	siege2.schiera_unita_test(5, "sciamano")
+	siege2.schiera_unita_test(8, "totem")
+	siege2.spawn_boss_test()
+	await get_tree().create_timer(2.0).timeout
+	var b2: Image = get_viewport().get_texture().get_image()
+	b2.save_png(OUT + "shot_assedio_era2.png")
+	print("SHOT shot_assedio_era2 ", b2.get_size())
+	siege2.queue_free()
+	await get_tree().process_frame
+	# Assedio Fase F: schermata d'esito (qui "trionfo"; immacolata/fatica/sopraffatto variano).
+	GameState.reset_run()
+	var siegee: CanvasLayer = SiegeArena.new()
+	siegee.configura(1)
+	get_tree().root.add_child(siegee)
+	await get_tree().process_frame
+	siegee._mostra_esito("trionfo")
+	await get_tree().create_timer(0.5).timeout
+	var eimg: Image = get_viewport().get_texture().get_image()
+	eimg.save_png(OUT + "shot_assedio_esito.png")
+	print("SHOT shot_assedio_esito ", eimg.get_size())
+	siegee.queue_free()
 	await get_tree().process_frame
 	# Ledger con artefatti misti: semina SOLO in memoria (niente save -> niente
 	# scrittura del ledger.json reale). Per questo va tenuto come ultimo shot.

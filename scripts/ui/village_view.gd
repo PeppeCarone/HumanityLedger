@@ -85,6 +85,7 @@ var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta p
 var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
 var _potenziabili: Array[int] = []  # slot attualmente migliorabili (glow d'invito)
 var _marker_costruibile: Control = null  # lotto vuoto "costruisci qui"
+var _bandiere: Array[Control] = []  # stendardi degli alleati ai margini (J15)
 var _fumo: CPUParticles2D = null
 var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
@@ -342,6 +343,10 @@ func sincronizza(era: int, n: int) -> void:
 	_edifici_nodi.clear()
 	_edifici_sprite.clear()
 	_slot_tipo.clear()
+	for b in _bandiere:
+		if is_instance_valid(b):
+			b.queue_free()
+	_bandiere.clear()
 	_slot_usati = 0
 	var quanti: int = mini(n, _slots().size())
 	for i in quanti:
@@ -594,3 +599,156 @@ func applica_conseguenza(tipo: String, intensita: float = 1.0) -> void:
 	t.tween_interval(0.4 + 0.45 * fattore)
 	t.tween_property(tr, "modulate:a", 0.0, 0.55 + 0.35 * fattore)
 	t.tween_callback(tr.queue_free)
+
+
+# J15 — Stendardi degli alleati radicati ai margini del villaggio: la diplomazia si
+# vede a casa. Uno per civilta' alleata (rapporto >= soglia), col volto dell'ambasciatore
+# nel medaglione. Riusa gli sprite di Assets/art/ambasciatori/<civ_id>.png.
+func mostra_bandiere_alleati(civ_ids: Array) -> void:
+	for b in _bandiere:
+		if is_instance_valid(b):
+			b.queue_free()
+	_bandiere.clear()
+	if civ_ids.is_empty():
+		return
+	var s: Vector2 = _baseline()
+	# Ancore che fiancheggiano il board, ben visibili sul terreno, fuori dalla zona del
+	# CallButton (x 0.40-0.72) e dalla figura in basso a sinistra.
+	var ancore: Array = [
+		Vector2(0.86, 0.52), Vector2(0.63, 0.40),
+		Vector2(0.40, 0.40), Vector2(0.93, 0.70),
+	]
+	var i: int = 0
+	for civ in civ_ids:
+		if i >= ancore.size():
+			break
+		var a: Vector2 = ancore[i]
+		_posa_bandiera(str(civ), Vector2(a.x * s.x, a.y * s.y))
+		i += 1
+
+
+func _posa_bandiera(civ_id: String, pos: Vector2) -> void:
+	var holder: Control = Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.position = pos
+	holder.pivot_offset = Vector2.ZERO  # base a terra: cresce verso l'alto
+	_suolo.add_child(holder)
+	_bandiere.append(holder)
+	# Se esiste lo sprite dello stendardo (asset §P10), usalo col volto nel medaglione.
+	var sten_path: String = "res://Assets/art/villaggio/stendardo_alleato.png"
+	if ResourceLoader.exists(sten_path):
+		_posa_bandiera_sprite(holder, civ_id, load(sten_path))
+		return
+	const H: float = 132.0  # altezza asta
+	# Ombra di contatto a terra.
+	var ombra: ColorRect = ColorRect.new()
+	ombra.color = Color(0, 0, 0, 0.28)
+	ombra.size = Vector2(34, 9)
+	ombra.position = Vector2(-17, -6)
+	ombra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(ombra)
+	# Asta + traversa in cima (da cui pende il gonfalone).
+	var pole: ColorRect = ColorRect.new()
+	pole.color = Color(0.28, 0.19, 0.11)
+	pole.size = Vector2(6, H)
+	pole.position = Vector2(-3, -H)
+	pole.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(pole)
+	var crossbar: ColorRect = ColorRect.new()
+	crossbar.color = Color(0.34, 0.24, 0.13)
+	crossbar.size = Vector2(52, 6)
+	crossbar.position = Vector2(-26, -H)
+	crossbar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(crossbar)
+	# Gonfalone: bordo scuro + telo tinto alleanza, ondeggia appeso dalla traversa.
+	var swing: Control = Control.new()  # pivot in alto: oscilla solo il telo
+	swing.position = Vector2(0, -H + 6)
+	swing.pivot_offset = Vector2.ZERO
+	swing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(swing)
+	var bordo: ColorRect = ColorRect.new()
+	bordo.color = Color(0.16, 0.12, 0.07, 0.96)
+	bordo.size = Vector2(54, 80)
+	bordo.position = Vector2(-27, 0)
+	bordo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swing.add_child(bordo)
+	var cloth: ColorRect = ColorRect.new()
+	cloth.color = Color(0.78, 0.67, 0.33, 0.97)
+	cloth.size = Vector2(48, 74)
+	cloth.position = Vector2(-24, 3)
+	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swing.add_child(cloth)
+	# Banda alta più scura (resa araldica) + medaglione col volto dell'ambasciatore.
+	var banda: ColorRect = ColorRect.new()
+	banda.color = Color(0.55, 0.40, 0.18, 0.9)
+	banda.size = Vector2(48, 16)
+	banda.position = Vector2(-24, 3)
+	banda.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swing.add_child(banda)
+	var face_path: String = "res://Assets/art/ambasciatori/%s.png" % civ_id
+	if ResourceLoader.exists(face_path):
+		var face: TextureRect = TextureRect.new()
+		face.texture = load(face_path)
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		face.size = Vector2(34, 34)
+		face.position = Vector2(-17, 28)  # centrato sul telo
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		swing.add_child(face)
+		var ring_tex: Texture2D = UiStyle.ui_texture("medallion")
+		if ring_tex != null:
+			var ring: TextureRect = TextureRect.new()
+			ring.texture = ring_tex
+			ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			ring.stretch_mode = TextureRect.STRETCH_SCALE
+			ring.size = Vector2(46, 46)
+			ring.position = Vector2(-23, 22)
+			ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			swing.add_child(ring)
+	# Ingresso: lo stendardo sorge dal terreno.
+	holder.scale = Vector2(1.0, 0.0)
+	var t: Tween = holder.create_tween()
+	t.tween_property(holder, "scale", Vector2.ONE, 0.5) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# Ondeggio lento del telo (il villaggio respira anche da fermo).
+	var w: Tween = swing.create_tween()
+	w.set_loops()
+	w.set_trans(Tween.TRANS_SINE)
+	w.tween_property(swing, "rotation", deg_to_rad(3.0), 1.6)
+	w.tween_property(swing, "rotation", deg_to_rad(-3.0), 1.6)
+
+
+# Variante con sprite §P10: gonfalone dipinto + volto dell'ambasciatore sul medaglione.
+func _posa_bandiera_sprite(holder: Control, civ_id: String, tex: Texture2D) -> void:
+	const W: float = 80.0
+	const H: float = 120.0
+	var sprite: TextureRect = TextureRect.new()
+	sprite.texture = tex
+	sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sprite.size = Vector2(W, H)
+	sprite.position = Vector2(-W * 0.5, -H)
+	sprite.pivot_offset = Vector2(W * 0.5, 0.0)
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(sprite)
+	# Volto dell'ambasciatore sul medaglione del gonfalone (~46% dall'alto).
+	var face_path: String = "res://Assets/art/ambasciatori/%s.png" % civ_id
+	if ResourceLoader.exists(face_path):
+		var face: TextureRect = TextureRect.new()
+		face.texture = load(face_path)
+		face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		var fs: float = W * 0.38
+		face.size = Vector2(fs, fs)
+		face.position = Vector2(-fs * 0.5, -H + H * 0.46 - fs * 0.5)
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sprite.add_child(face)
+	holder.scale = Vector2(1.0, 0.0)
+	var t: Tween = holder.create_tween()
+	t.tween_property(holder, "scale", Vector2.ONE, 0.5) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var sw: Tween = sprite.create_tween()
+	sw.set_loops()
+	sw.set_trans(Tween.TRANS_SINE)
+	sw.tween_property(sprite, "rotation", deg_to_rad(2.5), 1.7)
+	sw.tween_property(sprite, "rotation", deg_to_rad(-2.5), 1.7)

@@ -10,6 +10,26 @@
 
 ---
 
+## STATO ASSET (aggiornato 2026-06-18)
+
+Inventario reale di `Assets/art/`. **Generato (NON rigenerare):** UI-kit §P8 completo, edifici
+per-stadio §P0b (Era 1+2, Lv1/2/3), terreni §P0, backgrounds (incl. Era 3), **Assedio Era 1**
+(campo/roccaforte/enemy/4 `unit_*`/proiettili), 8 icone stat, 9 strategie, 4 artefatti (incl. Occhio),
+mappa-mondo, 6 vignette finali, logo/menu, ritratti, ambasciatori.
+
+**Tutto generato e integrato al 2026-06-18** (organizzati, importati, in uso a schermo):
+boss Era 1 (mammut) + Era 2 (drago), Assedio Era 2 completo (campo/roccaforte painterly/enemy/4
+unità), icone barra unità, nemici per-tipo Era 1 (iena/cinghiale/orso) + Era 2 (predone/scheletro/
+minotauro/golem), cornici Assedio (`boss_bar`/`wave_banner`), icona Risorse, stendardo alleanza
+(§P10), e rifiniture UI-kit (`ring_focus`/`plot_pad`/`chip_{ally,hostile,gold}`). Orientamento
+verificato: difensori→DESTRA, nemici/boss→SINISTRA. Prompt qui sotto conservati come riferimento
+per eventuali rigenerazioni.
+
+> Nessun asset placeholder/"default" residuo nel flusso Assedio/villaggio. I prompt §P0–§P10
+> restano archiviati: rigenerare solo se si vuole rifinire ulteriormente.
+
+---
+
 ## P0 — Terreni-tabellone del villaggio (D046 — PRIORITÀ ASSOLUTA)
 
 > Il villaggio è un board stile Clash of Clans: il terreno deve essere VUOTO,
@@ -630,12 +650,29 @@ No text, no watermark, no checkerboard.
 
 ---
 
-## Già a posto (NON rigenerare)
+## P10 — Stendardo d'alleanza sul villaggio (J15)
 
-- Ritratti 16 consiglieri (post-recrop), ambasciatori, icone stat, artefatti Ledger
+Oggi il gonfalone alleato è disegnato a codice (telo colorato) col volto dell'ambasciatore in
+un medaglione. Asset dedicato opzionale (il codice lo aggancerà al posto del telo):
+`Assets/art/villaggio/stendardo_alleato.png`.
+
+```
+A single isolated heraldic gonfalon banner sprite on a fully transparent background, painterly
+dark-fantasy, warm bronze-and-gold cloth hanging from a dark wooden cross-pole, gently waving,
+an EMPTY round medallion holder at its center (to overlay an ambassador portrait), soft contact
+shadow at the base, vertical format ~256x384, TRUE alpha transparency (NO checkerboard). No text,
+no watermark.
+```
+
+---
+
+## Già a posto (NON rigenerare — vedi STATO ASSET in cima per la lista completa)
+
+- UI-kit §P8 completo, edifici per-stadio §P0b (Era 1+2), terreni §P0, backgrounds (incl. Era 3)
+- Assedio Era 1 completo (campo/roccaforte/enemy/4 unità/proiettili)
+- Ritratti 16 consiglieri (post-recrop), ambasciatori, 8 icone stat, 9 strategie, 4 artefatti Ledger
 - Menu bg, logo, sfondo Era 2 diurno, 6 vignette finali (painterly 16:9)
 - Mappa-mondo: 4 layer + insediamenti + rotte/zone pulite
-- 4 icone strategia originali (ascia/libro/pergamena/scudo) + economico/decreto/rivoluzionaria
 
 ## Flusso di integrazione (per chi sviluppa)
 
