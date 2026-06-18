@@ -243,6 +243,12 @@ func _costruisci_scena() -> void:
 		sfondo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		sfondo.modulate = Color(0.82, 0.82, 0.82, 1.0)   # smorzato: le corsie restano leggibili
 		sfondo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Aria calda che vibra sul campo (shader isolato allo sfondo, niente UI distorta).
+		var hz: String = "res://Assets/shaders/heat_haze.gdshader"
+		if ResourceLoader.exists(hz):
+			var mat: ShaderMaterial = ShaderMaterial.new()
+			mat.shader = load(hz)
+			sfondo.material = mat
 		_ui.add_child(sfondo)
 
 	# Le 3 corsie. Con lo sfondo dipinto la banda è solo un velo scuro (l'arte traspare);
@@ -302,6 +308,48 @@ func _costruisci_scena() -> void:
 	_crea_piazzole()
 	_crea_hud()
 	_crea_barra_unita()
+	_avvia_ambient()
+
+
+# Pulviscolo ambientale sul campo: braci (Era 2, notte) o polvere calda (Era 1) che
+# derivano lente. Dietro le entità (procedurale, nessun asset).
+func _avvia_ambient() -> void:
+	var p: CPUParticles2D = CPUParticles2D.new()
+	p.position = Vector2(960.0, 520.0)
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(920.0, 470.0)
+	p.lifetime = 6.0
+	p.preprocess = 6.0
+	p.texture = _disc_texture()
+	var ramp: Gradient = Gradient.new()
+	if era >= 2:
+		p.amount = 28
+		p.direction = Vector2(-0.2, -1.0)
+		p.spread = 30.0
+		p.gravity = Vector2(6.0, -20.0)
+		p.initial_velocity_min = 8.0
+		p.initial_velocity_max = 24.0
+		p.scale_amount_min = 0.08
+		p.scale_amount_max = 0.26
+		ramp.colors = PackedColorArray([Color(1.0, 0.7, 0.32, 0.0),
+			Color(1.0, 0.66, 0.3, 0.8), Color(0.7, 0.25, 0.1, 0.0)])
+		ramp.offsets = PackedFloat32Array([0.0, 0.4, 1.0])
+	else:
+		p.amount = 22
+		p.direction = Vector2(1.0, -0.25)
+		p.spread = 24.0
+		p.gravity = Vector2(3.0, -5.0)
+		p.initial_velocity_min = 5.0
+		p.initial_velocity_max = 15.0
+		p.scale_amount_min = 0.16
+		p.scale_amount_max = 0.5
+		ramp.colors = PackedColorArray([Color(0.82, 0.74, 0.6, 0.0),
+			Color(0.82, 0.76, 0.64, 0.32), Color(0.7, 0.66, 0.6, 0.0)])
+		ramp.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	p.color_ramp = ramp
+	_world.add_child(p)
+	_world.move_child(p, 0)   # dietro le entità
 
 
 func _crea_piazzole() -> void:

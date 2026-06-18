@@ -194,6 +194,11 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   bagliore (`Assets/shaders/fire_flicker.gdshader`). Verificato a schermo, nessun errore shader.
   Restano (pass 3, opzionali): shimmer acqua/calore, vento-vertex su tetti/alberi, godrays caverna,
   parallax/nubi, mappa-mondo animata.
+- **2026-06-18 (6)** — **Animazione procedurale (pass 3) — Assedio atmosferico.** Shader **heat-haze**
+  sul campo di battaglia (`Assets/shaders/heat_haze.gdshader`, distorsione UV crescente verso il
+  suolo, isolata allo sfondo) + **pulviscolo ambientale** che deriva sul campo (`siege._avvia_ambient`:
+  braci arancioni Era 2 / polvere calda Era 1, dietro le entità). Verificato a schermo. Restano
+  opzionali: vento-vertex su tetti/alberi, godrays caverna, parallax/nubi, mappa-mondo animata.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
