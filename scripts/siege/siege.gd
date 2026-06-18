@@ -534,6 +534,7 @@ func _crea_barra_unita() -> void:
 		card.custom_minimum_size = Vector2(196.0, 96.0)
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		card.tooltip_text = _tooltip_unita(tipo)   # numeri reali scalati dalle stat
 		card.add_theme_stylebox_override("panel", _card_style(false, true))
 		var t: String = tipo
 		card.gui_input.connect(func(ev: InputEvent) -> void:
@@ -1049,20 +1050,56 @@ func _crea_unita(tipo: String) -> SiegeDefender:
 	d.costo = int(def["costo"])
 	d.cadenza = float(def["cadenza"])
 	d.raggio_tiro = float(def["raggio"])
+	var s: Dictionary = _stat_unita(tipo)
+	d.danno = int(s["danno"])
+	if tipo == "bloccatore":
+		d.hp_max = int(s["hp"])
+		d.hp = d.hp_max
+	elif tipo == "sciamano":
+		d.slow_fattore = float(s["slow"])
+		d.slow_durata = 0.7
+	elif tipo == "totem":
+		d.aoe_raggio = float(s["aoe"])
+	return d
+
+
+# Valori di combattimento di un'unità, scalati dalle stat correnti. Unica fonte di
+# verità per `_crea_unita` e per il tooltip della barra (niente divergenze, Fase B/H).
+func _stat_unita(tipo: String) -> Dictionary:
+	var out: Dictionary = {"danno": 0, "hp": 0, "aoe": 0.0, "slow": 0.0}
 	match tipo:
 		"tiratore":
-			d.danno = 6 + int(GameState.get_stat("militare") / 9.0)
+			out["danno"] = 6 + int(GameState.get_stat("militare") / 9.0)
 		"bloccatore":
-			d.hp_max = 45 + int(GameState.get_stat("costruzione") * 1.3) + int(GameState.get_stat("militare") * 0.3)
-			d.hp = d.hp_max
-			d.danno = 4 + int(GameState.get_stat("militare") / 14.0)
+			out["hp"] = 45 + int(GameState.get_stat("costruzione") * 1.3) + int(GameState.get_stat("militare") * 0.3)
+			out["danno"] = 4 + int(GameState.get_stat("militare") / 14.0)
 		"sciamano":
-			d.slow_fattore = clampf(0.62 - float(GameState.get_stat("scienza")) / 420.0, 0.34, 0.62)
-			d.slow_durata = 0.7
+			out["slow"] = clampf(0.62 - float(GameState.get_stat("scienza")) / 420.0, 0.34, 0.62)
 		"totem":
-			d.danno = 6 + int(float(GameState.get_stat("scienza") + GameState.get_stat("spionaggio")) / 14.0)
-			d.aoe_raggio = 80.0 + float(GameState.get_stat("scienza")) / 3.0
-	return d
+			out["danno"] = 6 + int(float(GameState.get_stat("scienza") + GameState.get_stat("spionaggio")) / 14.0)
+			out["aoe"] = 80.0 + float(GameState.get_stat("scienza")) / 3.0
+	return out
+
+
+# Testo del tooltip della carta-unità, coi numeri reali (richiesta dei giocatori "strategist").
+func _tooltip_unita(tipo: String) -> String:
+	var def: Dictionary = ROSTER[tipo]
+	var s: Dictionary = _stat_unita(tipo)
+	var nome: String = _skin[tipo]["nome"]
+	match tipo:
+		"tiratore":
+			return "%s — tiro a distanza\nDanno %d · raggio %d · ogni %.1fs\nScala con Militare (%d)" % [
+				nome, int(s["danno"]), int(def["raggio"]), float(def["cadenza"]), GameState.get_stat("militare")]
+		"bloccatore":
+			return "%s — sbarra la corsia\nHP %d · danno mischia %d\nScala con Costruzione (%d)" % [
+				nome, int(s["hp"]), int(s["danno"]), GameState.get_stat("costruzione")]
+		"sciamano":
+			return "%s — rallenta i nemici nell'aura\nVelocità nemici ×%.2f · raggio %d\nScala con Scienza (%d)" % [
+				nome, float(s["slow"]), int(def["raggio"]), GameState.get_stat("scienza")]
+		"totem":
+			return "%s — danno ad area\nDanno %d · raggio AoE %d · ogni %.1fs\nScala con Scienza/Spionaggio" % [
+				nome, int(s["danno"]), int(s["aoe"]), float(def["cadenza"])]
+	return nome
 
 
 func _on_blocco_distrutto(slot: int) -> void:
@@ -1191,6 +1228,25 @@ func _mostra_esito(esito: String) -> void:
 
 	AudioManager.play_sfx("ledger_unlock" if vinto else "stat_down")
 
+	if vinto:
+		# Momento epico: lampo dorato a tutto schermo + titolo che entra con scatto + shake.
+		var flash: ColorRect = ColorRect.new()
+		flash.color = Color(1.0, 0.86, 0.42, 0.0)
+		flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ui.add_child(flash)
+		var ft: Tween = create_tween()
+		ft.tween_property(flash, "color:a", 0.5, 0.12)
+		ft.tween_property(flash, "color:a", 0.0, 0.55)
+		ft.tween_callback(flash.queue_free)
+		t1.pivot_offset = t1.size * 0.5
+		t1.scale = Vector2(0.6, 0.6)
+		var pt: Tween = create_tween()
+		pt.tween_property(t1, "scale", Vector2.ONE, 0.5) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		AudioManager.play_sfx("quest_complete")
+		scuoti_forte()
+
 
 func _riprova() -> void:
 	for c in _world.get_children():
@@ -1292,9 +1348,9 @@ func _aggiorna_diplo() -> void:
 		return
 	var parti: Array[String] = []
 	if not _alleati_civ.is_empty():
-		parti.append("Alleati: %s" % ", ".join(_alleati_civ))
+		parti.append("▲ Alleati: %s" % ", ".join(_alleati_civ))
 	if not _ostili_civ.is_empty():
-		parti.append("Ostili: %s" % ", ".join(_ostili_civ))
+		parti.append("▼ Ostili: %s" % ", ".join(_ostili_civ))
 	_diplo_label.text = "   ·   ".join(parti)
 	_diplo_label.visible = not parti.is_empty()
 

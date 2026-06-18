@@ -175,5 +175,12 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   + README aggiornati. Rimosso `Consigliere.png`. **Committato e pushato su `upstream/main`** (PeppeCarone),
   commit `1767b34`. Resta opzionale: Era 3, §P9 medaglioni unificati, build `.exe` (manuale).
 
+- **2026-06-18 (3)** — **Rifiniture da playtest (UX/accessibilità/wow).** Banner di transizione
+  prima dell'Assedio (`main._mostra_card_assedio`); tooltip carte-unità coi numeri reali
+  (`siege._stat_unita`/`_tooltip_unita`); simboli oltre al colore (✓/✗ sui costi, ▲/▼ sui rapporti
+  in main e Assedio) per daltonismo; vittoria Assedio cinematografica (lampo dorato + titolo
+  scale-pop + shake); testo decisioni più arioso. Verificato a schermo. Resta opzionale lato utente:
+  rigenerare `roccaforte` Era 2 painterly (prompt §P7 7c).
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*

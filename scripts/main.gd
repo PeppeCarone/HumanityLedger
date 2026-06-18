@@ -206,7 +206,9 @@ func _ready() -> void:
 	# più vista del gioco (audit UI #4).
 	proposer_text_label.add_theme_font_size_override("font_size", 23)
 	proposer_text_label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75))
-	proposer_text_label.add_theme_constant_override("line_spacing", 8)
+	# Più aria tra le righe + a-capo morbido: i testi lunghi respirano e si leggono meglio.
+	proposer_text_label.add_theme_constant_override("line_spacing", 11)
+	proposer_text_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_applica_cornici()
 	_crea_vignette()
 	_crea_richiamo_label()
@@ -892,6 +894,61 @@ func _avvia_assedio(era: int) -> void:
 	_set_decision_visible(false)
 	call_button.visible = false
 	arriving_portrait.visible = false
+	# Title-card che prepara al cambio di genere (gestionale → difesa) prima dell'Assedio.
+	_mostra_card_assedio(era)
+
+
+# Cartello di transizione: avvisa che ora si difende il villaggio, poi istanzia l'Assedio
+# sotto la card e la dissolve per rivelarlo. Riduce lo spaesamento alla prima volta.
+func _mostra_card_assedio(era: int) -> void:
+	var card: CanvasLayer = CanvasLayer.new()
+	card.layer = 25
+	var root: Control = Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.add_child(root)
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.02, 0.012, 0.02, 0.93)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(dim)
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 16)
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(vb)
+	var t1: Label = Label.new()
+	t1.text = "L'ASSEDIO"
+	t1.add_theme_font_size_override("font_size", 64)
+	t1.add_theme_color_override("font_color", Color(0.92, 0.6, 0.42))
+	t1.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	t1.add_theme_constant_override("outline_size", 6)
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var tf: Font = _font_titoli()
+	if tf != null:
+		t1.add_theme_font_override("font", tf)
+	vb.add_child(t1)
+	var t2: Label = Label.new()
+	t2.text = "Il villaggio è sotto attacco — difendilo.\nLe stat che hai coltivato diventano il tuo esercito."
+	t2.add_theme_font_size_override("font_size", 22)
+	t2.add_theme_color_override("font_color", Color(0.86, 0.8, 0.66))
+	t2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	t2.add_theme_constant_override("outline_size", 4)
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(t2)
+	add_child(card)
+	root.modulate.a = 0.0
+	AudioManager.play_sfx("stat_down")
+	var t: Tween = create_tween()
+	t.tween_property(root, "modulate:a", 1.0, 0.45).set_trans(Tween.TRANS_SINE)
+	t.tween_interval(1.4)
+	t.tween_callback(_istanzia_assedio.bind(era))
+	t.tween_property(root, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
+	t.tween_callback(card.queue_free)
+
+
+func _istanzia_assedio(era: int) -> void:
+	if siege_instance != null and is_instance_valid(siege_instance):
+		return
 	siege_instance = SiegeArena.new()
 	siege_instance.configura(era)   # PRIMA di add_child: legge le stat della run
 	siege_instance.assedio_concluso.connect(_on_assedio_concluso.bind(era), CONNECT_ONE_SHOT)
@@ -1472,7 +1529,9 @@ func _refresh_rapporti() -> void:
 			face.texture = load(face_path)
 		row.add_child(face)
 		var lbl: Label = Label.new()
-		lbl.text = "%s\n%s%d" % [nome, segno, valore]
+		# Glifo di stato (▲ alleato / ▼ ostile / • neutro) oltre al colore del bordo.
+		var glifo: String = "▲" if valore > 0 else ("▼" if valore < 0 else "•")
+		lbl.text = "%s %s\n%s%d" % [glifo, nome, segno, valore]
 		lbl.add_theme_font_size_override("font_size", 15)
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		var col_val: Color = Color(0.6, 1.0, 0.6) if valore > 0 else (Color(1.0, 0.6, 0.6) if valore < 0 else Color(1, 1, 1, 0.8))
@@ -2026,7 +2085,8 @@ func _riga_costo(icon: Texture2D, etichetta: String, valore: String, ok: bool) -
 		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hb.add_child(ic)
 	var l: Label = Label.new()
-	l.text = "%s  %s" % [etichetta, valore]
+	# Glifo ✓/✗ oltre al colore: leggibile anche con daltonismo (accessibilità).
+	l.text = "%s  %s  %s" % ["✓" if ok else "✗", etichetta, valore]
 	l.add_theme_font_size_override("font_size", 16)
 	l.add_theme_color_override("font_color", Color(0.62, 0.95, 0.62) if ok else Color(1.0, 0.6, 0.55))
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
