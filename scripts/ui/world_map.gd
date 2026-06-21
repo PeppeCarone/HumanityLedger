@@ -108,25 +108,11 @@ func _layer_node(nome: String) -> TextureRect:
 # Vignette radiale sopra i layer-mappa (ma sotto Header/Footer): sfuma i bordi e
 # il letterbox nel buio invece di lasciarli netti (audit AAA #3/#9). Mouse-ignore.
 func _crea_vignette_mappa() -> void:
-	var grad: Gradient = Gradient.new()
-	grad.colors = PackedColorArray([
-		Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.0), Color(0.02, 0.015, 0.03, 0.62)])
-	grad.offsets = PackedFloat32Array([0.0, 0.52, 1.0])
-	var tex: GradientTexture2D = GradientTexture2D.new()
-	tex.gradient = grad
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(0.5, 1.18)
-	tex.width = 512
-	tex.height = 512
-	var tr: TextureRect = TextureRect.new()
-	tr.name = "VignetteMappa"
-	tr.texture = tex
-	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	map_root.add_child(tr)
+	# Shader riusabile (UiStyle): vignette piu' marcata e leggermente fredda per affondare
+	# il letterbox della mappa nel buio. Stesso effetto di prima, una texture in meno.
+	var v: ColorRect = UiStyle.crea_vignette(0.62, Color(0.02, 0.015, 0.03, 1.0))
+	v.name = "VignetteMappa"
+	map_root.add_child(v)
 
 
 func _ready() -> void:

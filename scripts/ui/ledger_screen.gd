@@ -169,10 +169,44 @@ const EVENTI_REGISTRY: Dictionary = {
 
 func _ready() -> void:
 	background.gui_input.connect(_on_background_input)
+	_aggiungi_cornici()
 	_setup_contatori()
 	_populate_lore()
 	_populate_artefatti()
 	_populate_eventi()
+
+
+# Ornamenti d'angolo (§8f, Docs/13): incorniciano il pannello come un tomo rilegato,
+# togliendo il vuoto agli angoli scuri. Riusa gli asset corner_* gia' presenti in
+# Assets/art/ui/; se mancano, semplicemente non aggiunge nulla (fallback-safe).
+func _aggiungi_cornici() -> void:
+	if UiStyle.ui_texture("corner_tl") == null:
+		return
+	var p: Control = $Panel
+	var L: float = p.offset_left
+	var T: float = p.offset_top
+	var R: float = p.offset_right
+	var B: float = p.offset_bottom
+	var s: float = 132.0
+	var ang: Array = [
+		["corner_tl", Vector2(L, T)],
+		["corner_tr", Vector2(R - s, T)],
+		["corner_bl", Vector2(L, B - s)],
+		["corner_br", Vector2(R - s, B - s)],
+	]
+	for a in ang:
+		var tex: Texture2D = UiStyle.ui_texture(a[0])
+		if tex == null:
+			continue
+		var tr: TextureRect = TextureRect.new()
+		tr.texture = tex
+		tr.position = a[1]
+		tr.size = Vector2(s, s)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate = Color(1, 1, 1, 0.92)
+		add_child(tr)
 
 
 # Il progresso meta a colpo d'occhio (alla Lapse): quanto resta da scoprire.

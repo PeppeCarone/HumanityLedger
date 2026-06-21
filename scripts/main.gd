@@ -191,6 +191,8 @@ var edificio_panel: CanvasLayer = null
 var siege_instance: CanvasLayer = null
 var _idle_decisione_tweens: Array[Tween] = []
 var _godray: Control = null
+var _vignette: ColorRect = null
+var _vignette_tween: Tween = null
 
 
 func _ready() -> void:
@@ -300,9 +302,15 @@ func _avvia_idle_decisione() -> void:
 		_idle_decisione_tweens.append(bt)
 		if _scena_corrente() == BG_CAVERNA:
 			_crea_godray()
+	# J12: col mystery desto, la vignette della vista decisione vira a un viola tenue —
+	# segnale ambientale "qualcosa non torna", senza una parola di testo.
+	if GameState.mystery_attiva:
+		_vira_vignette(Color(0.16, 0.04, 0.22, 1.0), 0.46, 1.4)
 
 
 func _ferma_idle_decisione() -> void:
+	# Tornando al villaggio la vignette ridiventa neutra (annulla J12).
+	_vira_vignette(Color(0, 0, 0, 1.0), 0.36, 0.9)
 	for t in _idle_decisione_tweens:
 		if t != null and t.is_valid():
 			t.kill()
@@ -314,6 +322,21 @@ func _ferma_idle_decisione() -> void:
 	if _godray != null and is_instance_valid(_godray):
 		_godray.queue_free()
 	_godray = null
+
+
+# Anima la tinta+intensita' della vignette (J12). No-op sicuro se manca shader/materiale.
+func _vira_vignette(tint: Color, intensity: float, dur: float) -> void:
+	if _vignette == null or not is_instance_valid(_vignette):
+		return
+	var mat: ShaderMaterial = _vignette.material as ShaderMaterial
+	if mat == null:
+		return
+	if _vignette_tween != null and _vignette_tween.is_valid():
+		_vignette_tween.kill()
+	_vignette_tween = create_tween()
+	_vignette_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT).set_parallel(true)
+	_vignette_tween.tween_property(mat, "shader_parameter/tint", tint, dur)
+	_vignette_tween.tween_property(mat, "shader_parameter/intensity", intensity, dur)
 
 
 # Raggio di luce dall'alto (godray) nella caverna: fascio caldo che ondeggia piano,
@@ -434,26 +457,12 @@ func _crea_richiamo_label() -> void:
 
 
 func _crea_vignette() -> void:
-	# Vignettatura cinematografica: angoli scuriti, centro pulito. Sta sopra tutta
-	# la UI di scena (i CanvasLayer di pausa/ledger restano comunque sopra).
-	var grad: Gradient = Gradient.new()
-	grad.colors = PackedColorArray([Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.0), Color(0, 0, 0, 0.36)])
-	grad.offsets = PackedFloat32Array([0.0, 0.62, 1.0])
-	var tex: GradientTexture2D = GradientTexture2D.new()
-	tex.gradient = grad
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(0.5, 1.25)
-	tex.width = 512
-	tex.height = 512
-	var tr: TextureRect = TextureRect.new()
-	tr.name = "Vignette"
-	tr.texture = tex
-	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	$UI.add_child(tr)
+	# Vignettatura cinematografica (shader riusabile): angoli scuriti, centro pulito. Sta
+	# sopra tutta la UI di scena (i CanvasLayer di pausa/ledger restano comunque sopra).
+	# La tinta vira al viola durante la vista decisione col mystery attivo (J12).
+	_vignette = UiStyle.crea_vignette(0.36, Color(0, 0, 0, 1))
+	_vignette.name = "Vignette"
+	$UI.add_child(_vignette)
 
 
 # Pulviscolo d'atmosfera per era: in Era 1 motes caldi che scendono lenti nella
@@ -1374,6 +1383,13 @@ func _on_item_dropped(data: Dictionary) -> void:
 	var tipo_cons: String = _tipo_conseguenza(option.effetto)
 	# Chiudi la view-decisione: si torna al villaggio dove si vede la conseguenza.
 	_chiudi_decisione_morbida()
+	# J13: impact-frame al drop — lampo bianco + micro-pausa (niente Engine.time_scale)
+	# perche' la scelta "atterri" con peso prima che il mondo reagisca.
+	_flash_drop()
+	await get_tree().create_timer(0.06).timeout
+	if not is_inside_tree():
+		processing_drop = false
+		return
 	if village != null:
 		village.applica_conseguenza(tipo_cons, _intensita_conseguenza(option.effetto))
 		if tipo_cons == "costruzione":
@@ -1544,6 +1560,19 @@ func _stat_delta_float(label: Label, delta: int) -> void:
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t.tween_property(fl, "modulate:a", 0.0, 0.9).set_ease(Tween.EASE_IN)
 	t.chain().tween_callback(fl.queue_free)
+
+
+# J13: lampo bianco brevissimo su tutta la scena al momento del drop. Overlay autonomo
+# (si auto-libera), mouse-ignore, sopra l'UI ma sotto pausa/Ledger.
+func _flash_drop() -> void:
+	var f: ColorRect = ColorRect.new()
+	f.color = Color(1, 1, 1, 0.45)
+	f.set_anchors_preset(Control.PRESET_FULL_RECT)
+	f.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$UI.add_child(f)
+	var t: Tween = create_tween()
+	t.tween_property(f, "color:a", 0.0, 0.13).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	t.tween_callback(f.queue_free)
 
 
 func _screen_shake(tipo: String) -> void:

@@ -25,6 +25,7 @@ const COL_BORDO_HOVER: Color = Color(0.93, 0.72, 0.38)
 
 const UI_DIR: String = "res://Assets/art/ui/"
 const ICON_DIR: String = "res://Assets/art/icons/"
+const VIGNETTE_SHADER: String = "res://Assets/shaders/vignette.gdshader"
 # Margini 9-slice (angoli) e padding contenuto, calibrati sui frame §P8 reali:
 # panel.png ha angoli ornati ~84px; button_*.png capi ornati ~60×22.
 const PANEL_PATCH: int = 84
@@ -124,6 +125,28 @@ func icona(categoria: String, nome: String) -> Texture2D:
 # True se esiste un medaglione-cornice per incorniciare le icone in modo coerente.
 func ha_medaglione() -> bool:
 	return ui_texture("medallion") != null
+
+
+# Vignette cinematografica riusabile: ColorRect full-rect mouse-ignore con lo shader
+# `vignette.gdshader`. Il chiamante fa `parent.add_child(...)` e puo' animare la uniform
+# "tint" col tween (J12 mystery). `intensity` = alpha massima ai bordi. Fallback-safe:
+# se lo shader non c'e' (build senza import) ripiega su un rettangolo trasparente (no-op,
+# nessun artefatto) invece di crashare.
+func crea_vignette(intensity: float = 0.36, tint: Color = Color(0, 0, 0, 1)) -> ColorRect:
+	var cr: ColorRect = ColorRect.new()
+	cr.color = Color(1, 1, 1, 1)  # irrilevante: lo shader sovrascrive COLOR
+	cr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var shader: Shader = load(VIGNETTE_SHADER) if ResourceLoader.exists(VIGNETTE_SHADER) else null
+	if shader != null:
+		var mat: ShaderMaterial = ShaderMaterial.new()
+		mat.shader = shader
+		mat.set_shader_parameter("tint", tint)
+		mat.set_shader_parameter("intensity", intensity)
+		cr.material = mat
+	else:
+		cr.color = Color(tint.r, tint.g, tint.b, 0.0)  # nessuno shader: niente artefatti
+	return cr
 
 
 # --- Interni -----------------------------------------------------------------

@@ -99,4 +99,12 @@ Assets/art/icons/   stats/<stat>.png · strategie/<id>.png · risorse.png
   strategie (9) presenti in `art/stats|strategie`. Restano opzionali: §P9 medaglioni "unificati"
   (icons/stats|strategie/...) e glifi tasti §9f — il set attuale è già coerente e finito.
 
+- **2026-06-21** — **Vignette unificata + cornici tomo.** Aggiunto un 4° shader riusabile
+  `Assets/shaders/vignette.gdshader` con helper `UiStyle.crea_vignette(intensity, tint)`
+  (ColorRect full-rect, mouse-ignore, fallback-safe): le due vignette `GradientTexture2D`
+  di `main` e `world_map` sono state sostituite e il menu ora la usa anch'esso. La uniform
+  `tint` è animabile → J12 (decisione viola col mystery). **§8f angoli**: cablati sul Ledger
+  (`ledger_screen._aggiungi_cornici`, riusa `corner_tl/tr/bl/br`); menu/mappa lasciati senza
+  per non competere con gli sfondi dipinti. Nessun nuovo asset necessario.
+
 *File vivo. Prompt: `Docs/08-asset-prompts.md` (P0–P9).*

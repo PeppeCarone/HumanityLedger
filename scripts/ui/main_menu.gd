@@ -19,6 +19,12 @@ var opzioni_btn: Button = null
 func _ready() -> void:
 	if ResourceLoader.exists(BG_PATH):
 		background.texture = load(BG_PATH)
+	# Vignette cinematografica (stesso shader di villaggio/mappa): sopra lo sfondo, sotto
+	# i pulsanti. Isola il titolo e affonda i bordi nel buio.
+	var vignette: ColorRect = UiStyle.crea_vignette(0.34, Color(0, 0, 0, 1))
+	vignette.name = "Vignette"
+	add_child(vignette)
+	move_child(vignette, background.get_index() + 1)
 	nuova_btn.pressed.connect(_on_nuova)
 	continua_btn.pressed.connect(_on_continua)
 	ledger_btn.pressed.connect(_on_ledger)

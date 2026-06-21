@@ -23,15 +23,20 @@
 Tutto **codice puro**, nessun blocco da arte. Rapporto impatto/sforzo alto: chiude
 l'impressione "prototipo" sui pochi punti ancora deboli.
 
-- [ ] **[C] Vignette shader riusabile** (`09` #3): unico shader `canvas_item` su
-  menu, villaggio e mappa (oggi la vignette è una `TextureRect` a gradiente solo in
-  `main`). Isola il soggetto, nasconde i bordi.
-- [ ] **[C] Epilogo: box istruzioni** (`09` #5 / `10` #11): "Premi R/L" in un piccolo
-  riquadro bordato bronzo, non testo nudo. (Lo scrim a 3 stop è già fatto.)
-- [ ] **[C] Cornice pannello stat sinistro** (`10` #6): rifinire allineamento
-  numeri/margini dell'HUDPanel.
-- [ ] **[C] Cornici/ornamenti d'angolo** (`10` #12): su Ledger/Menu/Mappa → resa "tomo"
-  via `StyleBox`/9-patch procedurale.
+- [x] **[C] Vignette shader riusabile** (`09` #3): unico shader `canvas_item`
+  (`Assets/shaders/vignette.gdshader`) via helper `UiStyle.crea_vignette(intensity, tint)`,
+  cablato su **menu** (`main_menu`), **villaggio/decisione** (`main._crea_vignette`) e
+  **mappa** (`world_map._crea_vignette_mappa`) — sostituite le 2 `GradientTexture2D` 512².
+  Isola il soggetto, affonda bordi/letterbox nel buio. Verificato (`shot_menu`/`shot_era1`/
+  `shot_worldmap`/`shot_era1_decision`).
+- [x] **[C] Epilogo: box istruzioni** (`09` #5 / `10` #11): già fatto —
+  `ending_screen._box_footer` mette "Premi R/L" in un cartiglio bronzo centrato.
+- [ ] **[C] Cornice pannello stat sinistro** (`10` #6): allineamento numeri/margini già
+  leggibile a schermo; rifinitura rimandata (nessun difetto evidente).
+- [x] **[C] Cornici/ornamenti d'angolo** (`10` #12): **Ledger** incorniciato come "tomo"
+  con i 4 `corner_*` (`ledger_screen._aggiungi_cornici`, fallback-safe). Menu/Mappa lasciati
+  senza (sfondi dipinti già ricchi + ora vignette) per non competere col fondale. Verificato
+  (`shot_ledger`).
 - [x] **[C] Tabella costi nel modale build/upgrade** (`10` #1): righe costo allineate
   con icona risorsa + thumbnail edificio (`main._riga_costo`/`_thumb_edificio`/`_tex_edificio`).
   Icona-edificio anche sui pulsanti del modale build. Verificato (`shot_upgrade_panel`/`shot_build_panel`).
@@ -40,14 +45,18 @@ l'impressione "prototipo" sui pochi punti ancora deboli.
   *Resta opzionale: guerra che colpisce un edificio, alleanza su due slot.*
 - [x] **[C] J8 — Rapporti civiltà animati**: flash colorato sul cambio + ingresso a cascata
   delle righe (`main._refresh_rapporti`, stato `_rapporti_prec`).
-- [ ] **[C] J12 — Vignette animata vista decisione** (tinta viola se mystery) — dipende
-  dallo shader del primo punto.
+- [x] **[C] J12 — Vignette animata vista decisione**: col mystery desto la vignette della
+  decisione vira a un viola tenue (tween delle uniform `tint`/`intensity` dello shader,
+  `main._vira_vignette`, agganciato a `_avvia/_ferma_idle_decisione`). Segnale ambientale
+  "qualcosa non torna", senza testo.
 - [x] **[C] J15 — Bandierine alleanza sul villaggio**: uno stendardo radicato per civilta'
   alleata (rapporto >= soglia), col volto dell'ambasciatore nel medaglione. `village_view.mostra_bandiere_alleati`
   + `main._refresh_bandiere_alleati` (da `_refresh_rapporti`/`_aggiorna_sfondo_era`). Verificato (`shot_villaggio_alleati`).
 - [ ] **[C] J16 — Ciclo giorno/notte** legato allo step della quest (overlay colore).
-- [ ] **[C] J13 — Micro slow-mo/flash al drop** (fallback sicuro: flash bianco +
-  micro-delay, niente `Engine.time_scale`).
+- [x] **[C] J13 — Micro slow-mo/flash al drop**: lampo bianco full-rect (alpha 0.45→0 in
+  ~130ms) + micro-pausa (~60ms) al drop risolto (`main._flash_drop`), **senza**
+  `Engine.time_scale`. Dà peso d'impatto al gesto→conseguenza (il momento più guardato nel
+  video, `Docs/15` seg.1).
 - [x] J17 particelle per era · J10 fumo · J11 prosperità · J1–J6/J14 · audit `10` #2/#3/#4/#5/#7/#8/#10 (vedi log `09`/`10`).
 
 > Avvertenza ricorrente: ogni nuovo `Tween` va killato al reset run (pattern `stat_tweens`).
@@ -117,10 +126,12 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   exclude tools/Docs/.md/Godot-exe). **Da fare a mano** (export templates non installati in questo
   ambiente): in Godot → *Project > Export > Add Windows Desktop > Export Project* su
   `exports/HumanityLedger.exe`, poi zippare la cartella `exports/`. Verifica su macchina pulita.
-- [ ] **Video di presentazione**: cattura le schermate forti (menu, decisione, villaggio,
-  **Assedio**, epilogo, mappa). L'Assedio è il momento "wow" per il video.
-- [ ] **Relazione**: architettura data-driven, scelte di design (no game over, stat→esercito),
-  pipeline asset, riferimenti (Lapse, TD design). I doc `00`–`12` sono già la base.
+- [~] **Video di presentazione**: **script shot-by-shot pronto in `Docs/15-video-demo.md`**
+  (scaletta ~3:30 con stati da seminare e inquadrature `shot_*`). Resta la cattura/montaggio
+  a mano (OBS). L'Assedio è il momento "wow" per il video.
+- [~] **Relazione**: **bozza completa in `Docs/14-relazione.md`** (architettura data-driven,
+  scelte di design no game over/stat→esercito, pipeline asset, riferimenti Lapse/TD). Restano da
+  completare solo le parti soggettive marcate `[DA COMPLETARE dal team]` (ruoli, ore, retrospettiva).
 - [x] **[C] Pass anti-debug pre-consegna**: `_debug_input` (R/B/1-8) già dietro
   `OS.is_debug_build()` (inattivo in release); nessun `print()` di debug nei runtime script;
   nessuna label grezza always-on. Verificato 2026-06-18.
@@ -210,6 +221,30 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   Aggiunti **godrays** nella caverna (fascio caldo che ondeggia, `main._crea_godray`, gated a `BG_CAVERNA`,
   riposizionato a destra fuori dal pannello proponente). Vento-vertex saltato (già coperto dal dondolio
   edifici). Verificato a schermo.
+
+- **2026-06-20** — **Sessione consegna d'esame.** Focus su deliverable (gioco già
+  feature-complete). **QA & de-risk**: import + `validate_scenes` (0 failure) + `balance_sim`
+  (6/6 finali + Assedio vincibile) + `asset_audit` (nessun riferimento rotto) + screenshot di
+  tutte le schermate riguardati. **Bug reale trovato e corretto**: `village_view._avvia_braci`
+  aggiungeva una `CPUParticles2D` all'array tipizzato `Array[TextureRect]` `_edifici_nodi` →
+  crash a ogni avvio Era 1; tipo allargato a `Array[Node]` (è una free-list). **Scritti i
+  deliverable**: `Docs/14-relazione.md` (relazione completa, parti soggettive a placeholder) e
+  `Docs/15-video-demo.md` (script video ~3:30). README aggiornato (indice doc 10–15, licenza).
+  Resta manuale: build `.exe` (template export), cattura/montaggio video, compilare le sezioni
+  `[DA COMPLETARE dal team]` della relazione.
+
+- **2026-06-21** — **Sprint finale di rifinitura visiva (video-driven).** Chiusi gli ultimi
+  item code-only della §A puntando alle schermate del video (`Docs/15`). **Vignette shader
+  unificata**: `Assets/shaders/vignette.gdshader` + `UiStyle.crea_vignette` (4° shader
+  riusabile), sostituite le 2 vignette `GradientTexture2D` e cablata anche su menu →
+  inquadratura cinematografica coerente su menu/villaggio/decisione/mappa. **J12** vignette
+  decisione viola col mystery (`_vira_vignette`). **J13** micro-flash+pausa al drop
+  (`_flash_drop`, no `time_scale`). **Cornici "tomo"** sul Ledger (4 `corner_*`,
+  `_aggiungi_cornici`). QA verde (import+validate 0 failure, balance 6/6+Assedio, audit
+  pulito) e verifica a schermo di tutte le schermate toccate (`shot_menu`/`shot_era1`/
+  `shot_worldmap`/`shot_era1_decision`/`shot_ledger`). Roadmap §A allineata (corretta la
+  voce stale "Epilogo: box istruzioni", già fatta). Resta manuale: build `.exe`
+  (templates non installati qui), cattura video, parti soggettive relazione.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio).*
