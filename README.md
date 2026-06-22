@@ -102,6 +102,7 @@ Tutta la documentazione di design vive in `Docs/`:
 | [`13-redesign-estetico.md`](Docs/13-redesign-estetico.md) | Redesign estetico (UI kit) |
 | [`14-relazione.md`](Docs/14-relazione.md) | **Relazione di progetto (consegna d'esame)** |
 | [`15-video-demo.md`](Docs/15-video-demo.md) | Script del video demo |
+| [`16-piano-sessione.md`](Docs/16-piano-sessione.md) | Piano di sviluppo sessione 2026-06-22 (Assedio vivo) |
 
 C'è anche un pitch in PowerPoint: `Docs/HumanityLedger_Pitch.pptx`.
 

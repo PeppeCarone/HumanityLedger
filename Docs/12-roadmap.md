@@ -96,11 +96,13 @@ l'esercito.** No game over. Fasi (dettaglio e architettura nel doc 11):
   `siege._esito_vittoria` + `ESITO_INFO`), ricompense+conseguenze no-game-over (`main._applica_esito_assedio`,
   `_danneggia_edificio_assedio`), **trofeo Ledger** (`lore_trofeo_assedio` + lore immacolata/sopraffatto),
   save `eraN_assedio_fatto/_esito`. Verificato a schermo (`shot_assedio_esito`).
-- [~] **[A] Fase G — Art**: **hook di caricamento sprite già cablati con fallback** per il
-  sottoinsieme Fase B (campo, roccaforte, 4 `unit_*`, `enemy`, proiettili, icone barra — vedi
-  §P7 righe ✓): basta droppare i PNG in `Assets/art/siege/` e l'Assedio li usa da solo
-  (verificato end-to-end con segnaposto). Restano da generare gli asset veri + cablare
-  boss/nemici-per-tipo/UI boss.
+- [x] **[A] Fase G — Art**: asset Assedio generati e cablati (campo, roccaforte, 4 `unit_*`,
+  `enemy`, boss Era1/2, proiettili, `boss_bar`/`wave_banner`, icone unità). **2026-06-22: cablati
+  anche i 7 sprite nemici per-tipo** (era1 cinghiale/iena/orso; era2 predone/scheletro/minotauro/
+  golem) via `CREATURE_ONDATA`/`spawn` in `siege.gd` — prima erano in `Assets/` ma inutilizzati:
+  ogni ondata mescola creature diverse e le pesanti (orso/minotauro/golem) entrano più grandi.
+  + ombre di contatto su nemici/difensori e muzzle-flash di tiro (juice). Verificato a schermo
+  (`shot_assedio`/`_boss`/`_era2`).
 - [x] **[C] Fase H — Balance + verifica**: aggiunto `assedio_check`/`assedio_report` a
   `balance_sim.py` (euristico mirror di `siege.gd`, no-game-over): i 6 finali restano raggiungibili
   e l'Assedio è "sfida" vincibile (profilo tipico ratio ~1.2, militare-trascurato ~0.92) per era 1/2.
@@ -246,5 +248,17 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   voce stale "Epilogo: box istruzioni", già fatta). Resta manuale: build `.exe`
   (templates non installati qui), cattura video, parti soggettive relazione.
 
+- **2026-06-22** — **L'Assedio: da "TD funzionale" a "climax vivo" (sessione ripresa
+  sviluppo).** Analisi completa del gioco (QA verde: validate 0 failure, balance 6/6 + Assedio
+  vincibile, asset audit pulito; riguardate tutte le schermate). Scelta strategica: il boss
+  fight è il centro del video ma la schermata leggeva "campo vuoto". Causa trovata: i **7 sprite
+  nemici per-tipo erano in repo ma non cablati** (lo spawn usava solo `enemy.png`). Fatto, tutto
+  in `scripts/siege/`: `CREATURE_ONDATA` per era + assegnazione creatura per spawn, sprite
+  `enemy_<tipo>` con fallback, creature pesanti più grandi; ombre di contatto su nemici/difensori;
+  muzzle-flash al tiro; helper `spawn_enemy_test` + seeding mandria mista nello `shoot.gd`
+  (gli shot ora mostrano la battaglia, non un campo spoglio). Verificato a schermo. Piano di
+  sessione in `Docs/16-piano-sessione.md`. Resta manuale: build `.exe`, video, parti soggettive
+  relazione.
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
-`11` (Assedio).*
+`11` (Assedio), `16` (piano di sessione 2026-06-22).*

@@ -99,6 +99,15 @@ func vivo() -> bool:
 
 func _draw() -> void:
 	var rallentato: bool = _t < _slow_fino
+	# Ombra di contatto: àncora la figura al terreno (niente "sprite che fluttua").
+	var so: PackedVector2Array = PackedVector2Array()
+	var sy: float = raggio * 0.78
+	var sw: float = raggio * 0.95
+	var sh: float = raggio * 0.30
+	for i in range(16):
+		var a: float = TAU * float(i) / 16.0
+		so.append(Vector2(cos(a) * sw, sy + sin(a) * sh))
+	draw_colored_polygon(so, Color(0.04, 0.03, 0.02, 0.32))
 	if sprite != null:
 		# Sprite generato (guarda a sinistra): rimpiazza il cerchio placeholder.
 		var tint: Color = Color(0.72, 0.86, 1.1) if rallentato else Color.WHITE

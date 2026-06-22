@@ -168,6 +168,13 @@ func _run() -> void:
 	siege.schiera_unita_test(3, "bloccatore")   # corsia 1
 	siege.schiera_unita_test(7, "sciamano")     # corsia 2
 	siege.schiera_unita_test(8, "totem")        # corsia 2
+	# Mandria mista per mostrare i nemici per-tipo (cinghiale/iena/orso) sparsi sul campo.
+	siege.spawn_enemy_test("cinghiale", 0, 1500.0)
+	siege.spawn_enemy_test("iena", 0, 1280.0)
+	siege.spawn_enemy_test("orso", 1, 1420.0)
+	siege.spawn_enemy_test("cinghiale", 1, 1180.0)
+	siege.spawn_enemy_test("iena", 2, 1520.0)
+	siege.spawn_enemy_test("orso", 2, 1320.0)
 	await get_tree().create_timer(3.0).timeout
 	var simg: Image = get_viewport().get_texture().get_image()
 	simg.save_png(OUT + "shot_assedio.png")
@@ -186,6 +193,8 @@ func _run() -> void:
 	siegeb.schiera_unita_test(0, "tiratore")
 	siegeb.schiera_unita_test(4, "bloccatore")
 	siegeb.schiera_unita_test(7, "totem")
+	siegeb.spawn_enemy_test("orso", 0, 1350.0)
+	siegeb.spawn_enemy_test("iena", 2, 1450.0)
 	siegeb.spawn_boss_test(true)
 	await get_tree().create_timer(0.65).timeout
 	var bimg: Image = get_viewport().get_texture().get_image()
@@ -206,6 +215,10 @@ func _run() -> void:
 	siege2.schiera_unita_test(4, "bloccatore")
 	siege2.schiera_unita_test(5, "sciamano")
 	siege2.schiera_unita_test(8, "totem")
+	siege2.spawn_enemy_test("predone", 0, 1480.0)
+	siege2.spawn_enemy_test("scheletro", 0, 1280.0)
+	siege2.spawn_enemy_test("minotauro", 2, 1420.0)
+	siege2.spawn_enemy_test("golem", 1, 1520.0)
 	siege2.spawn_boss_test()
 	await get_tree().create_timer(2.0).timeout
 	var b2: Image = get_viewport().get_texture().get_image()

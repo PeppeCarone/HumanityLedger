@@ -145,6 +145,12 @@ func _draw() -> void:
 	# Raggio d'azione tenue (non per il bloccatore).
 	if ruolo != "blocco":
 		draw_arc(Vector2.ZERO, raggio_tiro, 0.0, TAU, 48, Color(colore.r, colore.g, colore.b, 0.07), 1.0)
+	# Ombra di contatto alla base (àncora l'unità alla piazzola).
+	var so: PackedVector2Array = PackedVector2Array()
+	for i in range(16):
+		var a: float = TAU * float(i) / 16.0
+		so.append(Vector2(cos(a) * 24.0, 13.0 + sin(a) * 7.0))
+	draw_colored_polygon(so, Color(0.04, 0.03, 0.02, 0.30))
 	if sprite != null:
 		# Sprite generato (guarda a destra): rimpiazza la forma placeholder.
 		var h: float = 82.0

@@ -666,6 +666,17 @@ const NOMI_ONDATA: Dictionary = {
 	2: ["I predoni all'orizzonte", "I non-morti avanzano", "I colossi di pietra"],
 }
 
+# Creature per ondata (sprite Assets/art/siege/era<N>/enemy_<nome>.png, già generati).
+# Una lista per ogni ondata "normale"; lo spawn cicla la lista così la corsia mescola
+# le creature. L'ultima ondata è il boss (sprite a parte). Fallback a "enemy" se manca.
+const CREATURE_ONDATA: Dictionary = {
+	1: [["cinghiale", "iena"], ["iena", "orso"], ["orso", "cinghiale"]],
+	2: [["predone"], ["scheletro", "predone"], ["minotauro", "golem"]],
+}
+# Creature "pesanti": entrano più grandi (raggio maggiore), coerenti con le ondate lente
+# ad alto HP ("Le grandi bestie scendono" / "I colossi di pietra").
+const CREATURE_GRANDI: Array[String] = ["orso", "minotauro", "golem"]
+
 # Fase D: ondate crescenti data-driven (tabella per era), ritmo "wave burst" con pause di
 # rischieramento, scalate da era e civiltà ostili. L'ultima ondata è il BOSS.
 func _prepara_ondate() -> void:
@@ -681,8 +692,10 @@ func _prepara_ondate() -> void:
 		{"n": 6 + extra, "hp": 26, "vel": 82.0, "danno": 9,  "bounty": 3, "gap": 0.85},
 		{"n": 4 + extra, "hp": 50, "vel": 60.0, "danno": 14, "bounty": 4, "gap": 1.3},
 	]
+	var creature: Array = CREATURE_ONDATA.get(era, CREATURE_ONDATA[1])
 	for i in range(base.size()):
 		var b: Dictionary = base[i]
+		var lista_cr: Array = creature[i % creature.size()]
 		var spawns: Array = []
 		for k in range(int(b["n"])):
 			spawns.append({
@@ -692,6 +705,7 @@ func _prepara_ondate() -> void:
 				"bounty": int(b["bounty"]),
 				"corsia": k % LANE_Y.size(),
 				"gap": float(b["gap"]),
+				"creatura": str(lista_cr[k % lista_cr.size()]),
 			})
 		_ondate.append({"nome": str(nomi[i % nomi.size()]), "spawns": spawns})
 	# Ondata finale: il BOSS dell'era.
@@ -744,7 +758,13 @@ func _spawn_enemy(d: Dictionary) -> void:
 	e.villaggio_x = VILLAGGIO_X
 	e.corsia = int(d.get("corsia", 0))
 	e.arena = self
-	e.sprite = _siege_tex("enemy")
+	# Sprite per-tipo (lupo/orso/scheletro/…) col generico "enemy" come fallback: dà
+	# varietà alla mandria. Le creature pesanti entrano più grandi.
+	var cr: String = str(d.get("creatura", ""))
+	var tex: Texture2D = _siege_tex("enemy_" + cr) if cr != "" else null
+	e.sprite = tex if tex != null else _siege_tex("enemy")
+	if cr in CREATURE_GRANDI:
+		e.raggio = 27.0
 	_world.add_child(e)
 	e.global_position = Vector2(SPAWN_X, LANE_Y[e.corsia])
 	e.morto.connect(func(b: int) -> void: _on_enemy_morto(e, b))
@@ -1032,7 +1052,23 @@ func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggi
 	p.sprite = _fx_tex("proiettile_aoe") if aoe_raggio > 0.0 else _fx_tex("proiettile")
 	_world.add_child(p)
 	p.global_position = da + Vector2(0.0, -28.0)
+	_muzzle_flash(da + Vector2(8.0, -28.0))
 	AudioManager.play_sfx("drop_success")
+
+
+# Lampo di sparo all'origine del proiettile: piccolo bagliore caldo che svanisce.
+func _muzzle_flash(pos: Vector2) -> void:
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = _disc_texture()
+	s.centered = true
+	s.modulate = Color(1.0, 0.85, 0.5, 0.85)
+	s.scale = Vector2(0.22, 0.22)
+	_world.add_child(s)
+	s.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_property(s, "scale", Vector2(0.5, 0.5), 0.12)
+	t.parallel().tween_property(s, "modulate:a", 0.0, 0.12)
+	t.tween_callback(s.queue_free)
 
 
 func fx_esplosione(pos: Vector2, raggio: float) -> void:
@@ -1185,6 +1221,19 @@ func schiera_unita_test(slot: int, tipo: String) -> void:
 # Compatibilità con la Fase A (shoot harness): piazza un tiratore.
 func schiera_difensore_test(slot: int) -> void:
 	schiera_unita_test(slot, "tiratore")
+
+
+# Usato dallo shoot harness: spawn immediato di un nemico di un tipo, riposizionato a `x`
+# sulla corsia (per popolare la mandria nello screenshot senza aspettare le ondate).
+func spawn_enemy_test(creatura: String, corsia: int, x: float) -> void:
+	if _world == null:
+		return
+	_spawn_enemy({"hp": 30, "vel": 60.0, "danno": 8, "bounty": 2,
+		"corsia": corsia, "creatura": creatura})
+	if not _enemies.is_empty():
+		var e: SiegeEnemy = _enemies[-1]
+		if is_instance_valid(e):
+			e.global_position = Vector2(x, LANE_Y[clampi(corsia, 0, LANE_Y.size() - 1)])
 
 
 # Usato dallo shoot harness: fa entrare subito il boss (salta le ondate).
