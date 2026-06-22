@@ -878,6 +878,9 @@ func _spawn_boss(d: Dictionary) -> void:
 		_flash_info("%s È INFURIATO" % b.nome_boss.to_upper())
 		scuoti_forte()
 		_vignetta_furia_attiva())
+	b.frenesia_entrata.connect(func() -> void:
+		_flash_info("%s È IN FRENESIA!" % b.nome_boss.to_upper())
+		scuoti_forte())
 	_enemies.append(b)
 	_boss = b
 	_crea_barra_boss(b.nome_boss)

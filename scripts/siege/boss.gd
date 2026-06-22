@@ -13,7 +13,10 @@ class_name SiegeBoss
 
 signal abilita_usata(nome: String)
 signal furia_entrata
+signal frenesia_entrata
 signal stagger_cambiato(frac: float, vulnerabile: bool)
+
+var _frenesia: bool = false         # 3ª fase sotto il 25% HP: abilità a raffica
 
 # Tenuta / Stagger (Fase strategica): colpirlo riempie la "tenuta"; piena, il boss va in
 # VULNERABILE — vacilla, non usa abilità e subisce danno extra. È la finestra di burst che
@@ -88,6 +91,12 @@ func _process(delta: float) -> void:
 		_in_furia = true
 		_abil_t = minf(_abil_t, 1.2)
 		furia_entrata.emit()
+	# Frenesia (3ª fase) sotto il 25% HP: abilità a raffica — l'ultimo, disperato assalto.
+	if not _frenesia and float(hp) <= float(hp_max) * 0.25:
+		_frenesia = true
+		_in_furia = true
+		_abil_t = minf(_abil_t, 0.8)
+		frenesia_entrata.emit()
 
 	match _stato:
 		"entrata":
@@ -118,6 +127,21 @@ func _process(delta: float) -> void:
 			return
 		"dash":
 			position.x -= velocita * DASH_MULT * delta
+			# Contromossa: un BLOCCATORE sulla sua corsia FERMA la Carica (ci si schianta
+			# contro). Sfonda il muro ma il villaggio è salvo: leggere il telegrafo e tenere
+			# una corsia bloccata è la difesa giusta.
+			if arena != null:
+				var muro: Node = arena.cerca_blocco(corsia, position.x)
+				if muro != null and position.x > muro.global_position.x and position.x - muro.global_position.x <= 64.0:
+					muro.subisci_danno(70)
+					arena.scuoti_forte()
+					modulate = Color(1.5, 1.2, 1.1)
+					var tw: Tween = create_tween()
+					tw.tween_property(self, "modulate", Color.WHITE, 0.25)
+					_stato = "marcia"
+					_abil_t = _cooldown_abilita()
+					queue_redraw()
+					return
 			if position.x <= villaggio_x:
 				_arriva()
 			if _bt >= _dash_fino:
@@ -172,7 +196,7 @@ func _notifica_stagger() -> void:
 
 
 func _cooldown_abilita() -> float:
-	var base: float = 3.0 if _in_furia else 5.2
+	var base: float = 2.0 if _frenesia else (3.0 if _in_furia else 5.2)
 	return base + randf_range(-0.4, 0.6)
 
 
