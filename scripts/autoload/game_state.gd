@@ -309,19 +309,42 @@ func to_dict() -> Dictionary:
 
 
 func from_dict(data: Dictionary) -> void:
-	var stats: Dictionary = data.get("stats", {})
-	for stat_name in STAT_NAMES:
-		if stats.has(stat_name):
-			set_stat(stat_name, stats[stat_name])
-	popolazione = data.get("popolazione", INITIAL_POPOLAZIONE)
-	risorse = data.get("risorse", INITIAL_RISORSE)
-	era_corrente = data.get("era_corrente", 1)
-	atto_corrente = data.get("atto_corrente", 1)
-	quest_completate.assign(data.get("quest_completate", []))
-	flag_narrativi = data.get("flag_narrativi", {})
-	decisioni_chiave.assign(data.get("decisioni_chiave", []))
-	scelte = data.get("scelte", {})
-	rapporti_civilta = data.get("rapporti_civilta", {})
-	artefatto_equipaggiato = data.get("artefatto_equipaggiato", "")
-	mystery_attiva = data.get("mystery_attiva", false)
-	edifici_livelli = data.get("edifici_livelli", {})
+	# Caricamento difensivo: un save di schema vecchio/corrotto non deve mai crashare il
+	# boot. Ogni campo malformato (tipo inatteso) viene saltato e resta il default → al
+	# peggio il save degrada a partita pulita, mai un errore.
+	var stats: Variant = data.get("stats", {})
+	if stats is Dictionary:
+		for stat_name in STAT_NAMES:
+			if stats.has(stat_name) and (stats[stat_name] is int or stats[stat_name] is float):
+				set_stat(stat_name, int(stats[stat_name]))
+	popolazione = _as_int(data.get("popolazione"), INITIAL_POPOLAZIONE)
+	risorse = _as_int(data.get("risorse"), INITIAL_RISORSE)
+	era_corrente = _as_int(data.get("era_corrente"), 1)
+	atto_corrente = _as_int(data.get("atto_corrente"), 1)
+	quest_completate = _as_string_array(data.get("quest_completate"))
+	decisioni_chiave = _as_string_array(data.get("decisioni_chiave"))
+	var fn: Variant = data.get("flag_narrativi", {})
+	flag_narrativi = fn if fn is Dictionary else {}
+	var sc: Variant = data.get("scelte", {})
+	scelte = sc if sc is Dictionary else {}
+	var rc: Variant = data.get("rapporti_civilta", {})
+	rapporti_civilta = rc if rc is Dictionary else {}
+	var el: Variant = data.get("edifici_livelli", {})
+	edifici_livelli = el if el is Dictionary else {}
+	var ae: Variant = data.get("artefatto_equipaggiato", "")
+	artefatto_equipaggiato = ae if ae is String else ""
+	mystery_attiva = bool(data.get("mystery_attiva", false))
+
+
+func _as_int(v: Variant, fallback: int) -> int:
+	return int(v) if (v is int or v is float) else fallback
+
+
+func _as_string_array(v: Variant) -> Array[String]:
+	# Filtra a soli String: un elemento corrotto non fa crashare l'assign su Array[String].
+	var out: Array[String] = []
+	if v is Array:
+		for e in v:
+			if e is String:
+				out.append(e)
+	return out

@@ -224,7 +224,7 @@ func _ready() -> void:
 	GameState.risorse_changed.connect(_on_risorse_changed)
 	GameState.mystery_attivata.connect(_on_mystery_attivata)
 	GameState.rapporto_changed.connect(_on_rapporto_changed)
-	if village != null:
+	if is_instance_valid(village):
 		village.edificio_cliccato.connect(_on_edificio_cliccato)
 		village.plot_cliccato.connect(_on_plot_cliccato)
 	call_button.pressed.connect(_apri_decisione)
@@ -726,7 +726,7 @@ func _aggiorna_sfondo_era() -> void:
 	_aggiorna_scena_decisione()
 	_aggiorna_atmosfera()
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
-	if village != null:
+	if is_instance_valid(village):
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
@@ -1390,7 +1390,7 @@ func _on_item_dropped(data: Dictionary) -> void:
 	if not is_inside_tree():
 		processing_drop = false
 		return
-	if village != null:
+	if is_instance_valid(village):
 		village.applica_conseguenza(tipo_cons, _intensita_conseguenza(option.effetto))
 		if tipo_cons == "costruzione":
 			var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1)) + 1
@@ -1533,7 +1533,7 @@ func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_stat_delta_float(label, nuovo - vecchio)
 	AudioManager.play_sfx("stat_up" if nuovo > vecchio else "stat_down")
-	if village != null and (nome == "popolo" or nome == "tesoro"):
+	if is_instance_valid(village) and (nome == "popolo" or nome == "tesoro"):
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
 	_refresh_disabled_options()
 	_refresh_potenziabili()

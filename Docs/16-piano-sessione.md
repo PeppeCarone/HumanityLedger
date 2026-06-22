@@ -82,9 +82,8 @@ Ordine consigliato; `[C]` solo codice, `[A]` serve arte (non necessaria all'esam
 2. **[C] Pass di robustezza del loop gestionale**: rilettura mirata di `main.gd` + autoload
    a caccia di crash latenti (classe del bug typed-array del 2026-06-20), che la QA
    automatica non esercita. Alto valore difensivo per la demo dal vivo.
-3. **[C] Polish composizione Assedio (2° giro, se c'è tempo)**: parapetto in primo piano
-   + silhouette di orda lontana sull'orizzonte per profondità; punch del banner d'ondata;
-   vignetta rossa ai bordi durante la FURIA del boss.
+3. ~~**[C] Polish composizione Assedio (2° giro)**: parapetto, orda lontana, punch banner,
+   vignetta rossa FURIA.~~ **FATTO (2026-06-22 #2)** — vedi §6.
 4. ~~**[C] Varietà di gameplay Assedio**: comportamento distinto per creatura.~~
    **FATTO (2026-06-22)**: `CREATURE_PROFILI` in `siege.gd` dà a ogni creatura HP/velocità/
    danno/taglia propri + due abilità — **armatura** (golem: riduzione danno piatta, glifo
@@ -97,10 +96,34 @@ Ordine consigliato; `[C]` solo codice, `[A]` serve arte (non necessaria all'esam
 
 ## 5. Asset
 
-**Nessun nuovo asset richiesto da questa sessione**: l'arte dell'Assedio (inclusi i
-nemici per-tipo) era già in repo. I prompt per l'eventuale arte futura (parapetto,
-silhouette orda) restano da scrivere in `Docs/08` solo se si affronta il punto 3 del
-backlog.
+I 7 nemici per-tipo erano già in repo. **Aggiunti i prompt §7l (parapetto primo piano) e
+§7m (orda all'orizzonte) in `Docs/08`** per la profondità cinematografica del campo (vedi
+§6): code-only cablato e fallback-safe, gli asset si generano quando si vuole.
+
+## 6. Sessione #2 (2026-06-22) — i colpi finali al climax
+
+Chiuso il punto 3 del backlog. Due audit (Explore) hanno stabilito la leva: il loop
+gestionale è **già difensivo** (guard `is_inside_tree`/`is_instance_valid` dopo gli await),
+quindi niente grande sprint di robustezza; la leva vera è il **climax dell'Assedio** (centro
+del video). Fatto, tutto in `scripts/siege/siege.gd` salvo dove indicato:
+
+- **A1 — punch banner d'ondata** (`_mostra_banner`): scale-pop `TRANS_BACK` + colpetto
+  (`_scuoti`) al picco. Il banner "atterra".
+- **A2 — vignetta rossa della FURIA** (`_vignetta_furia_attiva`/`_pulsa`/`_dissolvi`):
+  riusa lo shader `vignette.gdshader` via `UiStyle.crea_vignette`, bordi rossi che pulsano
+  all'ingresso furia e a ogni abilità del boss, si dissolvono alla morte. Verificato a
+  schermo (boss Drago infuriato → bordi rossi, "IL DRAGO È INFURIATO").
+- **A3 — finisher morte boss** (`_finisher_boss`): poof maggiorato + `fx_esplosione` + lampo
+  bianco con breve hold (no `time_scale`, coerente J13).
+- **A4 — profondità** (`_costruisci_scena`): strati fallback-safe `orda_orizzonte` (dietro,
+  orizzonte) e `parapetto` (davanti alle entità, sopra la barra unità). Prompt §7l/§7m in `08`.
+- **De-risk lieve**: `GameState.from_dict` ora valida i tipi di ogni campo (save vecchio/
+  corrotto → degrada a partita pulita, mai crash); `village != null` → `is_instance_valid`
+  in `main.gd` (4 siti, incl. post-await).
+
+QA verde: `validate_scenes` failures=0, `balance_sim` 6/6 + Assedio invariato (estetica/
+difesa, nessun valore di combattimento toccato), `asset_audit` nessun riferimento rotto,
+26 screenshot renderizzati senza errori.
 
 ---
 

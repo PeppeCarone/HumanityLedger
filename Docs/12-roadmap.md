@@ -277,5 +277,17 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   il telegrafo del Drago (`spawn_boss_test(true)`). Verificato a schermo (`shot_assedio_boss`
   Colosso col Pestone, `shot_assedio_era2` Drago col Soffio).
 
+- **2026-06-22 (4)** — **Climax dell'Assedio: i colpi finali (sessione #2).** Due audit del
+  codice (Explore): il loop gestionale è già difensivo (guard `is_inside_tree`/`is_instance_valid`
+  post-await) → niente grande robustness sprint; leva = il climax (centro del video). Fatto in
+  `scripts/siege/siege.gd`: **A1** punch del banner d'ondata (scale-pop `TRANS_BACK` + `_scuoti`),
+  **A2** vignetta rossa della FURIA (`_vignetta_furia_attiva`, riusa `vignette.gdshader` via
+  `UiStyle.crea_vignette`, pulsa all'ingresso/abilità, dissolve alla morte), **A3** finisher morte
+  boss (poof+esplosione+lampo bianco, no `time_scale`), **A4** profondità fallback-safe (strati
+  `orda_orizzonte` dietro + `parapetto` davanti; prompt §7l/§7m in `Docs/08`). **De-risk lieve**:
+  `GameState.from_dict` valida i tipi (save corrotto → partita pulita, no crash); `village != null`
+  → `is_instance_valid` in `main.gd`. QA verde (validate 0 failure, balance 6/6 + Assedio invariato,
+  audit pulito, 26 shot ok); vignetta FURIA verificata a schermo. Dettaglio in `Docs/16` §6.
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio), `16` (piano di sessione 2026-06-22).*

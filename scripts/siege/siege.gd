@@ -117,6 +117,8 @@ var _boss_box: Control = null
 var _boss_fill: ColorRect = null
 var _boss_maschera: ColorRect = null   # con boss_bar.png: copre da destra gli HP persi
 var _boss_label: Label = null
+var _vignetta_furia: ColorRect = null   # bordi rossi mentre il boss è in furia (A2)
+var _vignetta_tween: Tween = null
 
 
 # Chiamare PRIMA di add_child: alimenta la difesa dalle statistiche della run
@@ -251,6 +253,21 @@ func _costruisci_scena() -> void:
 			sfondo.material = mat
 		_ui.add_child(sfondo)
 
+	# Orda lontana sull'orizzonte: silhouette di massa nemica distante per profondità.
+	# Sopra lo sfondo dipinto, sotto corsie/entità. Fallback-safe (niente nodo se assente).
+	var orda_tex: Texture2D = _siege_tex("orda_orizzonte")
+	if orda_tex != null:
+		var orda: TextureRect = TextureRect.new()
+		orda.texture = orda_tex
+		orda.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		orda.offset_top = 150.0
+		orda.offset_bottom = 360.0
+		orda.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		orda.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		orda.modulate = Color(0.5, 0.45, 0.48, 0.9)   # scura: silhouette atmosferica
+		orda.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ui.add_child(orda)
+
 	# Le 3 corsie. Con lo sfondo dipinto la banda è solo un velo scuro (l'arte traspare);
 	# senza sfondo è piena, così le corsie restano leggibili sul fondo nero.
 	for y in LANE_Y:
@@ -309,6 +326,22 @@ func _costruisci_scena() -> void:
 	_crea_hud()
 	_crea_barra_unita()
 	_avvia_ambient()
+
+	# Parapetto in primo piano (camminamento del difensore): incornicia il campo dal basso
+	# per dare profondità cinematografica. Aggiunto direttamente all'arena DOPO _world così
+	# sta davanti alle entità; il rettangolo (y ~760-950) resta sopra la barra unità in basso.
+	# Fallback-safe: nessun nodo se l'asset non esiste.
+	var para_tex: Texture2D = _siege_tex("parapetto")
+	if para_tex != null:
+		var para: TextureRect = TextureRect.new()
+		para.texture = para_tex
+		para.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		para.offset_top = -320.0
+		para.offset_bottom = -130.0
+		para.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		para.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		para.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(para)
 
 
 # Pulviscolo ambientale sul campo: braci (Era 2, notte) o polvere calda (Era 1) che
@@ -837,7 +870,8 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(b, dn))
 	b.furia_entrata.connect(func() -> void:
 		_flash_info("%s È INFURIATO" % b.nome_boss.to_upper())
-		scuoti_forte())
+		scuoti_forte()
+		_vignetta_furia_attiva())
 	_enemies.append(b)
 	_boss = b
 	_crea_barra_boss(b.nome_boss)
@@ -869,6 +903,28 @@ func _on_boss_morto(b: SiegeEnemy) -> void:
 		_boss_fill = null
 	scuoti_forte()
 	AudioManager.play_sfx("ledger_unlock")
+	_dissolvi_vignetta_furia()
+	_finisher_boss(b)
+
+
+# Finisher alla morte del boss (A3): poof maggiorato + esplosione sul punto del boss e lampo
+# bianco a tutto schermo con breve hold. Niente Engine.time_scale (coerente con J13): è il
+# lampo a dare il "peso" del colpo decisivo — il momento più applaudito del video.
+func _finisher_boss(b: SiegeEnemy) -> void:
+	var pos: Vector2 = b.global_position if is_instance_valid(b) else Vector2(900.0, 520.0)
+	_morte_poof(pos, Color(1.0, 0.85, 0.5))
+	_morte_poof(pos, Color(1.0, 0.6, 0.3))
+	fx_esplosione(pos, 120.0)
+	var flash: ColorRect = ColorRect.new()
+	flash.color = Color(1.0, 0.95, 0.85, 0.0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(flash)
+	var t: Tween = create_tween()
+	t.tween_property(flash, "color:a", 0.6, 0.07)
+	t.tween_interval(0.06)   # breve fermo-immagine simulato (senza time_scale)
+	t.tween_property(flash, "color:a", 0.0, 0.5)
+	t.tween_callback(flash.queue_free)
 
 
 func _crea_barra_boss(nome: String) -> void:
@@ -1060,6 +1116,8 @@ func segnala_abilita_boss(nome: String) -> void:
 		"pioggia": "PIOGGIA DI FUOCO — disperdi le unità!",
 	}
 	_flash_info(etich.get(nome, nome))
+	if _vignetta_furia != null and is_instance_valid(_vignetta_furia):
+		_pulsa_vignetta_furia()   # le abilità in furia ravvivano la vignetta rossa
 
 
 func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggio: float = 0.0) -> void:
@@ -1376,6 +1434,12 @@ func _riprova() -> void:
 	if _boss_box != null and is_instance_valid(_boss_box):
 		_boss_box.queue_free()
 		_boss_box = null
+	if _vignetta_tween != null and _vignetta_tween.is_valid():
+		_vignetta_tween.kill()
+	_vignetta_tween = null
+	if _vignetta_furia != null and is_instance_valid(_vignetta_furia):
+		_vignetta_furia.queue_free()
+	_vignetta_furia = null
 	_spawn_queue.clear()
 	for i in range(_plot_occupato.size()):
 		_plot_occupato[i] = false
@@ -1454,8 +1518,15 @@ func _mostra_banner(testo: String) -> void:
 	holder.add_child(lbl)
 	_ui.add_child(holder)
 	holder.modulate.a = 0.0
+	# Punch: il banner "atterra" con uno scatto (scale-pop + colpetto) invece di comparire.
+	var vw: float = get_viewport().get_visible_rect().size.x
+	holder.pivot_offset = Vector2(vw * 0.5, 62.0)
+	holder.scale = Vector2(0.78, 0.78)
 	var t: Tween = create_tween()
-	t.tween_property(holder, "modulate:a", 1.0, 0.3)
+	t.tween_property(holder, "modulate:a", 1.0, 0.18)
+	t.parallel().tween_property(holder, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_callback(_scuoti)   # colpetto al picco: il banner ha peso
 	t.tween_interval(1.5)
 	t.tween_property(holder, "modulate:a", 0.0, 0.5)
 	t.tween_callback(holder.queue_free)
@@ -1546,6 +1617,53 @@ func _flash_danno() -> void:
 	t.tween_property(fl, "color:a", 0.30, 0.06)
 	t.tween_property(fl, "color:a", 0.0, 0.4)
 	t.tween_callback(fl.queue_free)
+
+
+# Vignetta rossa della FURIA del boss (A2): i bordi si accendono di rosso, restano tenui
+# finché il boss è infuriato e pulsano all'ingresso e a ogni sua abilità. Riusa lo shader
+# vignette già in repo (UiStyle.crea_vignette), fallback-safe se lo shader manca.
+func _vignetta_furia_attiva() -> void:
+	if _vignetta_furia == null or not is_instance_valid(_vignetta_furia):
+		_vignetta_furia = UiStyle.crea_vignette(0.0, Color(0.85, 0.12, 0.10, 1.0))
+		_ui.add_child(_vignetta_furia)
+	_pulsa_vignetta_furia()
+
+
+func _set_vig_intensity(v: float) -> void:
+	if _vignetta_furia == null or not is_instance_valid(_vignetta_furia):
+		return
+	var mat: Material = _vignetta_furia.material
+	if mat is ShaderMaterial:
+		(mat as ShaderMaterial).set_shader_parameter("intensity", v)
+	else:
+		_vignetta_furia.color.a = v   # fallback senza shader: alpha del rettangolo
+
+
+func _pulsa_vignetta_furia() -> void:
+	if _vignetta_furia == null or not is_instance_valid(_vignetta_furia):
+		return
+	if _vignetta_tween != null and _vignetta_tween.is_valid():
+		_vignetta_tween.kill()
+	_vignetta_tween = create_tween()
+	# scatto acceso → si calma a un rosso di base che resta finché il boss è in furia.
+	_vignetta_tween.tween_method(_set_vig_intensity, 0.30, 0.62, 0.10)
+	_vignetta_tween.tween_method(_set_vig_intensity, 0.62, 0.26, 0.45)
+
+
+func _dissolvi_vignetta_furia() -> void:
+	if _vignetta_tween != null and _vignetta_tween.is_valid():
+		_vignetta_tween.kill()
+		_vignetta_tween = null
+	if _vignetta_furia == null or not is_instance_valid(_vignetta_furia):
+		_vignetta_furia = null
+		return
+	var vf: ColorRect = _vignetta_furia   # resta referenziato da _vignetta_furia durante il fade
+	_vignetta_tween = create_tween()
+	_vignetta_tween.tween_method(_set_vig_intensity, 0.26, 0.0, 0.5)
+	_vignetta_tween.tween_callback(func() -> void:
+		if is_instance_valid(vf):
+			vf.queue_free()
+		_vignetta_furia = null)
 
 
 func _disc_texture() -> GradientTexture2D:

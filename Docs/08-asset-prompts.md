@@ -28,6 +28,11 @@ per eventuali rigenerazioni.
 > Nessun asset placeholder/"default" residuo nel flusso Assedio/villaggio. I prompt §P0–§P10
 > restano archiviati: rigenerare solo se si vuole rifinire ulteriormente.
 
+> **DA GENERARE (2026-06-22, opzionali — profondità cinematografica dell'Assedio, già
+> cablati fallback-safe):** `Assets/art/siege/era<N>/parapetto.png` (§7l, primo piano) e
+> `Assets/art/siege/era<N>/orda_orizzonte.png` (§7m, orda lontana). Senza i PNG la resa
+> attuale è invariata; appena droppati, l'Assedio li usa automaticamente.
+
 ---
 
 ## P0 — Terreni-tabellone del villaggio (D046 — PRIORITÀ ASSOLUTA)
@@ -419,10 +424,48 @@ empty hollow center for a red fill, ~1200x90; (2) a banner/cartouche plate for a
 announcement, ~700x160, empty center. No text, no letters, no watermark.
 ```
 
+### 7l. Parapetto in primo piano — profondità (uno per era, sprite trasparente)
+
+> **Cablato (2026-06-22):** `siege.gd._costruisci_scena` carica `…/era<N>/parapetto.png` e
+> lo ancora in basso (striscia y≈760-950, sopra la barra unità) **davanti** alle entità →
+> il campo si legge dal camminamento del difensore, profondità cinematografica. Fallback-safe
+> (senza il PNG la resa attuale è invariata).
+
+```
+Wide horizontal foreground game sprite, painterly dark-fantasy, warm bronze-and-sepia
+palette, visible brushstrokes, TRUE alpha transparency (NO painted checkerboard),
+format ~1920x520, seen from BEHIND as if the viewer stands on the rampart: the TOP of
+a defensive parapet/walkway spanning the full width along the BOTTOM of the frame, the
+upper two thirds fully transparent so the battlefield shows through above it. Rim-lit
+from the battlefield ahead, mostly in shadow (near-silhouette). ERA1 = sharpened-log
+palisade top with lashed timber, hide banners and bone totems poking up. ERA2 = stone
+crenellations/merlons with bronze fittings and kingdom banners on poles. No text, no
+watermark, no full scene — just the foreground parapet strip with transparency above.
+File: Assets/art/siege/era1/parapetto.png and Assets/art/siege/era2/parapetto.png.
+```
+
+### 7m. Orda all'orizzonte — profondità (uno per era, sprite trasparente)
+
+> **Cablato (2026-06-22):** `siege.gd._costruisci_scena` carica `…/era<N>/orda_orizzonte.png`
+> e lo pone sull'orizzonte (y≈150-360) **dietro** corsie ed entità, modulato scuro → massa
+> nemica lontana e minacciosa senza costare entità reali. Fallback-safe.
+
+```
+Wide horizontal distant-background game sprite, painterly dark-fantasy, TRUE alpha
+transparency (NO checkerboard), format ~1920x420, a far-away menacing HORDE seen on the
+horizon line: a low, dense, dark near-SILHOUETTE mass of approaching enemies receding
+into haze, only the top of the crowd visible along the lower edge, the sky/upper area
+fully transparent. Atmospheric, backlit, very dark and moody (it will be dimmed further
+in engine). ERA1 = a stampeding herd of paleolithic beasts kicking up dust. ERA2 =
+serried ranks of armored warriors with raised spears and tattered banners under a
+blood-red sky. No individual detail, no text, no watermark.
+File: Assets/art/siege/era1/orda_orizzonte.png and Assets/art/siege/era2/orda_orizzonte.png.
+```
+
 > Integrazione: stessi step del flusso sotto. Tutti gli asset §P7 sono **fallback-safe**
 > (il codice usa forme/colori finché il PNG non esiste). Priorità per impatto:
 > **boss** (7f, 7g) → **sfondi campo** (7a, 7b) → **nemici** (7d, 7e) → **difensori**
-> (7h, 7i) → fx/UI (7j, 7k).
+> (7h, 7i) → fx/UI (7j, 7k) → **profondità** (7l parapetto, 7m orda — opzionali, già cablati).
 
 ---
 
