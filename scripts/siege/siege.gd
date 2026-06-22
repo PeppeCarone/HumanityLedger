@@ -1201,6 +1201,29 @@ func fx_esplosione(pos: Vector2, raggio: float) -> void:
 
 # --- Schieramento difensori -------------------------------------------------
 
+# Numero di danno fluttuante (usato sul boss): sale e svanisce. crit = colpo durante la
+# finestra VULNERABILE → più grande e dorato, così il burst si VEDE.
+func fx_numero_danno(pos: Vector2, n: int, crit: bool) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var lbl: Label = Label.new()
+	lbl.text = str(n)
+	lbl.add_theme_font_size_override("font_size", 32 if crit else 20)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.36) if crit else Color(1.0, 0.96, 0.9))
+	lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.03, 0.02, 0.95))
+	lbl.add_theme_constant_override("outline_size", 5)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.z_index = 60
+	_world.add_child(lbl)
+	lbl.position = pos + Vector2(randf_range(-22.0, 22.0), -58.0)
+	var t: Tween = create_tween()
+	t.set_parallel()
+	t.tween_property(lbl, "position:y", lbl.position.y - 48.0, 0.7) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(lbl, "modulate:a", 0.0, 0.7).set_ease(Tween.EASE_IN)
+	t.chain().tween_callback(lbl.queue_free)
+
+
 func _on_plot(slot: int, pos: Vector2) -> void:
 	if _concluso:
 		return

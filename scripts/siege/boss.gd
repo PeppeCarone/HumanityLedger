@@ -176,6 +176,8 @@ func subisci_danno(d: int) -> void:
 		if _stagger >= stagger_max:
 			_entra_stagger()
 	_notifica_stagger()
+	if arena != null and arena.has_method("fx_numero_danno"):
+		arena.fx_numero_danno(global_position, dmg, _staggerato)
 	super.subisci_danno(dmg)
 
 
@@ -345,6 +347,13 @@ func _draw() -> void:
 	var rear: float = 0.0
 	if _stato == "telegrafo" and _abil_corrente == "carica":
 		rear = 10.0  # arretra: telegrafo della Carica
+		# Chevron arancioni verso il villaggio: "CARICA su questa corsia — bloccala!".
+		var ac: float = 0.5 + 0.4 * sin(_bt * 14.0)
+		var col: Color = Color(1.0, 0.55, 0.22, ac)
+		for k in range(3):
+			var bx: float = -r - 36.0 - float(k) * 34.0
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(bx, -20.0), Vector2(bx - 24.0, 0.0), Vector2(bx, 20.0)]), col)
 
 	var tinta: Color = Color(1.0, 0.6, 0.55) if _in_furia else Color.WHITE
 	if _staggerato:
@@ -376,3 +385,12 @@ func _draw() -> void:
 			var sp: Vector2 = Vector2(cos(ang) * r * 0.55, cy + sin(ang) * r * 0.18)
 			draw_circle(sp, 6.0, Color(1.0, 0.95, 0.5, 0.95))
 			draw_circle(sp, 3.0, Color(1.0, 1.0, 0.88, 1.0))
+	# Punto debole rivelato dallo Spionaggio alto: bersaglio pulsante (qui la tenuta sale
+	# prima). Reso prominente perché si legga anche sul corpo grande del boss.
+	elif stagger_gain >= 1.25:
+		var wp: Vector2 = Vector2(-r * 0.18, -r * 0.5)
+		var pa: float = 0.55 + 0.4 * sin(_bt * 7.0)
+		draw_circle(wp, 20.0, Color(0.45, 0.95, 1.0, pa * 0.35))
+		draw_arc(wp, 17.0, 0.0, TAU, 24, Color(0.75, 1.0, 1.0, pa), 3.0)
+		draw_arc(wp, 9.0, 0.0, TAU, 18, Color(0.9, 1.0, 1.0, pa), 2.0)
+		draw_circle(wp, 4.5, Color(1.0, 1.0, 1.0, pa))
