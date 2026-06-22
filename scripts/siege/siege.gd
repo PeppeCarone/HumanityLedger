@@ -117,6 +117,7 @@ var _boss_box: Control = null
 var _boss_fill: ColorRect = null
 var _boss_maschera: ColorRect = null   # con boss_bar.png: copre da destra gli HP persi
 var _boss_label: Label = null
+var _boss_stagger_fill: ColorRect = null   # barra di TENUTA (stagger) sotto gli HP
 var _vignetta_furia: ColorRect = null   # bordi rossi mentre il boss è in furia (A2)
 var _vignetta_tween: Tween = null
 
@@ -850,7 +851,8 @@ func _pulisci_enemies() -> void:
 
 func _spawn_boss(d: Dictionary) -> void:
 	var b: SiegeBoss = SiegeBoss.new()
-	b.hp_max = int(d.get("hp", 320))
+	# Più tosto: HP maggiorato; la finestra VULNERABILE (stagger) è la leva per abbatterlo.
+	b.hp_max = int(float(d.get("hp", 320)) * 1.3)
 	b.hp = b.hp_max
 	b.velocita = float(d.get("vel", 34.0))
 	b.bounty = int(d.get("bounty", 14))
@@ -864,6 +866,10 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.nome_boss = str(d.get("nome", "Il Colosso"))
 	b.sprite = _siege_tex("boss")
 	b.imposta_era(era)   # sceglie il kit di abilità per archetipo (Colosso vs Drago)
+	# Tenuta/stagger: richiede ~mezza barra HP di danno; lo Spionaggio la riempie prima.
+	b.stagger_max = float(b.hp_max) * 0.5
+	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 90.0
+	b.stagger_cambiato.connect(_on_boss_stagger)
 	_world.add_child(b)
 	b.global_position = Vector2(SPAWN_X - 30.0, LANE_Y[b.corsia])
 	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
@@ -1004,6 +1010,19 @@ func _crea_barra_boss(nome: String) -> void:
 		_boss_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		track.add_child(_boss_fill)
 		_decora_barra(track)
+	# Barra di TENUTA (stagger) sotto gli HP: i colpi la riempiono; piena → VULNERABILE.
+	var st_track: ColorRect = ColorRect.new()
+	st_track.color = Color(0.08, 0.12, 0.16, 0.9)
+	st_track.custom_minimum_size = Vector2(0.0, 8.0)
+	st_track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	st_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(st_track)
+	_boss_stagger_fill = ColorRect.new()
+	_boss_stagger_fill.color = Color(0.5, 0.85, 1.0)
+	_boss_stagger_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	_boss_stagger_fill.anchor_right = 0.0
+	_boss_stagger_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	st_track.add_child(_boss_stagger_fill)
 
 
 func _aggiorna_boss_hp() -> void:
@@ -1015,6 +1034,20 @@ func _aggiorna_boss_hp() -> void:
 	elif _boss_fill != null and is_instance_valid(_boss_fill):
 		_boss_fill.anchor_right = frac
 		_boss_fill.color = Color(0.95, 0.45, 0.25) if frac <= _boss.furia_soglia else Color(0.85, 0.28, 0.24)
+
+
+# Aggiorna la barra di tenuta; oro lampeggiante quando il boss è VULNERABILE.
+func _on_boss_stagger(frac: float, vulnerabile: bool) -> void:
+	if _boss_stagger_fill == null or not is_instance_valid(_boss_stagger_fill):
+		return
+	_boss_stagger_fill.anchor_right = frac
+	_boss_stagger_fill.color = Color(1.0, 0.95, 0.45) if vulnerabile else Color(0.5, 0.85, 1.0)
+
+
+# Callout grande quando la tenuta si spezza: è la finestra di burst da sfruttare.
+func segnala_stagger(nome: String) -> void:
+	_flash_info("%s È VULNERABILE — COLPISCILO!" % nome.to_upper())
+	AudioManager.play_sfx("quest_complete")
 
 
 # --- API usate da difensori/nemici/proiettili (disaccoppiamento) ------------

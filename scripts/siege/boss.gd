@@ -13,6 +13,21 @@ class_name SiegeBoss
 
 signal abilita_usata(nome: String)
 signal furia_entrata
+signal stagger_cambiato(frac: float, vulnerabile: bool)
+
+# Tenuta / Stagger (Fase strategica): colpirlo riempie la "tenuta"; piena, il boss va in
+# VULNERABILE — vacilla, non usa abilità e subisce danno extra. È la finestra di burst che
+# premia il focus-fire e lo Spionaggio (che la riempie più in fretta). Vedi Docs/11 §6.
+var stagger_max: float = 180.0
+var stagger_gain: float = 1.0       # moltiplicatore d'accumulo (Spionaggio alto = punto debole)
+const STAGGER_DUR: float = 3.6      # durata della finestra VULNERABILE
+const STAGGER_BONUS: float = 1.8    # danno subìto ×n mentre vulnerabile
+const STAGGER_CD: float = 7.0       # pausa prima che la tenuta torni ad accumularsi
+const STAGGER_DECAY: float = 7.0    # la tenuta cala se smetti di colpirlo (al secondo)
+var _stagger: float = 0.0
+var _staggerato: bool = false
+var _stagger_fino: float = 0.0
+var _stagger_cd: float = 0.0
 
 var nome_boss: String = "Il Colosso"
 var legge: int = 30                 # mitigazione del Ruggito (impostata dall'arena)
@@ -56,9 +71,17 @@ func _process(delta: float) -> void:
 		return
 	_bt += delta
 
+	# Tenuta: cooldown dopo una rottura, oppure decadimento se smetti di colpirlo.
+	if _stagger_cd > 0.0:
+		_stagger_cd -= delta
+	elif not _staggerato and _stagger > 0.0:
+		_stagger = maxf(0.0, _stagger - STAGGER_DECAY * delta)
+		_notifica_stagger()
+
 	# Respiro: il bestione si solleva e si abbassa di poco (più marcato in furia).
-	var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
-	scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
+	if not _staggerato:
+		var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
+		scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
 
 	# Furia a meta' HP: abilita' piu' frequenti, corpo che vira al rosso.
 	if not _in_furia and float(hp) <= float(hp_max) * furia_soglia:
@@ -72,6 +95,19 @@ func _process(delta: float) -> void:
 			if _bt >= 1.3:
 				_stato = "marcia"
 				_abil_t = _cooldown_abilita()
+			queue_redraw()
+			return
+		"stagger":
+			# VULNERABILE: vacilla sul posto, non agisce. Finestra di burst per il giocatore.
+			var w: float = sin(_bt * 30.0) * 0.05
+			scale = Vector2(1.0 + w, 1.0 - w)
+			if _bt >= _stagger_fino:
+				_staggerato = false
+				_stagger = 0.0
+				_stagger_cd = STAGGER_CD
+				_stato = "marcia"
+				_abil_t = _cooldown_abilita()
+				_notifica_stagger()
 			queue_redraw()
 			return
 		"telegrafo":
@@ -104,6 +140,35 @@ func _process(delta: float) -> void:
 func _arriva() -> void:
 	arrivato.emit(danno_villaggio)
 	queue_free()
+
+
+# Override: il danno riempie la tenuta; durante la finestra VULNERABILE il boss incassa ×n.
+func subisci_danno(d: int) -> void:
+	var dmg: int = d
+	if _staggerato:
+		dmg = int(round(float(d) * STAGGER_BONUS))
+	elif _stagger_cd <= 0.0 and _stato != "entrata":
+		_stagger = minf(stagger_max, _stagger + float(d) * stagger_gain)
+		if _stagger >= stagger_max:
+			_entra_stagger()
+	_notifica_stagger()
+	super.subisci_danno(dmg)
+
+
+func _entra_stagger() -> void:
+	_staggerato = true
+	_stagger_fino = _bt + STAGGER_DUR
+	_stato = "stagger"
+	scale = Vector2(1.14, 0.84)
+	if arena != null and arena.has_method("segnala_stagger"):
+		arena.segnala_stagger(nome_boss)
+	if arena != null and arena.has_method("scuoti_forte"):
+		arena.scuoti_forte()
+	AudioManager.play_sfx("stat_down")
+
+
+func _notifica_stagger() -> void:
+	stagger_cambiato.emit(clampf(_stagger / maxf(stagger_max, 1.0), 0.0, 1.0), _staggerato)
 
 
 func _cooldown_abilita() -> float:
@@ -258,6 +323,8 @@ func _draw() -> void:
 		rear = 10.0  # arretra: telegrafo della Carica
 
 	var tinta: Color = Color(1.0, 0.6, 0.55) if _in_furia else Color.WHITE
+	if _staggerato:
+		tinta = Color(1.3, 1.25, 0.95)   # sbianca: "colpitelo ORA"
 	if sprite != null:
 		var h: float = r * 3.4
 		var w: float = h * (float(sprite.get_width()) / float(maxi(sprite.get_height(), 1)))
@@ -277,3 +344,11 @@ func _draw() -> void:
 		var eye: Color = Color(1.0, 0.85, 0.3) if not _in_furia else Color(1.0, 0.45, 0.3)
 		draw_circle(Vector2(rear - r * 0.45, -r * 0.2), 6.0, eye)
 		draw_circle(Vector2(rear - r * 0.2, -r * 0.25), 6.0, eye)
+	# Stelle che orbitano sopra la testa: il boss è VULNERABILE (stordito).
+	if _staggerato:
+		var cy: float = -r * 1.05
+		for i in range(3):
+			var ang: float = _bt * 6.0 + TAU * float(i) / 3.0
+			var sp: Vector2 = Vector2(cos(ang) * r * 0.55, cy + sin(ang) * r * 0.18)
+			draw_circle(sp, 6.0, Color(1.0, 0.95, 0.5, 0.95))
+			draw_circle(sp, 3.0, Color(1.0, 1.0, 0.88, 1.0))
