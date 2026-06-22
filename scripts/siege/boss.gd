@@ -17,6 +17,7 @@ signal furia_entrata
 var nome_boss: String = "Il Colosso"
 var legge: int = 30                 # mitigazione del Ruggito (impostata dall'arena)
 var furia_soglia: float = 0.5
+var era_boss: int = 1               # 1 = Colosso (bruto a terra) · 2 = Drago (caster di fuoco)
 
 const RAGGIO_PESTONE: float = 160.0
 const DASH_MULT: float = 2.7
@@ -25,13 +26,29 @@ var _stato: String = "entrata"      # entrata | marcia | telegrafo | dash
 var _bt: float = 0.0                # tempo locale del boss
 var _abil_t: float = 4.0            # countdown alla prossima abilita'
 var _tele_fino: float = 0.0
+var _tele_dur: float = 0.85
 var _dash_fino: float = 0.0
 var _in_furia: bool = false
 var _abil_idx: int = 0
 var _abil_corrente: String = ""
 var _tele_pos: Vector2 = Vector2.ZERO
 var _ruggito_r: float = 0.0
+var _pioggia_pts: Array[Vector2] = []   # punti d'impatto della Pioggia di fuoco (globali)
+# Kit di abilità per archetipo (impostato da imposta_era):
+#   Era 1 — Il Colosso: bruto a terra (pestone ad area + carica che sfonda).
+#   Era 2 — Il Drago: caster di fuoco a distanza (soffio sulla corsia + pioggia sparsa).
 var _abilita: Array[String] = ["pestone", "ruggito", "carica"]
+
+
+# Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).
+func imposta_era(e: int) -> void:
+	era_boss = e
+	if e >= 2:
+		_abilita = ["soffio", "ruggito", "pioggia"]   # Drago: fuoco a distanza
+		furia_soglia = 0.45
+	else:
+		_abilita = ["pestone", "ruggito", "carica"]   # Colosso: mischia/sfondamento
+		furia_soglia = 0.5
 
 
 func _process(delta: float) -> void:
@@ -110,6 +127,12 @@ func _inizia_telegrafo() -> void:
 			dur = 0.7   # arretra e ringhia
 		"ruggito":
 			dur = 0.7
+		"soffio":
+			dur = 0.95  # il Drago inspira, poi sputa la lingua di fuoco sulla corsia
+		"pioggia":
+			_pioggia_pts = _scegli_punti_pioggia(3)
+			dur = 1.0
+	_tele_dur = dur
 	_tele_fino = _bt + dur
 	if arena != null and arena.has_method("segnala_abilita_boss"):
 		arena.segnala_abilita_boss(_abil_corrente)
@@ -138,7 +161,49 @@ func _esegui_abilita() -> void:
 			_stato = "dash"
 			_dash_fino = _bt + 1.0
 			AudioManager.play_sfx("drop_success")
+		"soffio":
+			# Lingua di fuoco lungo la corsia: colpisce i difensori in una banda davanti
+			# al Drago (a distanza, senza doverli raggiungere — il contrario del Colosso).
+			if arena != null:
+				var dmg: int = 30 if _in_furia else 24
+				for off in [180.0, 320.0, 460.0, 600.0]:
+					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
+					arena.danno_area_difensori(p, 85.0, dmg)
+					arena.fx_esplosione(p, 85.0)
+				arena.scuoti_forte()
+			AudioManager.play_sfx("stat_down")
+			_stato = "marcia"
+			_abil_t = _cooldown_abilita()
+		"pioggia":
+			# Pioggia di fuoco: piu' impatti sparsi sul campo (area denial diffuso).
+			if arena != null:
+				var dmg2: int = 24 if _in_furia else 18
+				for p in _pioggia_pts:
+					arena.danno_area_difensori(p, 90.0, dmg2)
+					arena.fx_esplosione(p, 90.0)
+				arena.scuoti_forte()
+			_pioggia_pts.clear()
+			_stato = "marcia"
+			_abil_t = _cooldown_abilita()
 	abilita_usata.emit(_abil_corrente)
+
+
+# Sceglie n punti d'impatto per la Pioggia: prima sui difensori, poi punti casuali sul
+# campo davanti al Drago (verso il villaggio) per riempire.
+func _scegli_punti_pioggia(n: int) -> Array[Vector2]:
+	var pts: Array[Vector2] = []
+	if arena != null and arena.has_method("difensori_in_area"):
+		var lista: Array = arena.difensori_in_area(global_position, 1300.0)
+		for d in lista:
+			if d != null and is_instance_valid(d):
+				pts.append(d.global_position)
+			if pts.size() >= n:
+				break
+	while pts.size() < n:
+		var x: float = global_position.x - randf_range(150.0, 700.0)
+		var y: float = global_position.y + randf_range(-150.0, 150.0)
+		pts.append(Vector2(x, y))
+	return pts
 
 
 func _difensore_vicino() -> Vector2:
@@ -170,6 +235,23 @@ func _draw() -> void:
 	# Onda del Ruggito.
 	if _stato == "telegrafo" and _abil_corrente == "ruggito":
 		draw_arc(Vector2.ZERO, _ruggito_r, 0.0, TAU, 48, Color(0.95, 0.85, 0.5, 0.7), 4.0)
+	# Telegrafo Soffio: lingua di fuoco che cresce verso il villaggio (a sinistra).
+	if _stato == "telegrafo" and _abil_corrente == "soffio":
+		var prog: float = clampf(1.0 - (_tele_fino - _bt) / maxf(_tele_dur, 0.01), 0.0, 1.0)
+		var lung: float = 700.0 * prog
+		var a: float = 0.30 + 0.30 * sin(_bt * 20.0)
+		var hh: float = 36.0
+		draw_rect(Rect2(Vector2(-raggio - lung, -hh), Vector2(lung, hh * 2.0)),
+			Color(0.98, 0.42, 0.12, a * 0.6))
+		draw_arc(Vector2(-raggio, 0.0), 10.0 + 6.0 * sin(_bt * 24.0), 0.0, TAU, 16,
+			Color(1.0, 0.8, 0.35, 0.9), 3.0)
+	# Telegrafo Pioggia: cerchi-bersaglio pulsanti sui punti d'impatto.
+	if _stato == "telegrafo" and _abil_corrente == "pioggia":
+		var ap: float = 0.4 + 0.3 * sin(_bt * 16.0)
+		for p in _pioggia_pts:
+			var lp: Vector2 = p - global_position
+			draw_circle(lp, 90.0, Color(0.95, 0.3, 0.12, ap * 0.5))
+			draw_arc(lp, 90.0, 0.0, TAU, 32, Color(1.0, 0.6, 0.3, 0.9), 3.0)
 
 	var rear: float = 0.0
 	if _stato == "telegrafo" and _abil_corrente == "carica":

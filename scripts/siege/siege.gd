@@ -830,6 +830,7 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.legge = GameState.get_stat("legge")
 	b.nome_boss = str(d.get("nome", "Il Colosso"))
 	b.sprite = _siege_tex("boss")
+	b.imposta_era(era)   # sceglie il kit di abilità per archetipo (Colosso vs Drago)
 	_world.add_child(b)
 	b.global_position = Vector2(SPAWN_X - 30.0, LANE_Y[b.corsia])
 	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
@@ -1055,6 +1056,8 @@ func segnala_abilita_boss(nome: String) -> void:
 		"pestone": "PESTONE — scansati!",
 		"ruggito": "RUGGITO — i difensori vacillano",
 		"carica": "CARICA — il boss sfonda!",
+		"soffio": "SOFFIO DI FUOCO — sgombra la corsia!",
+		"pioggia": "PIOGGIA DI FUOCO — disperdi le unità!",
 	}
 	_flash_info(etich.get(nome, nome))
 

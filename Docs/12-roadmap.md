@@ -267,6 +267,15 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   `subisci_danno` + cue visivi. Bilanciato per ondata e mirrorato in `balance_sim.py` (`WAVE_MULT`):
   verdetti tipica=sfida (era1 1.15 / era2 0.93), trascurato era1=sfida (0.90) / era2=duro (0.73,
   vincibile, no game over), 6/6 finali intatti. Compile pulito, verificato a schermo.
+- **2026-06-22 (3)** — **Boss distinto per era** (archetipi diversi, non solo skin). `boss.gd`
+  `imposta_era()` sceglie il kit: **Era 1 Il Colosso** = bruto a terra (Pestone AoE su punto +
+  Carica che sfonda + Ruggito); **Era 2 Il Drago** = caster di fuoco a distanza (**Soffio** =
+  lingua di fuoco sulla corsia che colpisce i difensori davanti senza raggiungerli + **Pioggia**
+  = impatti multipli sparsi/area denial + Ruggito), furia anticipata a 0.45. Nuove abilità con
+  telegrafo+esecuzione+`_draw` propri, riusano le API arena esistenti (`danno_area_difensori`/
+  `fx_esplosione`/`scuoti_forte`) → **boss HP invariato, balance non tocco**. `shoot.gd` cattura
+  il telegrafo del Drago (`spawn_boss_test(true)`). Verificato a schermo (`shot_assedio_boss`
+  Colosso col Pestone, `shot_assedio_era2` Drago col Soffio).
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio), `16` (piano di sessione 2026-06-22).*

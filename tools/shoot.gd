@@ -219,8 +219,8 @@ func _run() -> void:
 	siege2.spawn_enemy_test("scheletro", 0, 1280.0)
 	siege2.spawn_enemy_test("minotauro", 2, 1420.0)
 	siege2.spawn_enemy_test("golem", 1, 1520.0)
-	siege2.spawn_boss_test()
-	await get_tree().create_timer(2.0).timeout
+	siege2.spawn_boss_test(true)   # forza un'abilità: cattura il telegrafo del Drago (soffio/pioggia)
+	await get_tree().create_timer(0.95).timeout
 	var b2: Image = get_viewport().get_texture().get_image()
 	b2.save_png(OUT + "shot_assedio_era2.png")
 	print("SHOT shot_assedio_era2 ", b2.get_size())
