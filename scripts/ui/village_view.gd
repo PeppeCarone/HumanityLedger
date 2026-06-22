@@ -80,7 +80,7 @@ const FX_CONSEGUENZA: Dictionary = {
 
 var _era: int = 1
 var _slot_usati: int = 0
-var _edifici_nodi: Array[TextureRect] = []
+var _edifici_nodi: Array[Node] = []  # tutti i nodi da liberare alla resync (TextureRect, particelle, ombre)
 var _edifici_sprite: Array[TextureRect] = []  # solo gli edifici (per la tinta prosperita')
 var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
 var _potenziabili: Array[int] = []  # slot attualmente migliorabili (glow d'invito)

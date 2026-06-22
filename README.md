@@ -94,7 +94,14 @@ Tutta la documentazione di design vive in `Docs/`:
 | [`05-art-audio.md`](Docs/05-art-audio.md) | Direzione artistica e strategia asset |
 | [`06-roadmap.md`](Docs/06-roadmap.md) | Milestone settimanali |
 | [`07-decisions-log.md`](Docs/07-decisions-log.md) | Log delle decisioni di progetto |
+| [`08-asset-prompts.md`](Docs/08-asset-prompts.md) | Prompt e stato degli asset |
 | [`09-piano-aaa.md`](Docs/09-piano-aaa.md) | Audit visivo, juice, lezioni da Lapse |
+| [`10-ui-audit.md`](Docs/10-ui-audit.md) | Audit UI e villaggio |
+| [`11-boss-fight.md`](Docs/11-boss-fight.md) | L'Assedio (boss fight tower-defense) |
+| [`12-roadmap.md`](Docs/12-roadmap.md) | Master roadmap finale (finire/aggiungere/esame) |
+| [`13-redesign-estetico.md`](Docs/13-redesign-estetico.md) | Redesign estetico (UI kit) |
+| [`14-relazione.md`](Docs/14-relazione.md) | **Relazione di progetto (consegna d'esame)** |
+| [`15-video-demo.md`](Docs/15-video-demo.md) | Script del video demo |
 
 C'è anche un pitch in PowerPoint: `Docs/HumanityLedger_Pitch.pptx`.
 
@@ -111,4 +118,4 @@ Vedi [`CONTRIBUTING.md`](CONTRIBUTING.md) per il workflow git e le convenzioni d
 
 ## Licenza
 
-Da definire prima della pubblicazione. Per ora: tutti i diritti riservati al team. Gli asset di terze parti sono creditati in [`Assets/CREDITS.md`](Assets/CREDITS.md).
+Progetto universitario a scopo didattico: tutti i diritti riservati al team, nessuna licenza d'uso concessa al di fuori della valutazione d'esame. Audio e codice sono opera originale; gli asset visivi sono generati e post-prodotti dal team (pipeline in [`Docs/08-asset-prompts.md`](Docs/08-asset-prompts.md)). Crediti e licenze dei font/strumenti di terze parti in [`Assets/CREDITS.md`](Assets/CREDITS.md).
