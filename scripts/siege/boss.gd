@@ -190,6 +190,8 @@ func _entra_stagger() -> void:
 		arena.segnala_stagger(nome_boss)
 	if arena != null and arena.has_method("scuoti_forte"):
 		arena.scuoti_forte()
+	if arena != null and arena.has_method("fx_esplosione"):
+		arena.fx_esplosione(global_position, 150.0)   # onda d'urto: la rottura è "guadagnata"
 	AudioManager.play_sfx("stat_down")
 
 
