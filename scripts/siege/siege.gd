@@ -734,11 +734,12 @@ func _prepara_ondate() -> void:
 	var of: float = 1.0 + 0.12 * float(_ostili_civ.size()) # rinforzo dei nemici ostili
 	var extra: int = _ostili_civ.size()
 	var nomi: Array = NOMI_ONDATA.get(era, NOMI_ONDATA[1])
-	# 3 ondate "normali" a difficoltà crescente + boss.
+	# 3 ondate "normali" a difficoltà crescente + boss. Più dense/numerose: la difesa va
+	# messa sotto pressione, qualche nemico DEVE poter sfondare (tensione → no-walkover).
 	var base: Array = [
-		{"n": 4 + extra, "hp": 18, "vel": 70.0, "danno": 8,  "bounty": 2, "gap": 1.0},
-		{"n": 6 + extra, "hp": 26, "vel": 82.0, "danno": 9,  "bounty": 3, "gap": 0.85},
-		{"n": 4 + extra, "hp": 50, "vel": 60.0, "danno": 14, "bounty": 4, "gap": 1.3},
+		{"n": 7 + extra,  "hp": 22, "vel": 74.0, "danno": 9,  "bounty": 2, "gap": 0.7},
+		{"n": 10 + extra, "hp": 32, "vel": 88.0, "danno": 10, "bounty": 3, "gap": 0.52},
+		{"n": 7 + extra,  "hp": 60, "vel": 64.0, "danno": 16, "bounty": 4, "gap": 0.85},
 	]
 	var creature: Array = CREATURE_ONDATA.get(era, CREATURE_ONDATA[1])
 	for i in range(base.size()):
@@ -760,7 +761,7 @@ func _prepara_ondate() -> void:
 	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
 	var boss_hp: int = int(round((300 + 45 * float(extra)) * ef))
 	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
-		{"boss": true, "hp": boss_hp, "vel": 34.0, "bounty": 14, "danno": 45,
+		{"boss": true, "hp": boss_hp, "vel": 48.0, "bounty": 14, "danno": 48,
 			"corsia": 1, "nome": nome_boss, "gap": 0.0}]})
 	# Avvio: breve attesa, poi la prima ondata (col suo banner).
 	_in_pausa = true
@@ -851,8 +852,8 @@ func _pulisci_enemies() -> void:
 
 func _spawn_boss(d: Dictionary) -> void:
 	var b: SiegeBoss = SiegeBoss.new()
-	# Più tosto: HP maggiorato; la finestra VULNERABILE (stagger) è la leva per abbatterlo.
-	b.hp_max = int(float(d.get("hp", 320)) * 1.3)
+	# Più tosto ma non grindy: HP +12%; la finestra VULNERABILE (stagger) è la leva vera.
+	b.hp_max = int(float(d.get("hp", 320)) * 1.12)
 	b.hp = b.hp_max
 	b.velocita = float(d.get("vel", 34.0))
 	b.bounty = int(d.get("bounty", 14))
@@ -866,9 +867,9 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.nome_boss = str(d.get("nome", "Il Colosso"))
 	b.sprite = _siege_tex("boss")
 	b.imposta_era(era)   # sceglie il kit di abilità per archetipo (Colosso vs Drago)
-	# Tenuta/stagger: richiede ~mezza barra HP di danno; lo Spionaggio la riempie prima.
-	b.stagger_max = float(b.hp_max) * 0.5
-	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 90.0
+	# Tenuta: ~un terzo della barra HP → lo stagger è un BEAT ricorrente, non un evento unico.
+	b.stagger_max = float(b.hp_max) * 0.32
+	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 80.0
 	b.stagger_cambiato.connect(_on_boss_stagger)
 	_world.add_child(b)
 	b.global_position = Vector2(SPAWN_X - 30.0, LANE_Y[b.corsia])

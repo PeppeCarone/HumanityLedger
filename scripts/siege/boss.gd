@@ -24,9 +24,9 @@ var _frenesia: bool = false         # 3ª fase sotto il 25% HP: abilità a raffi
 var stagger_max: float = 180.0
 var stagger_gain: float = 1.0       # moltiplicatore d'accumulo (Spionaggio alto = punto debole)
 const STAGGER_DUR: float = 3.6      # durata della finestra VULNERABILE
-const STAGGER_BONUS: float = 1.8    # danno subìto ×n mentre vulnerabile
-const STAGGER_CD: float = 7.0       # pausa prima che la tenuta torni ad accumularsi
-const STAGGER_DECAY: float = 7.0    # la tenuta cala se smetti di colpirlo (al secondo)
+const STAGGER_BONUS: float = 2.0    # danno subìto ×n mentre vulnerabile (premia il burst)
+const STAGGER_CD: float = 5.5       # pausa prima che la tenuta torni ad accumularsi
+const STAGGER_DECAY: float = 2.5    # la tenuta cala lenta: deve poter ingranare col DPS reale
 var _stagger: float = 0.0
 var _staggerato: bool = false
 var _stagger_fino: float = 0.0
