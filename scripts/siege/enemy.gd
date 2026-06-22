@@ -22,6 +22,8 @@ var raggio: float = 18.0
 var colore: Color = Color(0.82, 0.42, 0.36)
 var sprite: Texture2D = null        # se presente (Assets/art/siege/era<N>/enemy.png) rimpiazza il cerchio
 var arena: Node = null              # SiegeArena: per interrogare i blocchi sulla corsia
+var armatura: int = 0               # riduzione piatta del danno subito (golem)
+var risorge: bool = false           # si rialza UNA volta a metà HP quando cadrebbe (scheletro)
 
 const REACH_BLOCCO: float = 46.0    # distanza a cui ci si ferma davanti al bloccatore
 const ATK_CADENZA: float = 0.75
@@ -32,6 +34,7 @@ var _slow_fino: float = -1.0
 var _slow_fattore: float = 1.0
 var _atk_cd: float = 0.0
 var _engaged: Node = null           # bloccatore che ci sbarra la strada
+var _risorto: bool = false          # ha già usato la sua risurrezione
 
 
 func _process(delta: float) -> void:
@@ -73,8 +76,17 @@ func _process(delta: float) -> void:
 func subisci_danno(d: int) -> void:
 	if not _vivo:
 		return
-	hp -= d
+	# Armatura: assorbe danno piatto (almeno 1 passa sempre). Il golem incassa i colpi.
+	var dmg: int = maxi(1, d - armatura) if armatura > 0 else d
+	hp -= dmg
 	if hp <= 0:
+		# Risurrezione (scheletro): una volta sola si rialza a metà HP invece di morire.
+		if risorge and not _risorto:
+			_risorto = true
+			hp = maxi(1, int(hp_max * 0.5))
+			_fx_risorge()
+			queue_redraw()
+			return
 		_vivo = false
 		morto.emit(bounty)
 		queue_free()
@@ -83,6 +95,15 @@ func subisci_danno(d: int) -> void:
 	modulate = Color(1.6, 1.3, 1.25)
 	var t: Tween = create_tween()
 	t.tween_property(self, "modulate", Color.WHITE, 0.18)
+
+
+# Si rialza: scatto di scala + bagliore d'ossa, perché il giocatore LO VEDA tornare su.
+func _fx_risorge() -> void:
+	modulate = Color(0.75, 0.95, 1.0)
+	scale = Vector2(0.4, 0.5)
+	var t: Tween = create_tween()
+	t.tween_property(self, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(self, "modulate", Color.WHITE, 0.45)
 
 
 func applica_slow(fattore: float, durata: float) -> void:
@@ -138,3 +159,12 @@ func _draw() -> void:
 	draw_rect(Rect2(top, Vector2(w, h)), Color(0.12, 0.08, 0.08, 0.85))
 	var frac: float = clampf(float(hp) / float(maxi(hp_max, 1)), 0.0, 1.0)
 	draw_rect(Rect2(top, Vector2(w * frac, h)), Color(0.85, 0.35, 0.3))
+	# Glifo d'armatura (rombo d'acciaio) a sinistra della barra: segnala "incassa i colpi".
+	if armatura > 0:
+		var c: Vector2 = top + Vector2(-7.0, 2.5)
+		var steel: Color = Color(0.72, 0.78, 0.86)
+		draw_colored_polygon(PackedVector2Array([
+			c + Vector2(0, -5), c + Vector2(4, 0), c + Vector2(0, 5), c + Vector2(-4, 0)]), steel)
+		draw_polyline(PackedVector2Array([
+			c + Vector2(0, -5), c + Vector2(4, 0), c + Vector2(0, 5), c + Vector2(-4, 0),
+			c + Vector2(0, -5)]), Color(0.2, 0.22, 0.26), 1.0)

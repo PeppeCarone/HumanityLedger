@@ -673,9 +673,23 @@ const CREATURE_ONDATA: Dictionary = {
 	1: [["cinghiale", "iena"], ["iena", "orso"], ["orso", "cinghiale"]],
 	2: [["predone"], ["scheletro", "predone"], ["minotauro", "golem"]],
 }
-# Creature "pesanti": entrano più grandi (raggio maggiore), coerenti con le ondate lente
-# ad alto HP ("Le grandi bestie scendono" / "I colossi di pietra").
-const CREATURE_GRANDI: Array[String] = ["orso", "minotauro", "golem"]
+# Profilo di combattimento per creatura (moltiplica i valori-base dell'ondata): dà
+# comportamento DISTINTO, non solo estetica. I moltiplicatori HP sono progettati per
+# bilanciarsi entro ogni ondata (le coppie mescolano fragile+tank) → la minaccia totale
+# resta ~invariata; mirror in tools/balance_sim.py (WAVE_MULT). raggio: dimensione a schermo.
+#   hp/vel/danno = moltiplicatori · bounty = bonus · armatura = riduzione danno piatta
+#   risorge = si rialza una volta a metà HP (scheletro).
+const CREATURE_PROFILI: Dictionary = {
+	# Era 1 — bestie del Paleolitico.
+	"iena":      {"hp": 0.70, "vel": 1.50, "danno": 0.85, "bounty": 0, "raggio": 16.0},  # veloce, fragile
+	"cinghiale": {"hp": 0.90, "vel": 1.35, "danno": 1.15, "bounty": 0, "raggio": 19.0},  # caricatore
+	"orso":      {"hp": 1.45, "vel": 0.70, "danno": 1.35, "bounty": 1, "raggio": 27.0},  # tank lento
+	# Era 2 — orde del Regno Mitico.
+	"predone":   {"hp": 1.00, "vel": 1.15, "danno": 1.00, "bounty": 0, "raggio": 18.0},  # bilanciato
+	"scheletro": {"hp": 0.80, "vel": 1.00, "danno": 0.90, "bounty": 0, "raggio": 18.0, "risorge": true},
+	"minotauro": {"hp": 1.40, "vel": 0.75, "danno": 1.60, "bounty": 1, "raggio": 27.0},  # colpitore pesante
+	"golem":     {"hp": 1.60, "vel": 0.55, "danno": 1.15, "bounty": 2, "raggio": 28.0, "armatura": 3},
+}
 
 # Fase D: ondate crescenti data-driven (tabella per era), ritmo "wave burst" con pause di
 # rischieramento, scalate da era e civiltà ostili. L'ultima ondata è il BOSS.
@@ -749,22 +763,24 @@ func _testo_banner(w: Dictionary) -> String:
 
 func _spawn_enemy(d: Dictionary) -> void:
 	var e: SiegeEnemy = SiegeEnemy.new()
-	e.hp_max = int(d["hp"])
+	# Profilo per-creatura: scala HP/velocità/danno e abilita armatura/risorge.
+	var cr: String = str(d.get("creatura", ""))
+	var prof: Dictionary = CREATURE_PROFILI.get(cr, {})
+	e.hp_max = maxi(1, int(round(float(d["hp"]) * float(prof.get("hp", 1.0)))))
 	e.hp = e.hp_max
-	e.velocita = float(d["vel"])
-	e.bounty = int(d.get("bounty", 2))
-	e.danno_villaggio = int(d.get("danno", 8))
+	e.velocita = float(d["vel"]) * float(prof.get("vel", 1.0))
+	e.bounty = int(d.get("bounty", 2)) + int(prof.get("bounty", 0))
+	e.danno_villaggio = int(round(float(d.get("danno", 8)) * float(prof.get("danno", 1.0))))
 	e.danno_melee = maxi(4, int(e.danno_villaggio / 2))
+	e.armatura = int(prof.get("armatura", 0))
+	e.risorge = bool(prof.get("risorge", false))
+	e.raggio = float(prof.get("raggio", 18.0))
 	e.villaggio_x = VILLAGGIO_X
 	e.corsia = int(d.get("corsia", 0))
 	e.arena = self
-	# Sprite per-tipo (lupo/orso/scheletro/…) col generico "enemy" come fallback: dà
-	# varietà alla mandria. Le creature pesanti entrano più grandi.
-	var cr: String = str(d.get("creatura", ""))
+	# Sprite per-tipo (cinghiale/orso/scheletro/…) col generico "enemy" come fallback.
 	var tex: Texture2D = _siege_tex("enemy_" + cr) if cr != "" else null
 	e.sprite = tex if tex != null else _siege_tex("enemy")
-	if cr in CREATURE_GRANDI:
-		e.raggio = 27.0
 	_world.add_child(e)
 	e.global_position = Vector2(SPAWN_X, LANE_Y[e.corsia])
 	e.morto.connect(func(b: int) -> void: _on_enemy_morto(e, b))

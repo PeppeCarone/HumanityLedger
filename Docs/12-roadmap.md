@@ -259,6 +259,14 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   (gli shot ora mostrano la battaglia, non un campo spoglio). Verificato a schermo. Piano di
   sessione in `Docs/16-piano-sessione.md`. Resta manuale: build `.exe`, video, parti soggettive
   relazione.
+- **2026-06-22 (2)** — **Comportamento distinto per creatura** (profondità tattica, non solo
+  estetica). `CREATURE_PROFILI` in `siege.gd`: ogni creatura ha HP/velocità/danno/taglia propri +
+  **armatura** (golem, riduzione piatta + glifo d'acciaio) e **risurrezione** (scheletro, si rialza
+  una volta a metà HP con scatto di scala). Iena veloce/fragile, orso/minotauro tank lenti che
+  colpiscono forte, cinghiale caricatore. `enemy.gd`: campi `armatura`/`risorge` + logica in
+  `subisci_danno` + cue visivi. Bilanciato per ondata e mirrorato in `balance_sim.py` (`WAVE_MULT`):
+  verdetti tipica=sfida (era1 1.15 / era2 0.93), trascurato era1=sfida (0.90) / era2=duro (0.73,
+  vincibile, no game over), 6/6 finali intatti. Compile pulito, verificato a schermo.
 
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio), `16` (piano di sessione 2026-06-22).*

@@ -188,7 +188,15 @@ def assedio_check(stats, pop, era, ostili=0):
     of = 1.0 + 0.12 * ostili
     waves = [(4 + ostili, 18), (6 + ostili, 26), (4 + ostili, 50)]
     bounties = [2, 3, 4]
-    enemy_hp = sum(n * round(hp * ef * of) for n, hp in waves)
+    # Moltiplicatore HP medio per ondata: mirror di siege.gd CREATURE_PROFILI (le coppie
+    # fragile+tank), incl. l'effetto risurrezione scheletro (era2 w1, ~×1.5) e armatura
+    # golem (era2 w2). La minaccia totale resta ~quella base (le creature redistribuiscono).
+    WAVE_MULT = {
+        1: [0.80, 1.08, 1.18],   # cinghiale+iena · iena+orso · orso+cinghiale
+        2: [1.00, 1.10, 1.85],   # predone · scheletro(risorge)+predone · minotauro+golem(armato)
+    }
+    wm = WAVE_MULT.get(era, WAVE_MULT[1])
+    enemy_hp = sum(round(n * round(hp * ef * of) * wm[i]) for i, (n, hp) in enumerate(waves))
     boss_hp = round((300 + 45 * ostili) * ef)
     threat = enemy_hp + boss_hp
     village_hp = 70 + stats["costruzione"] + pop // 4

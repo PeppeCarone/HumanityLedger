@@ -85,9 +85,13 @@ Ordine consigliato; `[C]` solo codice, `[A]` serve arte (non necessaria all'esam
 3. **[C] Polish composizione Assedio (2° giro, se c'è tempo)**: parapetto in primo piano
    + silhouette di orda lontana sull'orizzonte per profondità; punch del banner d'ondata;
    vignetta rossa ai bordi durante la FURIA del boss.
-4. **[C] Varietà di gameplay Assedio**: dare ai nemici per-tipo un **comportamento**
-   distinto (orso lento/coriaceo, iena veloce/fragile, scheletro che si rialza una volta)
-   invece della sola estetica — profondità tattica reale.
+4. ~~**[C] Varietà di gameplay Assedio**: comportamento distinto per creatura.~~
+   **FATTO (2026-06-22)**: `CREATURE_PROFILI` in `siege.gd` dà a ogni creatura HP/velocità/
+   danno/taglia propri + due abilità — **armatura** (golem: riduzione danno piatta, glifo
+   d'acciaio sulla barra) e **risurrezione** (scheletro: si rialza una volta a metà HP, con
+   scatto di scala). Iena veloce/fragile, orso/minotauro tank lenti, cinghiale caricatore.
+   I moltiplicatori HP si bilanciano per ondata; mirror in `balance_sim.py` (`WAVE_MULT`):
+   verdetti attesi (tipica=sfida, trascurato era2=duro ma vincibile), 6/6 finali intatti.
 5. **[A/C] Era 3 "Futuro"** (opzionale, post-esame): asset già in `Assets/`; richiede
    quest/decisioni/finali estesi + terzo set Assedio. Grosso scope.
 
