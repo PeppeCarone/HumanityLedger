@@ -155,6 +155,8 @@ const BG_ERA2_NOTTE: String = "res://Assets/art/backgrounds/era2_citta_notte.jpg
 @onready var proposer_text_label: Label = $UI/ConsigliereProposer/HBox/VBox/ProposerText
 @onready var event_image: TextureRect = $UI/ConsigliereProposer/HBox/EventImage
 @onready var village: VillageView = $UI/VillageView
+# Scrim scuro del villaggio: ref tenuto perche' viene reparentato nel VillageWorld (P11 camera).
+@onready var ui_background: ColorRect = $UI/Background
 @onready var call_button: Button = $UI/CallButton
 @onready var decision_dim: ColorRect = $UI/DecisionDim
 @onready var decision_bg: TextureRect = $UI/DecisionBg
@@ -187,6 +189,28 @@ var narrative_tween: Tween = null
 var in_attesa_quest: bool = false
 var in_transizione_era: bool = false
 var atmosfera: CPUParticles2D = null
+# Ciclo giorno/notte del villaggio (P11): overlay morbido sopra il board.
+var ciclo_luce: ColorRect = null
+var _drift_tween: Tween = null
+# Overlay atmosferici (P11 §11e, Fase 2): cielo/raggi/nebbia che pulsano col ciclo.
+var _atmo_overlay: Dictionary = {}
+var _pal_alba: Color = Color(0.98, 0.74, 0.42, 0.16)
+var _pal_giorno: Color = Color(1.0, 0.96, 0.86, 0.04)
+var _pal_tramonto: Color = Color(0.96, 0.55, 0.32, 0.18)
+var _pal_notte: Color = Color(0.18, 0.24, 0.45, 0.22)
+# Camera libera del villaggio (P11, Fase 1G): pan/zoom del board (terreno+edifici insieme).
+# Gated da flag: a OFF il comportamento e' quello attuale (board fisso).
+const CAMERA_LIBERA: bool = true
+const ZOOM_MIN: float = 1.0
+const ZOOM_MAX: float = 2.2
+const ZOOM_STEP: float = 0.12
+const PAN_THRESHOLD: float = 6.0
+var _village_world: Control = null
+var _zoom: float = 1.0
+var _pan_attivo: bool = false
+var _pan_forse: bool = false
+var _pan_press: Vector2 = Vector2.ZERO
+var _pan_last: Vector2 = Vector2.ZERO
 var edificio_panel: CanvasLayer = null
 var siege_instance: CanvasLayer = null
 var _idle_decisione_tweens: Array[Tween] = []
@@ -227,6 +251,7 @@ func _ready() -> void:
 	if is_instance_valid(village):
 		village.edificio_cliccato.connect(_on_edificio_cliccato)
 		village.plot_cliccato.connect(_on_plot_cliccato)
+	_setup_village_world()
 	call_button.pressed.connect(_apri_decisione)
 	_stile_call_button()
 	_set_decision_visible(false)
@@ -478,7 +503,7 @@ func _aggiorna_atmosfera() -> void:
 		atmosfera.local_coords = false
 		$UI.add_child(atmosfera)
 		# Sopra il villaggio (idx 2), sotto DecisionBg/HUD: indice 3.
-		$UI.move_child(atmosfera, 3)
+		$UI.move_child(atmosfera, 1)  # sopra VillageWorld, sotto il fondale decisione
 	var era2: bool = GameState.era_corrente >= 2
 	atmosfera.amount = 22 if era2 else 30
 	atmosfera.lifetime = 7.0 if era2 else 9.5
@@ -725,13 +750,206 @@ func _aggiorna_sfondo_era() -> void:
 		scene_bg.set_meta("bg_path", path)
 	_aggiorna_scena_decisione()
 	_aggiorna_atmosfera()
+	_aggiorna_ciclo_luce()
 	AudioManager.play_music_id("era2" if GameState.era_corrente >= 2 else "era1")
 	if is_instance_valid(village):
 		var n: int = int(GameState.flag_narrativi.get("villaggio_n", 1))
 		village.sincronizza(GameState.era_corrente, n)
 		village.aggiorna_prosperita(GameState.popolo, GameState.tesoro)
+		_reset_camera()
 		_refresh_potenziabili()
 		_refresh_bandiere_alleati()
+
+
+# --- Camera libera del villaggio (P11, Fase 1G) -----------------------------
+# Racchiude terreno + scrim + villaggio in un container "mondo" trasformabile, così
+# pan/zoom muovono tutto insieme. HUD/CallButton/pannelli restano in screen-space.
+func _setup_village_world() -> void:
+	if not CAMERA_LIBERA:
+		return
+	if not (is_instance_valid(scene_bg) and is_instance_valid(village) and is_instance_valid(ui_background)):
+		return
+	_village_world = Control.new()
+	_village_world.name = "VillageWorld"
+	_village_world.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_village_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_village_world.pivot_offset = Vector2.ZERO
+	$UI.add_child(_village_world)
+	$UI.move_child(_village_world, 0)
+	# Ordine di disegno preservato: terreno -> scrim -> villaggio.
+	scene_bg.reparent(_village_world, false)
+	ui_background.reparent(_village_world, false)
+	village.reparent(_village_world, false)
+	for c: Control in [scene_bg, ui_background, village]:
+		c.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+
+# Camera attiva solo nella vista villaggio (mai durante decisione/modale/transizione/ledger).
+func _camera_attiva() -> bool:
+	if not CAMERA_LIBERA or not is_instance_valid(_village_world):
+		return false
+	if processing_drop or in_transizione_era:
+		return false
+	if edificio_panel != null and is_instance_valid(edificio_panel):
+		return false
+	if ledger_screen_instance != null and is_instance_valid(ledger_screen_instance):
+		return false
+	if $UI/ConsigliereProposer.visible or $UI/DecisionBg.visible:
+		return false
+	return true
+
+
+func _input(event: InputEvent) -> void:
+	if not _camera_attiva():
+		_pan_attivo = false
+		_pan_forse = false
+		return
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event
+		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
+			_zoom_at(1.0 + ZOOM_STEP, mb.position)
+			get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
+			_zoom_at(1.0 - ZOOM_STEP, mb.position)
+			get_viewport().set_input_as_handled()
+		elif mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				_pan_press = mb.position
+				_pan_last = mb.position
+				_pan_forse = true
+				_pan_attivo = false
+			else:
+				_pan_forse = false
+				_pan_attivo = false
+	elif event is InputEventMouseMotion and _pan_forse:
+		var mm: InputEventMouseMotion = event
+		# Diventa pan solo oltre una soglia (così un tap su edificio resta un tap) e solo se zoomato.
+		if not _pan_attivo and _zoom > 1.001 and _pan_press.distance_to(mm.position) > PAN_THRESHOLD:
+			_pan_attivo = true
+		if _pan_attivo:
+			_village_world.position = _clamp_pan(
+				_village_world.position + (mm.position - _pan_last), _zoom)
+			_pan_last = mm.position
+			get_viewport().set_input_as_handled()
+
+
+# Zoom mantenendo fisso il punto-mondo sotto il cursore (stile RTS/CoC).
+func _zoom_at(fattore: float, schermo: Vector2) -> void:
+	var old_z: float = _zoom
+	var new_z: float = clampf(_zoom * fattore, ZOOM_MIN, ZOOM_MAX)
+	if is_equal_approx(new_z, old_z):
+		return
+	var w: Vector2 = (schermo - _village_world.position) / old_z
+	_zoom = new_z
+	_village_world.scale = Vector2(new_z, new_z)
+	_village_world.position = _clamp_pan(schermo - w * new_z, new_z)
+
+
+# Il mondo deve sempre coprire lo schermo: nessun bordo vuoto (a zoom 1 niente pan).
+func _clamp_pan(p: Vector2, z: float) -> Vector2:
+	var vp: Vector2 = _village_world.size
+	return Vector2(clampf(p.x, vp.x * (1.0 - z), 0.0), clampf(p.y, vp.y * (1.0 - z), 0.0))
+
+
+func _reset_camera() -> void:
+	_zoom = 1.0
+	_pan_attivo = false
+	_pan_forse = false
+	if is_instance_valid(_village_world):
+		_village_world.scale = Vector2.ONE
+		_village_world.position = Vector2.ZERO
+
+
+# Ciclo giorno/notte del villaggio (P11): tint morbido + overlay atmosferici (§11e)
+# pilotati da una "fase" continua 0..4 (alba->giorno->tramonto->notte). Sopra il
+# villaggio e SOTTO il fondale decisione. Alpha basse per restare leggibile. Era 2 piu' freddo.
+const ATMO_DIR: String = "res://Assets/art/villaggio/atmosfera/"
+# nome -> {top, bot: banda y normalizzata; k: alpha a [alba, giorno, tramonto, notte]}.
+const ATMO_OVERLAY: Dictionary = {
+	"cielo_notte": {"top": 0.0, "bot": 0.34, "k": [0.12, 0.0, 0.08, 0.5]},
+	"nuvole": {"top": 0.0, "bot": 0.40, "k": [0.22, 0.32, 0.28, 0.14]},
+	"alone_alba": {"top": 0.06, "bot": 0.44, "k": [0.5, 0.04, 0.5, 0.08]},
+	"raggi": {"top": 0.0, "bot": 0.52, "k": [0.14, 0.45, 0.18, 0.0]},
+	"nebbia": {"top": 0.55, "bot": 1.0, "k": [0.38, 0.08, 0.22, 0.42]},
+}
+const ATMO_ORDINE: Array = ["cielo_notte", "nuvole", "alone_alba", "raggi", "nebbia"]
+
+
+func _aggiorna_ciclo_luce() -> void:
+	if ciclo_luce == null or not is_instance_valid(ciclo_luce):
+		ciclo_luce = ColorRect.new()
+		ciclo_luce.name = "CicloLuce"
+		ciclo_luce.set_anchors_preset(Control.PRESET_FULL_RECT)
+		ciclo_luce.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ciclo_luce.color = Color(0.98, 0.74, 0.42, 0.0)
+		# Dentro il VillageWorld (sopra gli edifici): tinta e cielo seguono pan/zoom del board.
+		var parent: Node = village.get_parent() if is_instance_valid(village) else $UI
+		parent.add_child(ciclo_luce)
+		if is_instance_valid(village):
+			parent.move_child(ciclo_luce, village.get_index() + 1)
+		_setup_atmosfera_overlays(parent)
+	var era2: bool = GameState.era_corrente >= 2
+	_pal_alba = Color(0.98, 0.74, 0.42, 0.16)
+	_pal_giorno = Color(1.0, 0.96, 0.86, 0.04)
+	_pal_tramonto = Color(0.96, 0.55, 0.32, 0.18) if not era2 else Color(0.86, 0.42, 0.40, 0.20)
+	_pal_notte = Color(0.18, 0.24, 0.45, 0.22) if not era2 else Color(0.15, 0.17, 0.42, 0.26)
+	if _drift_tween != null and _drift_tween.is_valid():
+		_drift_tween.kill()
+	const DUR: float = 55.0
+	_drift_tween = create_tween().set_loops()
+	_drift_tween.tween_method(_applica_fase, 0.0, 4.0, DUR * 4.0)
+
+
+# Crea i 5 overlay (una volta), ancorati a bande di cielo, dentro il mondo (pan/zoom).
+# Solo-se-asset: senza i PNG resta il solo tint (comportamento Fase 1).
+func _setup_atmosfera_overlays(parent: Node) -> void:
+	for nome in ATMO_ORDINE:
+		var path: String = ATMO_DIR + str(nome) + ".png"
+		if not ResourceLoader.exists(path):
+			continue
+		var b: Dictionary = ATMO_OVERLAY[nome]
+		var ov: TextureRect = TextureRect.new()
+		ov.name = "Atmo_" + str(nome)
+		ov.texture = load(path)
+		ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ov.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ov.stretch_mode = TextureRect.STRETCH_SCALE
+		ov.anchor_left = 0.0
+		ov.anchor_right = 1.0
+		ov.anchor_top = float(b["top"])
+		ov.anchor_bottom = float(b["bot"])
+		ov.offset_left = 0.0
+		ov.offset_right = 0.0
+		ov.offset_top = 0.0
+		ov.offset_bottom = 0.0
+		ov.modulate = Color(1, 1, 1, 0.0)
+		parent.add_child(ov)
+		if is_instance_valid(ciclo_luce):
+			parent.move_child(ov, ciclo_luce.get_index())  # sotto il tint, sopra gli edifici
+		_atmo_overlay[nome] = ov
+
+
+# Applica la fase del giorno (0=alba,1=giorno,2=tramonto,3=notte; ciclica) a tint+overlay.
+func _applica_fase(f: float) -> void:
+	if is_instance_valid(ciclo_luce):
+		ciclo_luce.color = _fase_color(f, _pal_alba, _pal_giorno, _pal_tramonto, _pal_notte)
+	for nome in _atmo_overlay:
+		var ov: TextureRect = _atmo_overlay[nome]
+		if is_instance_valid(ov):
+			var k: Array = ATMO_OVERLAY[nome]["k"]
+			ov.modulate.a = _fase_val(f, float(k[0]), float(k[1]), float(k[2]), float(k[3]))
+
+
+func _fase_val(f: float, a: float, b: float, c: float, d: float) -> float:
+	var arr: Array = [a, b, c, d]
+	var i: int = int(floor(f)) % 4
+	return lerpf(float(arr[i]), float(arr[(i + 1) % 4]), f - floor(f))
+
+
+func _fase_color(f: float, a: Color, b: Color, c: Color, d: Color) -> Color:
+	var arr: Array = [a, b, c, d]
+	var i: int = int(floor(f)) % 4
+	return (arr[i] as Color).lerp(arr[(i + 1) % 4], f - floor(f))
 
 
 func _aggiorna_scena_decisione() -> void:
@@ -964,7 +1182,7 @@ func _entra_era2() -> void:
 	Ledger.unlock_artefatto("pietra_del_fuoco")
 	GameState.avanza_era()
 	_aggiorna_sfondo_era()
-	var bg: ColorRect = $UI/Background
+	var bg: ColorRect = ui_background
 	if bg != null and not GameState.mystery_attiva:
 		var t: Tween = create_tween()
 		t.tween_property(bg, "color", COLOR_BG_ERA2, 1.0)
@@ -1595,7 +1813,7 @@ func _screen_shake(tipo: String) -> void:
 
 
 func _on_mystery_attivata() -> void:
-	var bg: ColorRect = $UI/Background
+	var bg: ColorRect = ui_background
 	if bg != null:
 		var t: Tween = create_tween()
 		t.tween_property(bg, "color", COLOR_BG_MYSTERY, 1.5)
@@ -2577,7 +2795,7 @@ func _reset_run() -> void:
 	if ending_instance != null and is_instance_valid(ending_instance):
 		ending_instance.queue_free()
 		ending_instance = null
-	var bg: ColorRect = $UI/Background
+	var bg: ColorRect = ui_background
 	if bg != null:
 		bg.color = COLOR_BG_ERA1
 	_refresh_rapporti()
