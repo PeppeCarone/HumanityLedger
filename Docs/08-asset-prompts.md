@@ -846,23 +846,59 @@ feature itself, no text, no watermark.
 > File: `villaggio/deco/era1/pozza.png` e `villaggio/deco/era2/fontana_acqua.png` (lo shimmer
 > animato è a codice; questo sprite è la base).
 
-### 11h. (Fase 2) Terreni arricchiti + varianti notturne/stagionali
+### 11h. (Fase 2) Varianti terreno notte/stagione — EDIT del terreno-giorno
 
-> Opzionale, post-esame: ridipingere i terreni-tabellone (§P0) con più dettaglio (sentieri,
-> chiazze d'erba, acqua) e fornire una **variante notturna** e una **stagionale** per era, che
-> il codice incrocia col ciclo giorno/notte (swap morbido). Stessa inquadratura ed estensione
-> di `Assets/art/terreni/era<N>.jpg` (1920×1080), board VUOTO (gli edifici li piazza il gioco).
+> **IMPORTANTE — vanno generate come EDIT (image-to-image), non da zero**: per uno swap senza
+> "salti" la composizione DEVE restare IDENTICA al terreno-giorno. In Lovable: **carica
+> `Assets/art/terreni/era<N>.jpg` come immagine di partenza** e applica il prompt di edit qui
+> sotto, che cambia SOLO luce/atmosfera/stagione lasciando invariati tracciati, rocce, corsi
+> d'acqua, orizzonte e inquadratura. Output 1920×1080, board VUOTO (niente edifici/persone/fuochi).
+> Salvare ai nomi-file indicati; il codice li incrocia col ciclo giorno/notte (swap morbido).
+
+#### 11h-1 — Era 1, NOTTE → `terreni/era1_notte.jpg`
 
 ```
-Epic painterly dark-fantasy digital painting, 1920x1080, elevated three-quarter strategy-board
-angle, a COMPLETELY EMPTY village ground (game board, no buildings/people). Provide as a set:
-DAY warm golden-hour version, NIGHT deep-blue moonlit version, and a SEASONAL version. ERA1 =
-tribal dirt-and-grass clearing with worn footpaths, a stone-ringed center, scattered rocks, a
-stream; SEASONAL = light snow cover. ERA2 = paved stone plateau with a central emblem, low
-walls, stairs, braziers; SEASONAL = autumn leaves on the flagstones. Visible brushstrokes,
-cinematic, atmospheric depth. No text, no watermark.
+Re-light THIS EXACT scene as a moonlit night. Keep the identical composition, layout, worn
+footpaths, the stone-ringed center, scattered rocks, the stream and the forest/mountain horizon
+completely unchanged. Cool deep-blue moonlight, deep soft shadows, desaturated palette, faint
+cold rim light on edges, no warm light sources. Still COMPLETELY EMPTY: no buildings, no fires,
+no people. Painterly dark-fantasy, visible brushstrokes, atmospheric. No text, no watermark.
 ```
-> File: `terreni/era<N>.jpg` (giorno, base) + `terreni/era<N>_notte.jpg` + `terreni/era<N>_stag.jpg`.
+
+#### 11h-2 — Era 1, STAGIONE (neve) → `terreni/era1_stag.jpg`
+
+```
+Repaint THIS EXACT scene under winter snow. Keep the identical composition, footpaths, the
+stone-ringed center, rocks, stream and horizon unchanged. A light snow cover over the ground,
+paths and rocks, frosted grass, the stream half-frozen, pale overcast cold daylight, quiet
+wintry atmosphere. Still COMPLETELY EMPTY of buildings, fires and people. Painterly dark-fantasy,
+visible brushstrokes. No text, no watermark.
+```
+
+#### 11h-3 — Era 2, NOTTE → `terreni/era2_notte.jpg`
+
+```
+Re-light THIS EXACT mythic stone plaza as night. Keep the identical composition: the flagstone
+paving, the central engraved emblem, low boundary walls, stairs, braziers and the distant city
+skyline all unchanged. Cool blue moonlight, deep shadows, the far-off city windows glowing a
+faint warm amber, braziers unlit. Still COMPLETELY EMPTY of buildings, stalls and people.
+Painterly dark-fantasy, visible brushstrokes, atmospheric. No text, no watermark.
+```
+
+#### 11h-4 — Era 2, STAGIONE (autunno) → `terreni/era2_stag.jpg`
+
+```
+Repaint THIS EXACT plaza in an autumn golden hour. Keep the identical composition: paving,
+central emblem, walls, stairs, braziers and city skyline unchanged. Warm amber low light, long
+warm shadows, scattered fallen autumn leaves drifting across the flagstones, a hazy distant
+city. Still COMPLETELY EMPTY of buildings, stalls and people. Painterly dark-fantasy, visible
+brushstrokes. No text, no watermark.
+```
+
+> Dopo il drop: il codice aggancia `era<N>_notte.jpg` al ciclo (alpha alta a notte) e le
+> `_stag` restano disponibili (nessun sistema stagioni: scelta estetica per era). Cablaggio
+> dello swap notturno = piccolo hook nel sistema giorno/notte (`main.gd`, da fare quando i PNG
+> esistono).
 
 ---
 
