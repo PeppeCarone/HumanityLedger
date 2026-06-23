@@ -192,6 +192,12 @@ var atmosfera: CPUParticles2D = null
 # Ciclo giorno/notte del villaggio (P11): overlay morbido sopra il board.
 var ciclo_luce: ColorRect = null
 var _drift_tween: Tween = null
+# Overlay atmosferici (P11 §11e, Fase 2): cielo/raggi/nebbia che pulsano col ciclo.
+var _atmo_overlay: Dictionary = {}
+var _pal_alba: Color = Color(0.98, 0.74, 0.42, 0.16)
+var _pal_giorno: Color = Color(1.0, 0.96, 0.86, 0.04)
+var _pal_tramonto: Color = Color(0.96, 0.55, 0.32, 0.18)
+var _pal_notte: Color = Color(0.18, 0.24, 0.45, 0.22)
 # Camera libera del villaggio (P11, Fase 1G): pan/zoom del board (terreno+edifici insieme).
 # Gated da flag: a OFF il comportamento e' quello attuale (board fisso).
 const CAMERA_LIBERA: bool = true
@@ -854,10 +860,21 @@ func _reset_camera() -> void:
 		_village_world.position = Vector2.ZERO
 
 
-# Ciclo giorno/notte del villaggio (P11): overlay cromatico morbido che deriva
-# alba->giorno->tramonto->notte. Self-contained (drift continuo lento), sopra il
-# villaggio e SOTTO il fondale decisione (durante le decisioni resta coperto). Alpha
-# basse per restare sempre leggibile (no schermate scure). Era 2 vira piu' freddo.
+# Ciclo giorno/notte del villaggio (P11): tint morbido + overlay atmosferici (§11e)
+# pilotati da una "fase" continua 0..4 (alba->giorno->tramonto->notte). Sopra il
+# villaggio e SOTTO il fondale decisione. Alpha basse per restare leggibile. Era 2 piu' freddo.
+const ATMO_DIR: String = "res://Assets/art/villaggio/atmosfera/"
+# nome -> {top, bot: banda y normalizzata; k: alpha a [alba, giorno, tramonto, notte]}.
+const ATMO_OVERLAY: Dictionary = {
+	"cielo_notte": {"top": 0.0, "bot": 0.34, "k": [0.12, 0.0, 0.08, 0.5]},
+	"nuvole": {"top": 0.0, "bot": 0.40, "k": [0.22, 0.32, 0.28, 0.14]},
+	"alone_alba": {"top": 0.06, "bot": 0.44, "k": [0.5, 0.04, 0.5, 0.08]},
+	"raggi": {"top": 0.0, "bot": 0.52, "k": [0.14, 0.45, 0.18, 0.0]},
+	"nebbia": {"top": 0.55, "bot": 1.0, "k": [0.38, 0.08, 0.22, 0.42]},
+}
+const ATMO_ORDINE: Array = ["cielo_notte", "nuvole", "alone_alba", "raggi", "nebbia"]
+
+
 func _aggiorna_ciclo_luce() -> void:
 	if ciclo_luce == null or not is_instance_valid(ciclo_luce):
 		ciclo_luce = ColorRect.new()
@@ -865,26 +882,74 @@ func _aggiorna_ciclo_luce() -> void:
 		ciclo_luce.set_anchors_preset(Control.PRESET_FULL_RECT)
 		ciclo_luce.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ciclo_luce.color = Color(0.98, 0.74, 0.42, 0.0)
-		# Dentro il VillageWorld (sopra gli edifici): la tinta segue pan/zoom del board.
+		# Dentro il VillageWorld (sopra gli edifici): tinta e cielo seguono pan/zoom del board.
 		var parent: Node = village.get_parent() if is_instance_valid(village) else $UI
 		parent.add_child(ciclo_luce)
 		if is_instance_valid(village):
 			parent.move_child(ciclo_luce, village.get_index() + 1)
+		_setup_atmosfera_overlays(parent)
+	var era2: bool = GameState.era_corrente >= 2
+	_pal_alba = Color(0.98, 0.74, 0.42, 0.16)
+	_pal_giorno = Color(1.0, 0.96, 0.86, 0.04)
+	_pal_tramonto = Color(0.96, 0.55, 0.32, 0.18) if not era2 else Color(0.86, 0.42, 0.40, 0.20)
+	_pal_notte = Color(0.18, 0.24, 0.45, 0.22) if not era2 else Color(0.15, 0.17, 0.42, 0.26)
 	if _drift_tween != null and _drift_tween.is_valid():
 		_drift_tween.kill()
-	var era2: bool = GameState.era_corrente >= 2
-	var alba: Color = Color(0.98, 0.74, 0.42, 0.16)
-	var giorno: Color = Color(1.0, 0.96, 0.86, 0.04)
-	var tramonto: Color = Color(0.96, 0.55, 0.32, 0.18) if not era2 else Color(0.86, 0.42, 0.40, 0.20)
-	var notte: Color = Color(0.18, 0.24, 0.45, 0.22) if not era2 else Color(0.15, 0.17, 0.42, 0.26)
 	const DUR: float = 55.0
-	_drift_tween = ciclo_luce.create_tween()
-	_drift_tween.set_loops()
-	_drift_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_drift_tween.tween_property(ciclo_luce, "color", giorno, DUR)
-	_drift_tween.tween_property(ciclo_luce, "color", tramonto, DUR)
-	_drift_tween.tween_property(ciclo_luce, "color", notte, DUR)
-	_drift_tween.tween_property(ciclo_luce, "color", alba, DUR)
+	_drift_tween = create_tween().set_loops()
+	_drift_tween.tween_method(_applica_fase, 0.0, 4.0, DUR * 4.0)
+
+
+# Crea i 5 overlay (una volta), ancorati a bande di cielo, dentro il mondo (pan/zoom).
+# Solo-se-asset: senza i PNG resta il solo tint (comportamento Fase 1).
+func _setup_atmosfera_overlays(parent: Node) -> void:
+	for nome in ATMO_ORDINE:
+		var path: String = ATMO_DIR + str(nome) + ".png"
+		if not ResourceLoader.exists(path):
+			continue
+		var b: Dictionary = ATMO_OVERLAY[nome]
+		var ov: TextureRect = TextureRect.new()
+		ov.name = "Atmo_" + str(nome)
+		ov.texture = load(path)
+		ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ov.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ov.stretch_mode = TextureRect.STRETCH_SCALE
+		ov.anchor_left = 0.0
+		ov.anchor_right = 1.0
+		ov.anchor_top = float(b["top"])
+		ov.anchor_bottom = float(b["bot"])
+		ov.offset_left = 0.0
+		ov.offset_right = 0.0
+		ov.offset_top = 0.0
+		ov.offset_bottom = 0.0
+		ov.modulate = Color(1, 1, 1, 0.0)
+		parent.add_child(ov)
+		if is_instance_valid(ciclo_luce):
+			parent.move_child(ov, ciclo_luce.get_index())  # sotto il tint, sopra gli edifici
+		_atmo_overlay[nome] = ov
+
+
+# Applica la fase del giorno (0=alba,1=giorno,2=tramonto,3=notte; ciclica) a tint+overlay.
+func _applica_fase(f: float) -> void:
+	if is_instance_valid(ciclo_luce):
+		ciclo_luce.color = _fase_color(f, _pal_alba, _pal_giorno, _pal_tramonto, _pal_notte)
+	for nome in _atmo_overlay:
+		var ov: TextureRect = _atmo_overlay[nome]
+		if is_instance_valid(ov):
+			var k: Array = ATMO_OVERLAY[nome]["k"]
+			ov.modulate.a = _fase_val(f, float(k[0]), float(k[1]), float(k[2]), float(k[3]))
+
+
+func _fase_val(f: float, a: float, b: float, c: float, d: float) -> float:
+	var arr: Array = [a, b, c, d]
+	var i: int = int(floor(f)) % 4
+	return lerpf(float(arr[i]), float(arr[(i + 1) % 4]), f - floor(f))
+
+
+func _fase_color(f: float, a: Color, b: Color, c: Color, d: Color) -> Color:
+	var arr: Array = [a, b, c, d]
+	var i: int = int(floor(f)) % 4
+	return (arr[i] as Color).lerp(arr[(i + 1) % 4], f - floor(f))
 
 
 func _aggiorna_scena_decisione() -> void:

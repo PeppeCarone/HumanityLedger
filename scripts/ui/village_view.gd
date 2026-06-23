@@ -129,6 +129,7 @@ var _slot_tipo: Array[int] = []  # tipo-edificio per ogni slot (indice = slot)
 var _potenziabili: Array[int] = []  # slot attualmente migliorabili (glow d'invito)
 var _marker_costruibile: Control = null  # lotto vuoto "costruisci qui"
 var _bandiere: Array[Control] = []  # stendardi degli alleati ai margini (J15)
+var _attori: Array[Control] = []  # camminatori della vita ambientale (per le reazioni)
 var _fumo: CPUParticles2D = null
 var _tinta_prosperita: Color = Color.WHITE
 @onready var _suolo: Control = $Suolo
@@ -386,6 +387,7 @@ func sincronizza(era: int, n: int) -> void:
 	_edifici_nodi.clear()
 	_edifici_sprite.clear()
 	_slot_tipo.clear()
+	_attori.clear()
 	for b in _bandiere:
 		if is_instance_valid(b):
 			b.queue_free()
@@ -796,6 +798,7 @@ func _posa_camminatore(era: int, nome: String, banda_y: float, scala: float,
 	holder.add_child(sp)
 	_suolo.add_child(holder)
 	_edifici_nodi.append(holder)
+	_attori.append(holder)
 	var vel: float = 70.0 if veloce else 42.0
 	var dur: float = maxf(2.0, absf(xb - xa) / vel)
 	var t: Tween = holder.create_tween()
@@ -882,11 +885,37 @@ func aggiorna_prosperita(popolo: int, tesoro: int) -> void:
 			t.tween_property(nodo, "modulate", tinta, 1.2)
 
 
+# Gli abitanti reagiscono alla conseguenza: un saltello con flash di tinta (guerra = rosso/
+# fuga più alta, alleanza/festa = oro, neutro = lieve). Hop sulla position:y del holder
+# (indipendente dal walk su position:x e dal bob sullo sprite) → niente conflitti di tween.
+func _reazione_attori(tipo: String) -> void:
+	if _attori.is_empty():
+		return
+	var spaventa: bool = tipo in ["guerra", "neutro"]
+	var col: Color = Color(1.35, 0.7, 0.6) if tipo == "guerra" else Color(1.2, 1.12, 0.7)
+	var salto: float = 18.0 if spaventa else 11.0
+	for h in _attori:
+		if not is_instance_valid(h):
+			continue
+		var base_y: float = h.position.y
+		var ht: Tween = h.create_tween()
+		ht.tween_property(h, "position:y", base_y - salto, 0.13) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ht.tween_property(h, "position:y", base_y, 0.3) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		var sp: Node = h.get_child(1) if h.get_child_count() > 1 else null
+		if sp is TextureRect:
+			var ft: Tween = sp.create_tween()
+			ft.tween_property(sp, "modulate", col, 0.15)
+			ft.tween_property(sp, "modulate", _tinta_prosperita, 0.55)
+
+
 # Mostra l'effetto della conseguenza al centro del villaggio. `intensita` (≈0.8–1.6,
 # dal delta-stat maggiore della scelta) scala dimensione e durata del burst: J7 — una
 # svolta forte "pesa" di più a schermo di un aggiustamento minore.
 func applica_conseguenza(tipo: String, intensita: float = 1.0) -> void:
 	var dati: Dictionary = FX_CONSEGUENZA.get(tipo, FX_CONSEGUENZA["neutro"])
+	_reazione_attori(tipo)
 	if tipo == "costruzione":
 		costruisci()
 		return
