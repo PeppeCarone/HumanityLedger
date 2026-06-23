@@ -123,6 +123,11 @@ func _tick_abilita_nemico(delta: float) -> void:
 		_evoca_cd -= delta
 		if _evoca_cd <= 0.0:
 			_evoca_cd = EVOCA_CD
+			if mini_boss:
+				# Tell del mini-boss: lampo viola d'evocazione (la sua mini-meccanica si VEDE).
+				modulate = Color(1.35, 0.8, 1.5)
+				var tw: Tween = create_tween()
+				tw.tween_property(self, "modulate", Color.WHITE, 0.5)
 			if arena.has_method("spawn_minion"):
 				arena.spawn_minion(global_position, corsia)
 	if risanatore:

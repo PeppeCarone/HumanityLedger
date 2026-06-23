@@ -269,7 +269,7 @@ func _cast_ultimate() -> void:
 	var pot: int = int(round(float(ULT_POT_BASE) * pow(0.72, float(_ult_usata))))
 	_ult_usata += 1
 	if arena != null and arena.has_method("boss_ultimate"):
-		arena.boss_ultimate(era_boss, maxi(6, pot))
+		arena.boss_ultimate(era_boss, maxi(6, pot), global_position)
 
 
 # Cadenza dell'ultimate: cresce a ogni uso (anti-ripetizione).

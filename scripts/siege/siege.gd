@@ -1350,33 +1350,67 @@ func cinematica_trasformazione(boss: SiegeBoss) -> void:
 		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.35)
 
 
-# Ultimate del boss: devastazione a tutto campo sui difensori (per archetipo d'era). Il danno
-# `potenza` è già scalato dal boss (cala a ogni uso). Lampo + esplosioni sparse + shake.
-func boss_ultimate(era_b: int, potenza: int) -> void:
+# Ultimate del boss (Fase F4/profondità): TELEGRAFATA e a ZONE, diversa per archetipo. Mostra
+# le zone di pericolo (~1s) poi colpisce SOLO chi è dentro → è EVITABILE/mitigabile (spargi le
+# difese, arretra, oppure spezza la tenuta per impedirla). `potenza` cala a ogni uso (anti-rip).
+#   Colosso (Era 1): FRANA — onde sismiche davanti a sé (2 grandi zone verso il villaggio).
+#   Drago (Era 2): TEMPESTA DI FUOCO — 4 zone sparse sul campo.
+func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, ROAD_MID)) -> void:
 	var nome: String = "TEMPESTA DI FUOCO" if era_b >= 2 else "FRANA ROVINOSA"
-	_flash_info("ULTIMATE — %s!" % nome)
-	scuoti_forte()
-	for i in range(_difensori.size() - 1, -1, -1):
-		var d: SiegeDefender = _difensori[i]
-		if d == null or not is_instance_valid(d):
-			_difensori.remove_at(i)
-			continue
-		d.colpisci(potenza)
-	# Lampo a tutto schermo + esplosioni diffuse sul campo.
+	_flash_info("ULTIMATE — %s!  sparpaglia le difese!" % nome)
+	AudioManager.play_sfx("stat_down")
+	_scuoti()
+	# Zone di pericolo (telegrafate).
+	var zone: Array[Vector2] = []
+	var raggio: float
+	if era_b >= 2:
+		raggio = 150.0
+		for i in range(4):
+			zone.append(Vector2(randf_range(VILLAGGIO_X + 140.0, SPAWN_X - 260.0),
+				randf_range(ROAD_TOP + 50.0, ROAD_BOTTOM - 50.0)))
+	else:
+		raggio = 230.0
+		zone.append(Vector2(maxf(VILLAGGIO_X + 180.0, origin.x - 200.0), ROAD_MID))
+		zone.append(Vector2(maxf(VILLAGGIO_X + 150.0, origin.x - 440.0), ROAD_MID))
+	# Telegrafo: dischi rossi pulsanti per ~1s.
+	var marker: Array[Node] = []
+	for z in zone:
+		marker.append(_telegrafo_disco(z, raggio))
+	await get_tree().create_timer(1.0).timeout
+	# Impatto: danno SOLO nelle zone (lo Scudo di pelli del Bloccatore Lv3 lo mitiga).
+	for z in zone:
+		danno_area_difensori(z, raggio, potenza)
+		fx_esplosione(z, raggio)
+	for m in marker:
+		if is_instance_valid(m):
+			m.queue_free()
 	var flash: ColorRect = ColorRect.new()
 	flash.color = Color(1.0, 0.5, 0.2, 0.0) if era_b >= 2 else Color(0.85, 0.62, 0.32, 0.0)
 	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(flash)
 	var t: Tween = create_tween()
-	t.tween_property(flash, "color:a", 0.5, 0.10)
+	t.tween_property(flash, "color:a", 0.42, 0.10)
 	t.tween_property(flash, "color:a", 0.0, 0.5)
 	t.tween_callback(flash.queue_free)
-	for k in range(6):
-		var p: Vector2 = Vector2(randf_range(VILLAGGIO_X + 120.0, SPAWN_X - 220.0),
-			randf_range(ROAD_TOP + 40.0, ROAD_BOTTOM - 40.0))
-		fx_esplosione(p, 110.0)
-	AudioManager.play_sfx("stat_down")
+	scuoti_forte()
+
+
+# Disco rosso pulsante che telegrafa una zona dell'ultimate. Ritorna il nodo (da liberare).
+func _telegrafo_disco(pos: Vector2, raggio: float) -> Node:
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = _disc_texture()
+	s.centered = true
+	s.modulate = Color(0.95, 0.2, 0.15, 0.0)
+	var base: float = raggio * 2.0 / 64.0
+	s.scale = Vector2(base, base)
+	_world.add_child(s)
+	s.global_position = pos
+	var t: Tween = create_tween()
+	t.set_loops()
+	t.tween_property(s, "modulate:a", 0.5, 0.16)
+	t.tween_property(s, "modulate:a", 0.22, 0.16)
+	return s
 
 
 # Il boss chiama rinforzi (§4): n nemici leggeri dell'era entrano dal lato spawn.
