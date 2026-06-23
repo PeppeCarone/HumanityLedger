@@ -13,6 +13,8 @@ class_name SiegeDefender
 signal distrutto(slot: int)
 
 var ruolo: String = "ranged"        # ranged | blocco | slow | aoe
+var tipo: String = ""               # tiratore | bloccatore | sciamano | totem (per la progressione)
+var livello: int = 1                # Lv1→Lv5 del tipo (Docs/14 §3): aspetto + stat salgono
 var nome: String = "Difensore"
 var corsia: int = 0
 var slot: int = -1                  # piazzola occupata (-1 = alleato/non su piazzola)
@@ -36,26 +38,52 @@ var slow_durata: float = 0.7
 var arena: Node = null              # SiegeArena (API: bersaglio_per/lancia_proiettile/...)
 
 const REACH_BLOCCO: float = 52.0
+const ULT_CD: float = 8.0            # cooldown delle ultimate (Lv5), auto-cast periodico
 var _cooldown: float = 0.0
 var _vita_t: float = 0.0
 var _stun_fino: float = -1.0
+var _ult_cd: float = 4.0             # primo cast dopo ~4s
+var _calore_cd: float = 0.0          # tick del passivo Calore (Totem Lv5)
+var _regen_acc: float = 0.0          # accumulo del passivo Roccia (Bloccatore Lv5)
+var _idle_tw: Tween = null           # tween dell'idle-bob (va fermato durante la camminata)
+var _move_tw: Tween = null           # tween della camminata verso il posto in formazione
 
 
 func _ready() -> void:
 	hp = hp_max
 
 
-# Idle-bob: il difensore "respira" oscillando di poco in verticale (avviato dall'arena
-# DOPO il posizionamento). Random per desincronizzare; non tocca scale (usata dal recoil).
+# Idle-bob: il difensore "respira" oscillando di poco in verticale. Random per
+# desincronizzare; non tocca scale (usata dal recoil). Riavviabile (rifà la base sull'attuale y).
 func avvia_idle() -> void:
+	if _idle_tw != null and _idle_tw.is_valid():
+		_idle_tw.kill()
 	var base_y: float = position.y
 	var amp: float = randf_range(1.5, 3.0)
 	var dur: float = randf_range(1.0, 1.6)
-	var t: Tween = create_tween()
-	t.set_loops()
-	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_property(self, "position:y", base_y - amp, dur)
-	t.tween_property(self, "position:y", base_y, dur)
+	_idle_tw = create_tween()
+	_idle_tw.set_loops()
+	_idle_tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_idle_tw.tween_property(self, "position:y", base_y - amp, dur)
+	_idle_tw.tween_property(self, "position:y", base_y, dur)
+
+
+# Raggiunge il posto in formazione: ferma l'idle, cammina fin lì, poi riprende l'idle.
+# ("Esce dal villaggio camminando", Docs/14 §1.) Con cammina=false si teletrasporta.
+func vai_a(target: Vector2, cammina: bool = true) -> void:
+	if _idle_tw != null and _idle_tw.is_valid():
+		_idle_tw.kill()
+	if _move_tw != null and _move_tw.is_valid():
+		_move_tw.kill()
+	if not cammina:
+		global_position = target
+		avvia_idle()
+		return
+	var dur: float = clampf(global_position.distance_to(target) / 420.0, 0.12, 0.9)
+	_move_tw = create_tween()
+	_move_tw.tween_property(self, "global_position", target, dur) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_move_tw.tween_callback(avvia_idle)
 
 
 func _process(delta: float) -> void:
@@ -64,6 +92,7 @@ func _process(delta: float) -> void:
 	_vita_t += delta
 	if _vita_t < _stun_fino:
 		return   # stordito dal Ruggito del boss
+	_tick_abilita(delta)   # passivi + ultimate (Lv5): girano anche durante il cooldown d'attacco
 	if _cooldown > 0.0:
 		_cooldown -= delta
 		return
@@ -71,11 +100,17 @@ func _process(delta: float) -> void:
 		"ranged", "aoe":
 			var b: SiegeEnemy = arena.bersaglio_per(global_position, raggio_tiro)
 			if b != null:
-				arena.lancia_proiettile(global_position, b, danno, aoe_raggio)
+				var dmg: int = danno
+				# Mira (Tiratore Lv5): danno critico sui nemici già feriti (< 50% HP).
+				if ruolo == "ranged" and livello >= 5 and float(b.hp) < 0.5 * float(maxi(b.hp_max, 1)):
+					dmg = int(round(float(dmg) * 1.6))
+				var pierce: int = 2 if (ruolo == "ranged" and livello >= 3) else 0   # Freccia perforante
+				var brace: bool = (ruolo == "aoe" and livello >= 3)                   # Brace
+				arena.lancia_proiettile(global_position, b, dmg, aoe_raggio, pierce, brace)
 				_cooldown = cadenza
 				_recoil()
 		"blocco":
-			var e: SiegeEnemy = arena.nemico_per_blocco(corsia, global_position.x, REACH_BLOCCO)
+			var e: SiegeEnemy = arena.nemico_per_blocco(global_position, REACH_BLOCCO)
 			if e != null:
 				e.subisci_danno(danno)
 				_cooldown = cadenza
@@ -87,6 +122,44 @@ func _process(delta: float) -> void:
 					en.applica_slow(slow_fattore, slow_durata)
 				_pulse()
 			_cooldown = 0.35
+
+
+# Passivi (Lv5) + ultimate (Lv5, auto-cast periodico). Girano ogni frame, a parte lo stun.
+func _tick_abilita(delta: float) -> void:
+	# Roccia (Bloccatore Lv5): rigenera lentamente i propri HP.
+	if ruolo == "blocco" and livello >= 5 and hp < hp_max:
+		_regen_acc += 6.0 * delta
+		if _regen_acc >= 1.0:
+			var add: int = int(_regen_acc)
+			_regen_acc -= float(add)
+			hp = mini(hp_max, hp + add)
+			queue_redraw()
+	# Calore (Totem Lv5): danno continuo ai nemici nell'area attorno al totem.
+	if ruolo == "aoe" and livello >= 5:
+		_calore_cd -= delta
+		if _calore_cd <= 0.0:
+			_calore_cd = 0.5
+			arena.danno_area_nemici(global_position, maxf(60.0, aoe_raggio * 0.55), maxi(2, int(round(float(danno) * 0.22))))
+	# Ultimate (Lv5): a cadenza, se c'è un nemico abbastanza vicino (niente sprechi a vuoto).
+	if livello >= 5:
+		_ult_cd -= delta
+		if _ult_cd <= 0.0 and arena.bersaglio_per(global_position, 900.0) != null:
+			_ult_cd = ULT_CD
+			_cast_ultimate()
+
+
+# Lancia l'ultimate del tipo (forma finale dell'ascensione, Docs/14 §3).
+func _cast_ultimate() -> void:
+	match tipo:
+		"tiratore":
+			arena.ultimate_tiratore(global_position, int(round(float(danno) * 1.4)))
+		"totem":
+			arena.ultimate_totem(global_position, int(round(float(danno) * 1.3)))
+		"sciamano":
+			arena.ultimate_sciamano(global_position, raggio_tiro * 1.1)
+		"bloccatore":
+			arena.ultimate_bloccatore(global_position)
+	_pulse()
 
 
 func subisci_danno(d: int) -> void:
@@ -142,9 +215,11 @@ func _pulse() -> void:
 
 func _draw() -> void:
 	var scuro: Color = Color(0.1, 0.08, 0.06, 0.9)
+	# Tinta per livello: vira verso l'oro col salire del Lv (colpo d'occhio della progressione).
+	var lv_col: Color = colore.lerp(Color(1.0, 0.86, 0.42), clampf(0.14 * float(livello - 1), 0.0, 0.58))
 	# Raggio d'azione tenue (non per il bloccatore).
 	if ruolo != "blocco":
-		draw_arc(Vector2.ZERO, raggio_tiro, 0.0, TAU, 48, Color(colore.r, colore.g, colore.b, 0.07), 1.0)
+		draw_arc(Vector2.ZERO, raggio_tiro, 0.0, TAU, 48, Color(lv_col.r, lv_col.g, lv_col.b, 0.07), 1.0)
 	# Ombra di contatto alla base (àncora l'unità alla piazzola).
 	var so: PackedVector2Array = PackedVector2Array()
 	for i in range(16):
@@ -152,21 +227,22 @@ func _draw() -> void:
 		so.append(Vector2(cos(a) * 24.0, 13.0 + sin(a) * 7.0))
 	draw_colored_polygon(so, Color(0.04, 0.03, 0.02, 0.30))
 	if sprite != null:
-		# Sprite generato (guarda a destra): rimpiazza la forma placeholder.
+		# Sprite generato (guarda a destra): rimpiazza la forma placeholder. Tinta col livello.
 		var h: float = 82.0
 		var w: float = h * (float(sprite.get_width()) / float(maxi(sprite.get_height(), 1)))
-		draw_texture_rect(sprite, Rect2(-w * 0.5, 14.0 - h, w, h), false)
+		var tint: Color = Color.WHITE.lerp(Color(1.25, 1.1, 0.7), clampf(0.18 * float(livello - 1), 0.0, 0.7))
+		draw_texture_rect(sprite, Rect2(-w * 0.5, 14.0 - h, w, h), false, tint)
 	else:
 		match ruolo:
 			"ranged":
 				# Torre snella con punta verso l'alto.
 				draw_rect(Rect2(Vector2(-17, -4), Vector2(34, 15)), Color(0.32, 0.23, 0.15))
 				var pts: PackedVector2Array = PackedVector2Array([Vector2(-15, -4), Vector2(15, -4), Vector2(0, -40)])
-				draw_colored_polygon(pts, colore)
+				draw_colored_polygon(pts, lv_col)
 				draw_polyline(PackedVector2Array([Vector2(-15, -4), Vector2(0, -40), Vector2(15, -4), Vector2(-15, -4)]), scuro, 2.0)
 			"blocco":
 				# Muro di scudi: blocco tozzo.
-				draw_rect(Rect2(Vector2(-22, -34), Vector2(44, 46)), colore)
+				draw_rect(Rect2(Vector2(-22, -34), Vector2(44, 46)), lv_col)
 				draw_rect(Rect2(Vector2(-22, -34), Vector2(44, 46)), scuro, false, 2.5)
 				draw_line(Vector2(0, -34), Vector2(0, 12), scuro, 2.0)
 			"slow":
@@ -174,13 +250,13 @@ func _draw() -> void:
 				draw_rect(Rect2(Vector2(-6, -36), Vector2(12, 48)), Color(0.3, 0.24, 0.18))
 				var rombo: PackedVector2Array = PackedVector2Array([
 					Vector2(0, -52), Vector2(13, -38), Vector2(0, -24), Vector2(-13, -38)])
-				draw_colored_polygon(rombo, colore)
+				draw_colored_polygon(rombo, lv_col)
 				draw_polyline(PackedVector2Array([
 					Vector2(0, -52), Vector2(13, -38), Vector2(0, -24), Vector2(-13, -38), Vector2(0, -52)]), scuro, 2.0)
 			"aoe":
 				# Catapulta/braciere: base larga + coppa.
 				draw_rect(Rect2(Vector2(-20, -6), Vector2(40, 18)), Color(0.32, 0.23, 0.15))
-				draw_circle(Vector2(0, -16), 13.0, colore)
+				draw_circle(Vector2(0, -16), 13.0, lv_col)
 				draw_arc(Vector2(0, -16), 13.0, 0.0, TAU, 24, scuro, 2.0)
 	# Barra HP del muro (sopra lo sprite o la forma).
 	if ruolo == "blocco":
@@ -196,3 +272,28 @@ func _draw() -> void:
 			Vector2(13, -50), Vector2(31, -44), Vector2(13, -38)]), Color(0.6, 0.95, 0.6))
 		draw_polyline(PackedVector2Array([
 			Vector2(13, -50), Vector2(31, -44), Vector2(13, -38)]), scuro, 1.5)
+	_draw_flair_livello()
+
+
+# Insegne di livello (Docs/14 §3): gemma dal Lv3 (abilità), coroncina + aura al Lv5 (ascensione).
+# Il numero esatto del livello sta sulle carte; qui solo il colpo d'occhio sull'unità.
+func _draw_flair_livello() -> void:
+	if livello < 3:
+		return
+	var cima: float = -58.0
+	var gem: Color = Color(0.62, 0.95, 1.0) if livello < 5 else Color(1.0, 0.88, 0.4)
+	var g: Vector2 = Vector2(0, cima)
+	draw_colored_polygon(PackedVector2Array([
+		g + Vector2(0, -7), g + Vector2(6, 0), g + Vector2(0, 7), g + Vector2(-6, 0)]), gem)
+	draw_polyline(PackedVector2Array([
+		g + Vector2(0, -7), g + Vector2(6, 0), g + Vector2(0, 7), g + Vector2(-6, 0), g + Vector2(0, -7)]),
+		Color(0.1, 0.08, 0.06, 0.9), 1.5)
+	if livello >= 5:
+		# Aura + coroncina dorata dell'ascensione.
+		draw_arc(Vector2(0, -10), 32.0, PI, TAU, 22, Color(1.0, 0.85, 0.4, 0.5), 3.0)
+		var cy: float = cima - 12.0
+		var oro: Color = Color(1.0, 0.86, 0.4)
+		for k in range(3):
+			var bx: float = -10.0 + float(k) * 10.0
+			draw_colored_polygon(PackedVector2Array([
+				Vector2(bx - 4.0, cy), Vector2(bx + 4.0, cy), Vector2(bx, cy - 9.0)]), oro)

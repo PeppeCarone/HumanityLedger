@@ -24,9 +24,22 @@ var sprite: Texture2D = null        # se presente (Assets/art/siege/era<N>/enemy
 var arena: Node = null              # SiegeArena: per interrogare i blocchi sulla corsia
 var armatura: int = 0               # riduzione piatta del danno subito (golem)
 var risorge: bool = false           # si rialza UNA volta a metà HP quando cadrebbe (scheletro)
+# Abilità nemiche (Fase F3, Docs/14 §4): impostate dall'arena dal profilo della creatura.
+var caricatore: bool = false        # Caricatore: scatti periodici in avanti (sfonda in fretta)
+var scudo_max: int = 0              # Scudato: scudo frontale che assorbe danno, poi si rompe
+var scudo: int = 0
+var evocatore: bool = false         # Evocatore: chiama minion a cadenza
+var risanatore: bool = false        # Risanatore: cura i nemici vicini a cadenza
+var mini_boss: bool = false         # Mini-boss (ondata 3): più grosso, banner col nome
+var nome: String = ""               # nome (mini-boss) per il banner d'entrata
 
 const REACH_BLOCCO: float = 46.0    # distanza a cui ci si ferma davanti al bloccatore
 const ATK_CADENZA: float = 0.75
+const CARICA_CD: float = 3.2        # ogni quanto il caricatore scatta
+const CARICA_DUR: float = 0.7       # durata dello scatto (lo scatto sfonda la linea)
+const CARICA_MULT: float = 2.7      # moltiplicatore velocità durante lo scatto
+const EVOCA_CD: float = 4.5         # ogni quanto l'evocatore chiama un minion
+const CURA_CD: float = 2.4          # ogni quanto il risanatore cura i vicini
 
 var _vivo: bool = true
 var _t: float = 0.0
@@ -35,6 +48,11 @@ var _slow_fattore: float = 1.0
 var _atk_cd: float = 0.0
 var _engaged: Node = null           # bloccatore che ci sbarra la strada
 var _risorto: bool = false          # ha già usato la sua risurrezione
+var _stun_fino: float = -1.0        # stordito (Grido di guerra, Bloccatore Lv5): fermo
+var _carica_cd: float = 2.0         # countdown alla prossima carica
+var _carica_fino: float = -1.0      # scatto attivo finché _t < _carica_fino
+var _evoca_cd: float = 3.0
+var _cura_cd: float = 2.0
 
 
 func _process(delta: float) -> void:
@@ -45,32 +63,74 @@ func _process(delta: float) -> void:
 		_slow_fattore = 1.0
 		queue_redraw()
 
-	# Il bloccatore ingaggiato è ancora valido?
-	if _engaged != null and (not is_instance_valid(_engaged) or not _engaged.vivo()):
-		_engaged = null
-	# Cerca un bloccatore davanti sulla mia corsia.
-	if _engaged == null and arena != null:
-		var b: Node = arena.cerca_blocco(corsia, position.x)
-		if b != null and position.x > b.global_position.x and position.x - b.global_position.x <= REACH_BLOCCO:
-			_engaged = b
-
-	if _engaged != null:
-		# Fermo: martello il muro a cadenza.
-		_atk_cd -= delta
-		if _atk_cd <= 0.0:
-			_engaged.subisci_danno(danno_melee)
-			_atk_cd = ATK_CADENZA
-			modulate = Color(1.4, 1.1, 1.0)
-			var tw: Tween = create_tween()
-			tw.tween_property(self, "modulate", Color.WHITE, 0.2)
+	# Stordito: resta immobile, non marcia né colpisce (finché dura).
+	if _t < _stun_fino:
+		queue_redraw()
 		return
 
-	# Marcia (eventualmente rallentata).
-	position.x -= velocita * _slow_fattore * delta
+	_tick_abilita_nemico(delta)   # caricatore/evocatore/risanatore (Fase F3)
+
+	# Durante lo SCATTO il caricatore SFONDA: ignora i bloccatori e tira dritto (F5: così
+	# qualche nemico può davvero arrivare al villaggio → tensione). Fuori scatto, ingaggia.
+	var in_carica: bool = _t < _carica_fino
+	if in_carica:
+		_engaged = null
+	else:
+		# Il bloccatore ingaggiato è ancora valido?
+		if _engaged != null and (not is_instance_valid(_engaged) or not _engaged.vivo()):
+			_engaged = null
+		# Cerca un bloccatore davanti nella mia banda verticale (line-battle, per prossimità).
+		if _engaged == null and arena != null:
+			var b: Node = arena.cerca_blocco(global_position)
+			if b != null and global_position.x - b.global_position.x <= REACH_BLOCCO:
+				_engaged = b
+		if _engaged != null:
+			# Fermo: martello il muro a cadenza.
+			_atk_cd -= delta
+			if _atk_cd <= 0.0:
+				_engaged.subisci_danno(danno_melee)
+				_atk_cd = ATK_CADENZA
+				modulate = Color(1.4, 1.1, 1.0)
+				var tw: Tween = create_tween()
+				tw.tween_property(self, "modulate", Color.WHITE, 0.2)
+			return
+
+	# Marcia (eventualmente rallentata; ×CARICA_MULT durante lo scatto del caricatore).
+	var vel_eff: float = velocita * _slow_fattore
+	if _t < _carica_fino:
+		vel_eff *= CARICA_MULT
+	position.x -= vel_eff * delta
 	if position.x <= villaggio_x:
 		_vivo = false
 		arrivato.emit(danno_villaggio)
 		queue_free()
+
+
+# Tick delle abilità nemiche (Fase F3): caricatore (scatto), evocatore (minion), risanatore (cura).
+func _tick_abilita_nemico(delta: float) -> void:
+	if arena == null:
+		return
+	# Caricatore: scatta in avanti solo quando è libero di marciare.
+	if caricatore and _engaged == null and _t >= _carica_fino:
+		_carica_cd -= delta
+		if _carica_cd <= 0.0:
+			_carica_cd = CARICA_CD
+			_carica_fino = _t + CARICA_DUR
+			modulate = Color(1.5, 0.9, 0.55)
+			var tw: Tween = create_tween()
+			tw.tween_property(self, "modulate", Color.WHITE, 0.45)
+	if evocatore:
+		_evoca_cd -= delta
+		if _evoca_cd <= 0.0:
+			_evoca_cd = EVOCA_CD
+			if arena.has_method("spawn_minion"):
+				arena.spawn_minion(global_position, corsia)
+	if risanatore:
+		_cura_cd -= delta
+		if _cura_cd <= 0.0:
+			_cura_cd = CURA_CD
+			if arena.has_method("cura_nemici_area"):
+				arena.cura_nemici_area(global_position, 170.0, maxi(3, int(float(hp_max) * 0.05)))
 
 
 func subisci_danno(d: int) -> void:
@@ -78,6 +138,19 @@ func subisci_danno(d: int) -> void:
 		return
 	# Armatura: assorbe danno piatto (almeno 1 passa sempre). Il golem incassa i colpi.
 	var dmg: int = maxi(1, d - armatura) if armatura > 0 else d
+	# Scudo frontale (scudato): assorbe i colpi finché non si rompe; poi il danno passa.
+	if scudo > 0:
+		var assorbito: int = mini(scudo, dmg)
+		scudo -= assorbito
+		dmg -= assorbito
+		queue_redraw()
+		if scudo <= 0:
+			_rompi_scudo()
+		if dmg <= 0:
+			modulate = Color(1.2, 1.3, 1.6)
+			var ts: Tween = create_tween()
+			ts.tween_property(self, "modulate", Color.WHITE, 0.16)
+			return
 	hp -= dmg
 	if hp <= 0:
 		# Risurrezione (scheletro): una volta sola si rialza a metà HP invece di morire.
@@ -112,6 +185,34 @@ func applica_slow(fattore: float, durata: float) -> void:
 	_slow_fattore = fattore
 	_slow_fino = _t + durata
 	queue_redraw()
+
+
+# Cura (Risanatore nemico): recupera HP fino al massimo, con un lampo verde.
+func cura(amount: int) -> void:
+	if not _vivo or hp >= hp_max:
+		return
+	hp = mini(hp_max, hp + amount)
+	queue_redraw()
+	modulate = Color(0.7, 1.3, 0.7)
+	var t: Tween = create_tween()
+	t.tween_property(self, "modulate", Color.WHITE, 0.3)
+
+
+# Rottura dello scudo frontale (scudato): lampo chiaro; da qui in poi il corpo è esposto.
+func _rompi_scudo() -> void:
+	modulate = Color(1.7, 1.6, 1.0)
+	var t: Tween = create_tween()
+	t.tween_property(self, "modulate", Color.WHITE, 0.32)
+
+
+# Stordimento (Grido di guerra del Bloccatore Lv5): il nemico resta fermo per `dur` secondi.
+func stordisci(dur: float) -> void:
+	if not _vivo:
+		return
+	_stun_fino = _t + dur
+	modulate = Color(0.82, 0.82, 1.18)
+	var t: Tween = create_tween()
+	t.tween_property(self, "modulate", Color.WHITE, minf(dur, 0.6))
 
 
 func vivo() -> bool:
@@ -152,6 +253,25 @@ func _draw() -> void:
 		draw_line(Vector2(-raggio, 2.0), Vector2(-raggio - 13.0, 2.0), sc, 2.0)
 		draw_line(Vector2(-raggio, 5.0), Vector2(-raggio - 10.0, 11.0), sc, 2.0)
 		draw_circle(Vector2(-raggio - 6.0, 0.0), 2.5, Color(1.0, 0.95, 0.7, 0.9))
+	# Glifi delle abilità (Fase F3): leggibilità "nemico con abilità" a colpo d'occhio.
+	if scudo > 0:
+		# Scudo frontale (verso il villaggio, a sinistra): arco azzurro, intensità = scudo residuo.
+		var sa: float = clampf(float(scudo) / float(maxi(scudo_max, 1)), 0.0, 1.0)
+		draw_arc(Vector2.ZERO, raggio + 7.0, PI * 0.55, PI * 1.45, 22, Color(0.5, 0.8, 1.0, 0.4 + 0.45 * sa), 3.5)
+	if _t < _carica_fino:
+		# Scatto: scie di velocità dietro (a destra).
+		for k in range(3):
+			var yy: float = -6.0 + float(k) * 6.0
+			draw_line(Vector2(raggio, yy), Vector2(raggio + 16.0, yy), Color(1.0, 0.7, 0.3, 0.8), 2.0)
+	if evocatore:
+		# Runa viola sopra la testa.
+		draw_circle(Vector2(0.0, -raggio - 21.0), 4.0, Color(0.72, 0.5, 1.0, 0.95))
+		draw_arc(Vector2(0.0, -raggio - 21.0), 7.5, 0.0, TAU, 16, Color(0.8, 0.6, 1.0, 0.7), 1.5)
+	if risanatore:
+		# Croce verde di cura sopra la testa.
+		var hg: Vector2 = Vector2(0.0, -raggio - 21.0)
+		draw_rect(Rect2(hg + Vector2(-2.0, -6.0), Vector2(4.0, 12.0)), Color(0.5, 1.0, 0.6, 0.92))
+		draw_rect(Rect2(hg + Vector2(-6.0, -2.0), Vector2(12.0, 4.0)), Color(0.5, 1.0, 0.6, 0.92))
 	# Barra HP sopra la testa.
 	var w: float = raggio * 2.4
 	var h: float = 5.0

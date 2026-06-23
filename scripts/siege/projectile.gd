@@ -12,6 +12,8 @@ var aoe_raggio: float = 0.0
 var arena: Node = null              # SiegeArena: per il danno ad area
 var sprite: Texture2D = null        # se presente (Assets/art/siege/fx/proiettile*.png)
 var colore: Color = Color(1.0, 0.86, 0.5)
+var pierce: int = 0                 # Freccia perforante (Tiratore Lv3): colpisce N nemici extra in fila
+var brace: bool = false            # Brace (Totem Lv3): lascia fuoco a terra all'impatto
 
 
 func _process(delta: float) -> void:
@@ -29,12 +31,22 @@ func _process(delta: float) -> void:
 
 func _impatto() -> void:
 	bersaglio.subisci_danno(danno)
+	# Freccia perforante: trafigge anche i nemici vicini in fila (Tiratore Lv3).
+	if pierce > 0 and arena != null:
+		var colpiti: int = 0
+		for e in arena.nemici_in_area(global_position, 80.0):
+			if e != bersaglio and colpiti < pierce:
+				e.subisci_danno(danno)
+				colpiti += 1
 	if aoe_raggio > 0.0 and arena != null:
 		var danno_aoe: int = int(round(float(danno) * 0.6))
 		for e in arena.nemici_in_area(global_position, aoe_raggio):
 			if e != bersaglio:
 				e.subisci_danno(danno_aoe)
 		arena.fx_esplosione(global_position, aoe_raggio)
+	# Brace: lascia fuoco a terra che brucia nel tempo (Totem Lv3).
+	if brace and arena != null:
+		arena.crea_brace(global_position, maxi(2, int(round(float(danno) * 0.35))))
 	queue_free()
 
 

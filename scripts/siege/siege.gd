@@ -36,8 +36,26 @@ const ESITO_INFO: Dictionary = {
 
 const VILLAGGIO_X: float = 300.0
 const SPAWN_X: float = 1830.0
-const LANE_Y: Array[float] = [388.0, 566.0, 744.0]
-const COL_X: Array[float] = [600.0, 900.0, 1200.0]
+# Assedio 2.0 (F1): UNA strada orizzontale (Docs/14). La banda va da ROAD_TOP a ROAD_BOTTOM;
+# le unità si schierano in ranghi a sinistra, i nemici marciano da destra sparsi su tutta
+# l'altezza. (Prima erano 3 corsie: LANE_Y/COL_X — vedi storia in Docs/11.)
+const ROAD_TOP: float = 312.0
+const ROAD_BOTTOM: float = 840.0
+const ROAD_MID: float = 576.0
+# Spawn nemici: N "file" verticali distribuite sulla banda (riempiono la larghezza).
+const N_FILE_SPAWN: int = 5
+# Auto-formazione (F1): i bloccatori formano il FRONTE (colonna di testa verso i nemici);
+# tiratori/sciamani/totem riempiono il RETRO. riga = indice % FORM_RIGHE; nuove colonne
+# arretrano verso il villaggio. Evocazione illimitata → gli indici crescono senza limite.
+const FORM_RIGHE: int = 6
+const FORM_Y0: float = 398.0
+const FORM_DY: float = 82.0
+const FRONTE_X: float = 672.0
+const FRONTE_DX: float = 62.0
+const RETRO_X: float = 504.0
+const RETRO_DX: float = 70.0
+const RETRO_X_MIN: float = 336.0   # le colonne di retro non arretrano oltre il villaggio
+const BANDA_Y: float = 54.0        # tolleranza verticale d'ingaggio mischia (line-battle)
 # Cartella asset dell'Assedio (tutto fallback-safe: il codice usa forme/colori finché il
 # PNG non esiste). Convenzione nomi in Docs/08-asset-prompts.md §P7.
 const SIEGE_DIR: String = "res://Assets/art/siege/"
@@ -74,6 +92,34 @@ const SKIN: Dictionary = {
 	},
 }
 
+# Progressione per-TIPO (Docs/14 §3): Lv1→Lv5. Lv1-2/4 solo stat; Lv3 nuova abilità + nuovo
+# aspetto; Lv5 ASCENSIONE (forma finale + ultimate + passivo). Le abilità si "cablano" in F2b;
+# qui (F2a) sono lo stato + i tooltip + il colpo d'occhio (stelle/aspetto). Potenziare un tipo
+# fa salire TUTTE le unità di quel tipo, anche già in campo.
+const LV_MAX: int = 5
+const ABILITA: Dictionary = {
+	"tiratore": {
+		"lv3": {"nome": "Freccia perforante", "desc": "I colpi trafiggono più nemici in fila."},
+		"lv5": {"nome": "Pioggia di lance", "desc": "Ultimate: raffica di lance ad area (periodica).",
+			"passivo": {"nome": "Mira", "desc": "Danno critico extra sui nemici già feriti."}},
+	},
+	"bloccatore": {
+		"lv3": {"nome": "Scudo di pelli", "desc": "Riduce il danno ad area subìto dai vicini."},
+		"lv5": {"nome": "Grido di guerra", "desc": "Ultimate: stordisce i nemici davanti (periodica).",
+			"passivo": {"nome": "Roccia", "desc": "Rigenera lentamente i propri HP."}},
+	},
+	"sciamano": {
+		"lv3": {"nome": "Gelo", "desc": "Rallentamento più forte e aura più ampia."},
+		"lv5": {"nome": "Tempesta di ghiaccio", "desc": "Ultimate: congela i nemici vicini (periodica).",
+			"passivo": {"nome": "Aura perenne", "desc": "Rallenta sempre i nemici vicini."}},
+	},
+	"totem": {
+		"lv3": {"nome": "Brace", "desc": "Lascia fuoco a terra dove colpisce."},
+		"lv5": {"nome": "Eruzione", "desc": "Ultimate: colonna di fuoco ad area (periodica).",
+			"passivo": {"nome": "Calore", "desc": "Danno continuo ai nemici nell'area."}},
+	},
+}
+
 var era: int = 1
 var hp_villaggio_max: int = 100
 var hp_villaggio: int = 100
@@ -82,7 +128,7 @@ var risorse: int = 8
 var _skin: Dictionary = {}
 var _alleati_civ: Array[String] = []
 var _ostili_civ: Array[String] = []
-var _unita_selezionata: String = "tiratore"
+var _livello: Dictionary = {"tiratore": 1, "bloccatore": 1, "sciamano": 1, "totem": 1}
 
 var _world: Node2D = null
 var _ui: Control = null
@@ -98,11 +144,9 @@ var _ondate: Array = []               # ondate dell'era: [{nome, spawns:[spec]}]
 var _ondata_idx: int = -1
 var _in_pausa: bool = false
 var _pausa_fino: float = 0.0
-var _plot_pos: Array[Vector2] = []
-var _plot_corsia: Array[int] = []
-var _plot_markers: Array[Control] = []
-var _plot_occupato: Array[bool] = []
 var _card_panels: Dictionary = {}     # tipo -> PanelContainer
+var _card_lv: Dictionary = {}         # tipo -> Label (stelle livello)
+var _card_up: Dictionary = {}         # tipo -> Button (potenzia)
 var _tempo: float = 0.0
 var _attivo: bool = false
 var _concluso: bool = false
@@ -187,9 +231,9 @@ func _ready() -> void:
 	_prepara_ondate()
 	AudioManager.play_sfx("era_transition")
 	_attivo = true
-	# Onboarding: spiega lo schieramento alla prima partita (resta finché non si agisce).
+	# Onboarding: spiega l'evocazione alla prima partita (resta finché non si agisce).
 	if _info_label != null:
-		_info_label.text = "Scegli un'unità qui sotto ↓ poi clicca una piazzola ✦ per schierarla."
+		_info_label.text = "Clicca una carta-unità ↓ per evocarla (costa monete): si schiera da sola in formazione."
 		_info_label.modulate = Color.WHITE
 
 
@@ -269,17 +313,16 @@ func _costruisci_scena() -> void:
 		orda.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui.add_child(orda)
 
-	# Le 3 corsie. Con lo sfondo dipinto la banda è solo un velo scuro (l'arte traspare);
-	# senza sfondo è piena, così le corsie restano leggibili sul fondo nero.
-	for y in LANE_Y:
-		var terra: ColorRect = ColorRect.new()
-		terra.color = Color(0.10, 0.07, 0.05, 0.34) if bg_tex != null else Color(0.16, 0.12, 0.09, 0.95)
-		terra.position = Vector2(VILLAGGIO_X, y - 24.0)
-		terra.size = Vector2(SPAWN_X - VILLAGGIO_X + 40.0, 48.0)
-		terra.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_ui.add_child(terra)
+	# La strada: UNA banda larga. Con lo sfondo dipinto è solo un velo scuro (l'arte traspare);
+	# senza sfondo è piena, così la pista resta leggibile sul fondo nero.
+	var terra: ColorRect = ColorRect.new()
+	terra.color = Color(0.10, 0.07, 0.05, 0.30) if bg_tex != null else Color(0.16, 0.12, 0.09, 0.95)
+	terra.position = Vector2(VILLAGGIO_X, ROAD_TOP)
+	terra.size = Vector2(SPAWN_X - VILLAGGIO_X + 40.0, ROAD_BOTTOM - ROAD_TOP)
+	terra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(terra)
 
-	# Villaggio (cancello) a sinistra: copre tutte le corsie.
+	# Villaggio (cancello) a sinistra: occupa tutta l'altezza utile della strada.
 	var villaggio: PanelContainer = PanelContainer.new()
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
 	sb.bg_color = Color(0.13, 0.1, 0.08, 0.98)
@@ -287,8 +330,8 @@ func _costruisci_scena() -> void:
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(6)
 	villaggio.add_theme_stylebox_override("panel", sb)
-	villaggio.position = Vector2(20.0, LANE_Y[0] - 70.0)
-	villaggio.size = Vector2(VILLAGGIO_X - 50.0, LANE_Y[2] - LANE_Y[0] + 140.0)
+	villaggio.position = Vector2(20.0, ROAD_TOP - 8.0)
+	villaggio.size = Vector2(VILLAGGIO_X - 50.0, ROAD_BOTTOM - ROAD_TOP + 16.0)
 	villaggio.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(villaggio)
 	_villaggio_panel = villaggio
@@ -310,8 +353,8 @@ func _costruisci_scena() -> void:
 		vlbl.visible = false
 		var rimg: TextureRect = TextureRect.new()
 		rimg.texture = rocca
-		rimg.position = Vector2(0.0, LANE_Y[0] - 120.0)
-		rimg.size = Vector2(VILLAGGIO_X + 30.0, LANE_Y[2] - LANE_Y[0] + 240.0)
+		rimg.position = Vector2(0.0, ROAD_TOP - 40.0)
+		rimg.size = Vector2(VILLAGGIO_X + 30.0, ROAD_BOTTOM - ROAD_TOP + 80.0)
 		rimg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		rimg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 		rimg.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -323,7 +366,6 @@ func _costruisci_scena() -> void:
 	_world = Node2D.new()
 	add_child(_world)
 
-	_crea_piazzole()
 	_crea_hud()
 	_crea_barra_unita()
 	_avvia_ambient()
@@ -349,10 +391,10 @@ func _costruisci_scena() -> void:
 # derivano lente. Dietro le entità (procedurale, nessun asset).
 func _avvia_ambient() -> void:
 	var p: CPUParticles2D = CPUParticles2D.new()
-	p.position = Vector2(960.0, 520.0)
+	p.position = Vector2(960.0, ROAD_MID)
 	p.local_coords = false
 	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	p.emission_rect_extents = Vector2(920.0, 470.0)
+	p.emission_rect_extents = Vector2(920.0, (ROAD_BOTTOM - ROAD_TOP) * 0.5)
 	p.lifetime = 6.0
 	p.preprocess = 6.0
 	p.texture = _disc_texture()
@@ -386,78 +428,35 @@ func _avvia_ambient() -> void:
 	_world.move_child(p, 0)   # dietro le entità
 
 
-func _crea_piazzole() -> void:
-	# 3 corsie × 3 colonne. slot = corsia*3 + colonna.
-	for corsia in range(LANE_Y.size()):
-		for col in range(COL_X.size()):
-			var pos: Vector2 = Vector2(COL_X[col], LANE_Y[corsia])
-			var slot: int = _plot_pos.size()
-			_plot_pos.append(pos)
-			_plot_corsia.append(corsia)
-			_plot_occupato.append(false)
-			var holder: Control = Control.new()
-			holder.size = Vector2(76.0, 76.0)
-			holder.position = pos - holder.size * 0.5
-			holder.mouse_filter = Control.MOUSE_FILTER_STOP
-			holder.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-			var s: int = slot
-			var p: Vector2 = pos
-			holder.gui_input.connect(func(ev: InputEvent) -> void:
-				if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-					_on_plot(s, p))
-			var disc: TextureRect = TextureRect.new()
-			disc.texture = _disc_texture()
-			disc.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			disc.stretch_mode = TextureRect.STRETCH_SCALE
-			disc.set_anchors_preset(Control.PRESET_FULL_RECT)
-			disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			disc.modulate = Color(0.98, 0.84, 0.46, 0.32)
-			holder.add_child(disc)
-			var plus: Label = Label.new()
-			plus.text = "+"
-			plus.add_theme_font_size_override("font_size", 40)
-			plus.add_theme_color_override("font_color", Color(1.0, 0.9, 0.55))
-			plus.add_theme_color_override("font_outline_color", Color(0.1, 0.06, 0.02, 0.95))
-			plus.add_theme_constant_override("outline_size", 5)
-			plus.set_anchors_preset(Control.PRESET_FULL_RECT)
-			plus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			plus.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			holder.add_child(plus)
-			_ui.add_child(holder)
-			_plot_markers.append(holder)
-			var tw: Tween = holder.create_tween()
-			tw.set_loops()
-			tw.set_trans(Tween.TRANS_SINE)
-			tw.tween_property(disc, "modulate:a", 0.55, 0.9)
-			tw.tween_property(disc, "modulate:a", 0.26, 0.9)
-
-
-# Decoro del campo (tutto in _ui, sotto le entità e le piazzole): villaggio fortificato
-# con porte allineate alle corsie, chevron che indicano il verso d'avanzata, lato spawn.
+# Decoro del campo (tutto in _ui, sotto le entità): bordi della strada in bronzo, chevron
+# che indicano il verso d'avanzata, lato spawn, e il villaggio fortificato a sinistra.
 func _crea_decoro() -> void:
 	var ha_campo: bool = _siege_bg_tex() != null
-	# Col campo dipinto i bordi-corsia si fanno bronzo (definiscono la pista senza coprirla).
+	# Col campo dipinto i bordi si fanno bronzo (definiscono la pista senza coprirla).
 	var bordo: Color = Color(0.55, 0.42, 0.26, 0.5) if ha_campo else Color(0.3, 0.22, 0.14, 0.7)
-	var chev: Color = Color(0.42, 0.32, 0.2, 0.22)
-	for y in LANE_Y:
-		for dy in [-24.0, 24.0]:
-			var linea: ColorRect = ColorRect.new()
-			linea.color = bordo
-			linea.position = Vector2(VILLAGGIO_X - 16.0, y + dy - 1.0)
-			linea.size = Vector2(SPAWN_X - VILLAGGIO_X + 56.0, 2.0)
-			linea.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_ui.add_child(linea)
+	var chev: Color = Color(0.42, 0.32, 0.2, 0.2)
+	# Bordo superiore e inferiore della strada.
+	for y in [ROAD_TOP, ROAD_BOTTOM]:
+		var linea: ColorRect = ColorRect.new()
+		linea.color = bordo
+		linea.position = Vector2(VILLAGGIO_X - 16.0, y - 1.0)
+		linea.size = Vector2(SPAWN_X - VILLAGGIO_X + 56.0, 2.0)
+		linea.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ui.add_child(linea)
+	# Chevron su alcune file lungo la banda: verso d'avanzata dei nemici (→ villaggio).
+	var righe_chev: int = 4
+	for r in range(righe_chev):
+		var ty: float = lerpf(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0, float(r) / float(righe_chev - 1))
 		var x: float = SPAWN_X - 80.0
 		while x > VILLAGGIO_X + 150.0:
-			_ui.add_child(_chevron(x, y, chev))
-			x -= 120.0
+			_ui.add_child(_chevron(x, ty, chev))
+			x -= 140.0
 
 	# Lato spawn (destra): da dove entrano i nemici.
 	var spawn: ColorRect = ColorRect.new()
 	spawn.color = Color(0.6, 0.28, 0.24, 0.4)
-	spawn.position = Vector2(SPAWN_X + 8.0, LANE_Y[0] - 70.0)
-	spawn.size = Vector2(5.0, LANE_Y[2] - LANE_Y[0] + 140.0)
+	spawn.position = Vector2(SPAWN_X + 8.0, ROAD_TOP)
+	spawn.size = Vector2(5.0, ROAD_BOTTOM - ROAD_TOP)
 	spawn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(spawn)
 
@@ -466,9 +465,9 @@ func _crea_decoro() -> void:
 		_decoro_villaggio()
 
 
-# Merli in cima + porte (allineate alle corsie) con architrave — fallback senza sprite.
+# Merli in cima + porte lungo il muro con architrave — fallback senza sprite roccaforte.
 func _decoro_villaggio() -> void:
-	var top: float = LANE_Y[0] - 70.0
+	var top: float = ROAD_TOP - 8.0
 	var left: float = 20.0
 	var right: float = VILLAGGIO_X - 30.0
 	var pietra: Color = Color(0.18, 0.14, 0.1, 1.0)
@@ -481,7 +480,10 @@ func _decoro_villaggio() -> void:
 		merlo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_ui.add_child(merlo)
 		mx += 26.0
-	for y in LANE_Y:
+	# Qualche porta distribuita sull'altezza del muro.
+	var porte: int = 4
+	for i in range(porte):
+		var y: float = lerpf(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0, float(i) / float(porte - 1))
 		var porta: ColorRect = ColorRect.new()
 		porta.color = Color(0.05, 0.035, 0.03, 1.0)
 		porta.position = Vector2(right - 22.0, y - 22.0)
@@ -587,8 +589,8 @@ func _crea_hud() -> void:
 	_info_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	_info_label.add_theme_constant_override("outline_size", 4)
 	_info_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_info_label.offset_top = -176.0
-	_info_label.offset_bottom = -140.0
+	_info_label.offset_top = -210.0   # sopra la barra-unità (più alta con livello+potenzia)
+	_info_label.offset_bottom = -178.0
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(_info_label)
@@ -605,167 +607,367 @@ func _crea_barra_unita() -> void:
 	var bar: HBoxContainer = HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 14)
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bar.offset_top = -126.0
-	bar.offset_bottom = -22.0
+	bar.offset_top = -172.0
+	bar.offset_bottom = -14.0
 	bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(bar)
 
 	for tipo in ORDINE:
 		var card: PanelContainer = PanelContainer.new()
-		card.custom_minimum_size = Vector2(196.0, 96.0)
+		card.custom_minimum_size = Vector2(208.0, 150.0)
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		card.tooltip_text = _tooltip_unita(tipo)   # numeri reali scalati dalle stat
+		card.tooltip_text = _tooltip_unita(tipo)   # livello + stat reali + sblocchi
 		card.add_theme_stylebox_override("panel", _card_style(false, true))
 		var t: String = tipo
+		# Clic sul corpo della carta = EVOCA (il pulsante Potenzia, figlio, intercetta i suoi clic).
 		card.gui_input.connect(func(ev: InputEvent) -> void:
 			if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-				_seleziona(t))
+				_evoca(t))
 		var cvb: VBoxContainer = VBoxContainer.new()
-		cvb.add_theme_constant_override("separation", 2)
+		cvb.add_theme_constant_override("separation", 1)
 		cvb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(cvb)
-		var ic: Texture2D = UiStyle.icona("siege", tipo)
-		if ic != null:
-			var iw: TextureRect = TextureRect.new()
-			iw.texture = ic
-			iw.custom_minimum_size = Vector2(0.0, 34.0)
-			iw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			iw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			iw.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cvb.add_child(iw)
+		# Riga nome + stelle livello.
 		var nl: Label = Label.new()
 		nl.text = _skin[tipo]["nome"]
-		nl.add_theme_font_size_override("font_size", 19)
+		nl.add_theme_font_size_override("font_size", 18)
 		nl.add_theme_color_override("font_color", Color(0.96, 0.88, 0.62))
 		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cvb.add_child(nl)
+		var lv: Label = Label.new()
+		lv.add_theme_font_size_override("font_size", 14)
+		lv.add_theme_color_override("font_color", Color(1.0, 0.82, 0.4))
+		lv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cvb.add_child(lv)
+		_card_lv[tipo] = lv
+		var ic: Texture2D = UiStyle.icona("siege", tipo)
+		if ic != null:
+			var iw: TextureRect = TextureRect.new()
+			iw.texture = ic
+			iw.custom_minimum_size = Vector2(0.0, 28.0)
+			iw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			iw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			iw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cvb.add_child(iw)
 		var dl: Label = Label.new()
 		dl.text = ROSTER[tipo]["desc"]
-		dl.add_theme_font_size_override("font_size", 13)
+		dl.add_theme_font_size_override("font_size", 12)
 		dl.add_theme_color_override("font_color", Color(0.78, 0.74, 0.62))
 		dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		dl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cvb.add_child(dl)
 		var col: Label = Label.new()
-		col.text = "Costo  %d" % int(ROSTER[tipo]["costo"])
-		col.add_theme_font_size_override("font_size", 15)
+		col.text = "Evoca · %d ⛃" % int(ROSTER[tipo]["costo"])
+		col.add_theme_font_size_override("font_size", 14)
 		col.add_theme_color_override("font_color", Color(0.95, 0.8, 0.45))
 		col.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cvb.add_child(col)
+		# Pulsante POTENZIA (sale di livello l'intero tipo). Intercetta il proprio clic.
+		var up: Button = Button.new()
+		up.focus_mode = Control.FOCUS_NONE
+		up.add_theme_font_size_override("font_size", 13)
+		up.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		up.tooltip_text = "Potenzia tutto il tipo (sale di livello: stat, abilità a Lv3, ascensione a Lv5)"
+		up.pressed.connect(func() -> void: _potenzia(t))
+		cvb.add_child(up)
+		_card_up[tipo] = up
 		bar.add_child(card)
 		_card_panels[tipo] = card
 
-	_seleziona("tiratore")
-
-
-func _seleziona(tipo: String) -> void:
-	_unita_selezionata = tipo
 	_aggiorna_cards()
-	if _info_label != null:
-		_info_label.text = "Schieri: %s (costo %d) — clicca una piazzola ✦" % [
-			_skin[tipo]["nome"], int(ROSTER[tipo]["costo"])]
-		_info_label.modulate = Color.WHITE
+
+
+# Evoca un'unità del tipo dato (clic sulla carta): costa monete, si auto-schiera in formazione.
+# Evocazione ILLIMITATA finché hai monete (Docs/14 §2). Niente piazzole.
+func _evoca(tipo: String) -> void:
+	if _concluso:
+		return
+	var costo: int = int(ROSTER[tipo]["costo"])
+	if risorse < costo:
+		_flash_info("Monete insufficienti per %s" % _skin[tipo]["nome"])
+		AudioManager.play_sfx("stat_down")
+		return
+	risorse -= costo
+	_aggiorna_risorse()
+	_piazza(tipo, false)
+	AudioManager.play_sfx("quest_complete")
+
+
+# Ridispone TUTTE le unità di una categoria ("fronte" = bloccatori, "retro" = supporto) così
+# da COPRIRE l'altezza della strada (Docs/14 §1): riempie la colonna di testa spargendo le
+# unità su tutta la banda, poi arretra di colonna. Ogni unità raggiunge il suo posto
+# camminando (vai_a). Chiamata a ogni evocazione → la linea si riforma e resta coperta.
+func _ridisponi(categoria: String) -> void:
+	var lista: Array[SiegeDefender] = []
+	for d in _difensori:
+		if not is_instance_valid(d) or not d.vivo():
+			continue
+		var cat: String = "fronte" if d.ruolo == "blocco" else "retro"
+		if cat == categoria:
+			lista.append(d)
+	var n: int = lista.size()
+	if n == 0:
+		return
+	var cols: int = int(ceil(float(n) / float(FORM_RIGHE)))
+	var x0: float = FRONTE_X if categoria == "fronte" else RETRO_X
+	var dx: float = FRONTE_DX if categoria == "fronte" else RETRO_DX
+	var y_top: float = FORM_Y0
+	var y_bot: float = FORM_Y0 + float(FORM_RIGHE - 1) * FORM_DY
+	var idx: int = 0
+	for c in range(cols):
+		var cnt_c: int = mini(FORM_RIGHE, n - c * FORM_RIGHE)
+		var x: float = x0 - float(c) * dx
+		if categoria == "retro":
+			x = maxf(RETRO_X_MIN, x)
+		for r in range(cnt_c):
+			var y: float = (y_top + y_bot) * 0.5 if cnt_c == 1 else lerpf(y_top, y_bot, float(r) / float(cnt_c - 1))
+			lista[idx].vai_a(Vector2(x, y), true)
+			idx += 1
 
 
 func _aggiorna_cards() -> void:
 	for tipo in _card_panels.keys():
-		var sel: bool = tipo == _unita_selezionata
-		var ok: bool = risorse >= int(ROSTER[tipo]["costo"])
+		var lv: int = int(_livello[tipo])
+		var asceso: bool = lv >= LV_MAX
+		var ok_evoca: bool = risorse >= int(ROSTER[tipo]["costo"])
 		var card: PanelContainer = _card_panels[tipo]
-		card.add_theme_stylebox_override("panel", _card_style(sel, ok))
+		card.add_theme_stylebox_override("panel", _card_style(asceso, ok_evoca))
+		card.tooltip_text = _tooltip_unita(tipo)
+		if _card_lv.has(tipo):
+			_card_lv[tipo].text = _stelle(lv)
+		if _card_up.has(tipo):
+			var btn: Button = _card_up[tipo]
+			if asceso:
+				btn.text = "ASCESO ✦"
+				btn.disabled = true
+			else:
+				var c: int = _costo_upgrade(tipo, lv)
+				btn.text = "⬆ Lv%d · %d ⛃" % [lv + 1, c]
+				btn.disabled = risorse < c
 
 
-func _card_style(selezionata: bool, accessibile: bool) -> StyleBoxFlat:
+# Stato della carta: highlight dorato per il tipo asceso (Lv5); smorzata se non evocabile.
+func _card_style(asceso: bool, accessibile: bool) -> StyleBoxFlat:
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.16, 0.12, 0.09, 0.96) if selezionata else Color(0.1, 0.08, 0.07, 0.9)
-	sb.border_color = Color(0.95, 0.78, 0.42) if selezionata else Color(0.5, 0.38, 0.24)
-	sb.set_border_width_all(3 if selezionata else 2)
+	sb.bg_color = Color(0.17, 0.13, 0.08, 0.96) if asceso else Color(0.1, 0.08, 0.07, 0.9)
+	sb.border_color = Color(1.0, 0.84, 0.45) if asceso else Color(0.5, 0.38, 0.24)
+	sb.set_border_width_all(3 if asceso else 2)
 	sb.set_corner_radius_all(8)
 	sb.set_content_margin_all(8)
 	if not accessibile:
 		sb.bg_color = Color(0.08, 0.06, 0.05, 0.85)
-		sb.border_color = Color(0.4, 0.3, 0.22)
+		sb.border_color = Color(0.4, 0.3, 0.22) if not asceso else Color(0.7, 0.56, 0.32)
 	return sb
+
+
+# Stelle del livello per la carta: piene = livello raggiunto.
+func _stelle(lv: int) -> String:
+	var s: String = ""
+	for i in range(LV_MAX):
+		s += "★" if i < lv else "☆"
+	return s
+
+
+# Costo per salire dal livello `lv` al successivo (crescente; permanente per il tipo).
+func _costo_upgrade(tipo: String, lv: int) -> int:
+	return int(round(float(ROSTER[tipo]["costo"]) * (2.5 + 1.4 * float(lv - 1))))
+
+
+# Moltiplicatore stat per livello (+22% per livello → Lv5 ≈ +88%).
+func _lv_mult(lv: int) -> float:
+	return 1.0 + 0.22 * float(lv - 1)
+
+
+# Potenzia un TIPO: sale di livello (stat su; Lv3 abilità, Lv5 ascensione). Tutte le unità
+# di quel tipo già in campo salgono con lui (Docs/14 §3, progressione per-tipo).
+func _potenzia(tipo: String) -> void:
+	if _concluso:
+		return
+	var lv: int = int(_livello[tipo])
+	if lv >= LV_MAX:
+		_flash_info("%s è già all'ascensione (Lv%d)" % [_skin[tipo]["nome"], LV_MAX])
+		return
+	var costo: int = _costo_upgrade(tipo, lv)
+	if risorse < costo:
+		_flash_info("Monete insufficienti: potenziare %s costa %d" % [_skin[tipo]["nome"], costo])
+		AudioManager.play_sfx("stat_down")
+		return
+	risorse -= costo
+	var nuovo: int = lv + 1
+	_livello[tipo] = nuovo
+	# Tutte le unità del tipo già schierate salgono di livello (stat + aspetto).
+	for d in _difensori:
+		if is_instance_valid(d) and d.tipo == tipo:
+			_ristat_difensore(d, tipo)
+			_pulse_levelup(d)
+	_aggiorna_risorse()
+	_aggiorna_cards()
+	# Callout alle soglie: Lv3 abilità, Lv5 ascensione (più enfatico).
+	if nuovo == 3:
+		_flash_info("%s — %s SBLOCCATA!" % [_skin[tipo]["nome"].to_upper(), str(ABILITA[tipo]["lv3"]["nome"])])
+		AudioManager.play_sfx("ledger_unlock")
+	elif nuovo >= LV_MAX:
+		_flash_info("ASCENSIONE! %s: %s + %s" % [_skin[tipo]["nome"].to_upper(),
+			str(ABILITA[tipo]["lv5"]["nome"]), str(ABILITA[tipo]["lv5"]["passivo"]["nome"])])
+		AudioManager.play_sfx("quest_complete")
+		scuoti_forte()
+	else:
+		_flash_info("%s sale a Lv%d" % [_skin[tipo]["nome"], nuovo])
+		AudioManager.play_sfx("quest_complete")
+
+
+# Ri-applica le stat scalate dal livello corrente a un difensore già in campo.
+func _ristat_difensore(d: SiegeDefender, tipo: String) -> void:
+	var lv: int = int(_livello[tipo])
+	var s: Dictionary = _stat_unita(tipo)
+	d.danno = int(s["danno"])
+	d.raggio_tiro = float(ROSTER[tipo]["raggio"]) * (1.0 + 0.10 * float(lv - 1))
+	d.cadenza = maxf(0.25, float(ROSTER[tipo]["cadenza"]) * (1.0 - 0.08 * float(lv - 1)))
+	match tipo:
+		"bloccatore":
+			var nuovo_max: int = int(s["hp"])
+			var delta: int = nuovo_max - d.hp_max
+			d.hp_max = nuovo_max
+			if delta > 0:
+				d.hp = mini(d.hp_max, d.hp + delta)   # il level-up cura della quota guadagnata
+		"sciamano":
+			d.slow_fattore = float(s["slow"])
+		"totem":
+			d.aoe_raggio = float(s["aoe"])
+	d.livello = lv
+	d.queue_redraw()
+
+
+# Lampo dorato + sobbalzo su un'unità che sale di livello.
+func _pulse_levelup(d: Node2D) -> void:
+	if not is_instance_valid(d):
+		return
+	d.modulate = Color(1.6, 1.35, 0.8)
+	var t: Tween = create_tween()
+	t.tween_property(d, "modulate", Color.WHITE, 0.4)
+	_morte_poof(d.global_position, Color(1.0, 0.88, 0.45))
 
 
 # --- Ondate / nemici --------------------------------------------------------
 
-# Nomi-ondata per era (telegrafia/intel). L'ultima è sempre il boss.
-const NOMI_ONDATA: Dictionary = {
-	1: ["Il branco si avvicina", "La mandria infuria", "Le grandi bestie scendono"],
-	2: ["I predoni all'orizzonte", "I non-morti avanzano", "I colossi di pietra"],
-}
-
-# Creature per ondata (sprite Assets/art/siege/era<N>/enemy_<nome>.png, già generati).
-# Una lista per ogni ondata "normale"; lo spawn cicla la lista così la corsia mescola
-# le creature. L'ultima ondata è il boss (sprite a parte). Fallback a "enemy" se manca.
-const CREATURE_ONDATA: Dictionary = {
-	1: [["cinghiale", "iena"], ["iena", "orso"], ["orso", "cinghiale"]],
-	2: [["predone"], ["scheletro", "predone"], ["minotauro", "golem"]],
-}
-# Profilo di combattimento per creatura (moltiplica i valori-base dell'ondata): dà
-# comportamento DISTINTO, non solo estetica. I moltiplicatori HP sono progettati per
-# bilanciarsi entro ogni ondata (le coppie mescolano fragile+tank) → la minaccia totale
-# resta ~invariata; mirror in tools/balance_sim.py (WAVE_MULT). raggio: dimensione a schermo.
-#   hp/vel/danno = moltiplicatori · bounty = bonus · armatura = riduzione danno piatta
-#   risorge = si rialza una volta a metà HP (scheletro).
+# Profilo di combattimento per creatura (moltiplica i valori-base dell'ondata) + ABILITÀ
+# (Fase F3): comportamento distinto, non solo estetica. raggio = dimensione a schermo,
+# colore = tinta del placeholder. Abilità: caricatore (scatti), scudo (assorbe N danni),
+# evocatore (chiama minion), risanatore (cura i vicini). risorge = si rialza una volta.
 const CREATURE_PROFILI: Dictionary = {
-	# Era 1 — bestie del Paleolitico.
+	# Era 1 — bestie e tribù del Paleolitico.
 	"iena":      {"hp": 0.70, "vel": 1.50, "danno": 0.85, "bounty": 0, "raggio": 16.0},  # veloce, fragile
-	"cinghiale": {"hp": 0.90, "vel": 1.35, "danno": 1.15, "bounty": 0, "raggio": 19.0},  # caricatore
+	"cinghiale": {"hp": 0.90, "vel": 1.35, "danno": 1.15, "bounty": 0, "raggio": 19.0, "caricatore": true},
 	"orso":      {"hp": 1.45, "vel": 0.70, "danno": 1.35, "bounty": 1, "raggio": 27.0},  # tank lento
+	"bruto":     {"hp": 1.20, "vel": 0.85, "danno": 1.10, "bounty": 1, "raggio": 24.0, "scudo": 34, "colore": Color(0.5, 0.6, 0.72)},
+	"guaritore": {"hp": 0.85, "vel": 1.00, "danno": 0.60, "bounty": 2, "raggio": 18.0, "risanatore": true, "colore": Color(0.5, 0.8, 0.55)},
+	"stregone":  {"hp": 0.95, "vel": 0.90, "danno": 0.70, "bounty": 2, "raggio": 20.0, "evocatore": true, "colore": Color(0.62, 0.46, 0.82)},
 	# Era 2 — orde del Regno Mitico.
-	"predone":   {"hp": 1.00, "vel": 1.15, "danno": 1.00, "bounty": 0, "raggio": 18.0},  # bilanciato
+	"predone":   {"hp": 1.00, "vel": 1.15, "danno": 1.00, "bounty": 0, "raggio": 18.0, "caricatore": true},
 	"scheletro": {"hp": 0.80, "vel": 1.00, "danno": 0.90, "bounty": 0, "raggio": 18.0, "risorge": true},
 	"minotauro": {"hp": 1.40, "vel": 0.75, "danno": 1.60, "bounty": 1, "raggio": 27.0},  # colpitore pesante
 	"golem":     {"hp": 1.60, "vel": 0.55, "danno": 1.15, "bounty": 2, "raggio": 28.0, "armatura": 3},
+	"scudiero":  {"hp": 1.15, "vel": 0.90, "danno": 1.05, "bounty": 1, "raggio": 22.0, "scudo": 42, "colore": Color(0.55, 0.62, 0.74)},
+	"sciamano_oscuro": {"hp": 0.90, "vel": 1.00, "danno": 0.70, "bounty": 2, "raggio": 19.0, "risanatore": true, "colore": Color(0.5, 0.82, 0.6)},
+	"negromante": {"hp": 0.95, "vel": 0.85, "danno": 0.80, "bounty": 2, "raggio": 20.0, "evocatore": true, "colore": Color(0.6, 0.45, 0.82)},
+	# Minion evocati (comune alle ere): deboli e veloci, niente bounty.
+	"minion":    {"hp": 1.00, "vel": 1.25, "danno": 1.00, "bounty": 0, "raggio": 12.0, "colore": Color(0.7, 0.55, 0.5)},
 }
 
-# Fase D: ondate crescenti data-driven (tabella per era), ritmo "wave burst" con pause di
-# rischieramento, scalate da era e civiltà ostili. L'ultima ondata è il BOSS.
+# Ondate "normali" per era: w1, w2, w4, w5 (la w3 è il MINI-BOSS, la w6 il BOSS). Ogni
+# descrittore: nome, n nemici, stat base, gap, e le creature mescolate (con le loro abilità).
+const ONDATE_NORMALI: Dictionary = {
+	1: [
+		{"nome": "Il branco si avvicina", "n": 7,  "hp": 24, "vel": 77.0, "danno": 10, "bounty": 2, "gap": 0.66, "cr": ["iena", "cinghiale"]},
+		{"nome": "La mandria carica",     "n": 10, "hp": 33, "vel": 87.0, "danno": 11, "bounty": 2, "gap": 0.52, "cr": ["cinghiale", "iena", "bruto"]},
+		{"nome": "Pelli, ossa e canti",   "n": 10, "hp": 46, "vel": 75.0, "danno": 13, "bounty": 3, "gap": 0.60, "cr": ["bruto", "guaritore", "cinghiale"]},
+		{"nome": "Le grandi bestie",      "n": 11, "hp": 62, "vel": 67.0, "danno": 16, "bounty": 3, "gap": 0.64, "cr": ["orso", "stregone", "cinghiale"]},
+	],
+	2: [
+		{"nome": "I predoni all'orizzonte", "n": 7,  "hp": 28, "vel": 82.0, "danno": 11, "bounty": 2, "gap": 0.66, "cr": ["predone", "scheletro"]},
+		{"nome": "Acciaio e razzia",        "n": 10, "hp": 38, "vel": 90.0, "danno": 12, "bounty": 2, "gap": 0.52, "cr": ["predone", "scudiero", "scheletro"]},
+		{"nome": "I riti oscuri",           "n": 10, "hp": 50, "vel": 76.0, "danno": 14, "bounty": 3, "gap": 0.60, "cr": ["scudiero", "sciamano_oscuro", "scheletro"]},
+		{"nome": "I colossi di pietra",     "n": 11, "hp": 72, "vel": 62.0, "danno": 18, "bounty": 3, "gap": 0.64, "cr": ["golem", "negromante", "minotauro"]},
+	],
+}
+
+# Mini-boss dell'ondata 3 (creatura intermedia, mini-meccanica = EVOCA minion). Sprite
+# opzionale enemy_<creatura>.png; fallback al cerchione placeholder.
+const MINI_BOSS: Dictionary = {
+	1: {"nome": "Lo Stregone della Tribù", "creatura": "stregone_capo", "hp": 220, "vel": 42.0,
+		"danno": 22, "bounty": 8, "raggio": 40.0, "armatura": 2, "colore": Color(0.62, 0.4, 0.85),
+		"scorta": ["iena", "cinghiale"]},
+	2: {"nome": "Il Tessitore d'Ossa", "creatura": "tessitore", "hp": 270, "vel": 40.0,
+		"danno": 26, "bounty": 9, "raggio": 42.0, "armatura": 3, "colore": Color(0.6, 0.55, 0.72),
+		"scorta": ["scheletro", "predone"]},
+}
+
+# Fase F3: 6 ondate dinamiche. w1-w2 leggere → w3 MINI-BOSS → w4-w5 con nemici-abilità →
+# w6 BOSS finale. Scala con era e civiltà ostili. (Balance fine alla F5.)
 func _prepara_ondate() -> void:
 	_ondate.clear()
 	_ondata_idx = -1
 	var ef: float = 1.0 + 0.18 * float(era - 1)            # forza per era
 	var of: float = 1.0 + 0.12 * float(_ostili_civ.size()) # rinforzo dei nemici ostili
 	var extra: int = _ostili_civ.size()
-	var nomi: Array = NOMI_ONDATA.get(era, NOMI_ONDATA[1])
-	# 3 ondate "normali" a difficoltà crescente + boss. Più dense/numerose: la difesa va
-	# messa sotto pressione, qualche nemico DEVE poter sfondare (tensione → no-walkover).
-	var base: Array = [
-		{"n": 7 + extra,  "hp": 22, "vel": 74.0, "danno": 9,  "bounty": 2, "gap": 0.7},
-		{"n": 10 + extra, "hp": 32, "vel": 88.0, "danno": 10, "bounty": 3, "gap": 0.52},
-		{"n": 7 + extra,  "hp": 60, "vel": 64.0, "danno": 16, "bounty": 4, "gap": 0.85},
-	]
-	var creature: Array = CREATURE_ONDATA.get(era, CREATURE_ONDATA[1])
-	for i in range(base.size()):
-		var b: Dictionary = base[i]
-		var lista_cr: Array = creature[i % creature.size()]
-		var spawns: Array = []
-		for k in range(int(b["n"])):
-			spawns.append({
-				"hp": int(round(float(b["hp"]) * ef * of)),
-				"vel": float(b["vel"]),
-				"danno": int(round(float(b["danno"]) * ef)),
-				"bounty": int(b["bounty"]),
-				"corsia": k % LANE_Y.size(),
-				"gap": float(b["gap"]),
-				"creatura": str(lista_cr[k % lista_cr.size()]),
-			})
-		_ondate.append({"nome": str(nomi[i % nomi.size()]), "spawns": spawns})
-	# Ondata finale: il BOSS dell'era.
+	var normali: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])   # 4 descrittori
+	_ondate.append(_ondata_normale(normali[0], ef, of, extra))   # w1
+	_ondate.append(_ondata_normale(normali[1], ef, of, extra))   # w2
+	_ondate.append(_ondata_mini_boss(ef, of, extra))             # w3 MINI-BOSS
+	_ondate.append(_ondata_normale(normali[2], ef, of, extra))   # w4
+	_ondate.append(_ondata_normale(normali[3], ef, of, extra))   # w5
+	# w6: il BOSS finale dell'era (redesign completo — evoca esercito, ultimate — in F4).
 	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
 	var boss_hp: int = int(round((300 + 45 * float(extra)) * ef))
 	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
 		{"boss": true, "hp": boss_hp, "vel": 48.0, "bounty": 14, "danno": 48,
-			"corsia": 1, "nome": nome_boss, "gap": 0.0}]})
+			"corsia": 2, "nome": nome_boss, "gap": 0.0}]})
 	# Avvio: breve attesa, poi la prima ondata (col suo banner).
 	_in_pausa = true
 	_pausa_fino = _tempo + 1.4
+
+
+# Costruisce un'ondata "normale" da un descrittore: n nemici (mescola le creature/abilità).
+func _ondata_normale(b: Dictionary, ef: float, of: float, extra: int) -> Dictionary:
+	var spawns: Array = []
+	var cr: Array = b["cr"]
+	for k in range(int(b["n"]) + extra):
+		spawns.append({
+			"hp": int(round(float(b["hp"]) * ef * of)),
+			"vel": float(b["vel"]),
+			"danno": int(round(float(b["danno"]) * ef)),
+			"bounty": int(b["bounty"]),
+			"corsia": k % N_FILE_SPAWN,
+			"gap": float(b["gap"]),
+			"creatura": str(cr[k % cr.size()]),
+		})
+	return {"nome": str(b["nome"]), "spawns": spawns}
+
+
+# Costruisce l'ondata MINI-BOSS (w3): una piccola scorta che entra, poi il mini-boss
+# (grosso, corazzato, EVOCA minion = la sua mini-meccanica).
+func _ondata_mini_boss(ef: float, of: float, extra: int) -> Dictionary:
+	var info: Dictionary = MINI_BOSS.get(era, MINI_BOSS[1])
+	var spawns: Array = []
+	var scorta: Array = info["scorta"]
+	for k in range(4 + extra):
+		spawns.append({
+			"hp": int(round(28.0 * ef * of)), "vel": 80.0, "danno": 9, "bounty": 2,
+			"corsia": k % N_FILE_SPAWN, "gap": 0.5, "creatura": str(scorta[k % scorta.size()]),
+		})
+	spawns.append({
+		"hp": int(round(float(info["hp"]) * ef * of)), "vel": float(info["vel"]),
+		"danno": int(info["danno"]), "bounty": int(info["bounty"]), "corsia": 2, "gap": 0.0,
+		"creatura": str(info["creatura"]), "raggio": float(info["raggio"]),
+		"armatura": int(info["armatura"]), "colore": info["colore"], "evocatore": true,
+		"mini_boss": true, "nome": str(info["nome"]),
+	})
+	return {"nome": str(info["nome"]), "mini_boss": true, "spawns": spawns}
 
 
 # Lancia l'ondata successiva: riempie la coda di spawn e annuncia il banner.
@@ -796,6 +998,12 @@ func _testo_banner(w: Dictionary) -> String:
 	return testo
 
 
+# Y di una "fila" di spawn, distribuita sull'altezza della strada (line-battle).
+func _corsia_y(c: int) -> float:
+	var t: float = float(clampi(c, 0, N_FILE_SPAWN - 1)) / float(maxi(N_FILE_SPAWN - 1, 1))
+	return lerpf(ROAD_TOP + 78.0, ROAD_BOTTOM - 58.0, t)
+
+
 func _spawn_enemy(d: Dictionary) -> void:
 	var e: SiegeEnemy = SiegeEnemy.new()
 	# Profilo per-creatura: scala HP/velocità/danno e abilita armatura/risorge.
@@ -807,9 +1015,21 @@ func _spawn_enemy(d: Dictionary) -> void:
 	e.bounty = int(d.get("bounty", 2)) + int(prof.get("bounty", 0))
 	e.danno_villaggio = int(round(float(d.get("danno", 8)) * float(prof.get("danno", 1.0))))
 	e.danno_melee = maxi(4, int(e.danno_villaggio / 2))
-	e.armatura = int(prof.get("armatura", 0))
+	e.armatura = int(d.get("armatura", prof.get("armatura", 0)))
 	e.risorge = bool(prof.get("risorge", false))
-	e.raggio = float(prof.get("raggio", 18.0))
+	# Abilità (Fase F3): dal profilo della creatura oppure dallo spec d (mini-boss).
+	e.caricatore = bool(prof.get("caricatore", false)) or bool(d.get("caricatore", false))
+	e.evocatore = bool(prof.get("evocatore", false)) or bool(d.get("evocatore", false))
+	e.risanatore = bool(prof.get("risanatore", false)) or bool(d.get("risanatore", false))
+	e.scudo_max = int(round(float(prof.get("scudo", 0)) * (1.0 + 0.15 * float(era - 1))))
+	e.scudo = e.scudo_max
+	e.mini_boss = bool(d.get("mini_boss", false))
+	e.nome = str(d.get("nome", ""))
+	e.raggio = float(d["raggio"]) if d.has("raggio") else float(prof.get("raggio", 18.0))
+	if prof.has("colore"):
+		e.colore = prof["colore"]
+	if d.has("colore"):
+		e.colore = d["colore"]
 	e.villaggio_x = VILLAGGIO_X
 	e.corsia = int(d.get("corsia", 0))
 	e.arena = self
@@ -817,10 +1037,15 @@ func _spawn_enemy(d: Dictionary) -> void:
 	var tex: Texture2D = _siege_tex("enemy_" + cr) if cr != "" else null
 	e.sprite = tex if tex != null else _siege_tex("enemy")
 	_world.add_child(e)
-	e.global_position = Vector2(SPAWN_X, LANE_Y[e.corsia])
+	# Marciano da destra, sparsi su tutta l'altezza della strada (file + jitter).
+	e.global_position = Vector2(SPAWN_X, _corsia_y(e.corsia) + randf_range(-16.0, 16.0))
 	e.morto.connect(func(b: int) -> void: _on_enemy_morto(e, b))
 	e.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(e, dn))
 	_enemies.append(e)
+	if e.mini_boss:
+		_flash_info("MINI-BOSS — %s" % e.nome.to_upper())
+		scuoti_forte()
+		AudioManager.play_sfx("era_transition")
 
 
 func _on_enemy_morto(e: SiegeEnemy, bounty: int) -> void:
@@ -829,6 +1054,36 @@ func _on_enemy_morto(e: SiegeEnemy, bounty: int) -> void:
 	_aggiorna_risorse()
 	if is_instance_valid(e):
 		_morte_poof(e.global_position, e.colore)
+		if e.mini_boss:
+			# Caduta del mini-boss: piccolo finisher (poof+esplosione+lampo info).
+			fx_esplosione(e.global_position, 130.0)
+			_morte_poof(e.global_position, Color(1.0, 0.85, 0.5))
+			_flash_info("%s È CADUTO!" % e.nome.to_upper())
+			scuoti_forte()
+			AudioManager.play_sfx("ledger_unlock")
+
+
+# Evoca un minion vicino a `pos` (mini-meccanica dell'Evocatore). Cap di sicurezza per
+# evitare valanghe. Il minion conta come nemico: va ucciso per chiudere l'ondata.
+func spawn_minion(pos: Vector2, corsia: int) -> void:
+	if not _attivo or _concluso or _enemies.size() > 40:
+		return
+	_spawn_enemy({"hp": 14, "vel": 96.0, "danno": 5, "bounty": 0, "corsia": corsia, "creatura": "minion"})
+	if not _enemies.is_empty():
+		var e: SiegeEnemy = _enemies[-1]
+		if is_instance_valid(e):
+			e.global_position = pos + Vector2(randf_range(18.0, 56.0), randf_range(-28.0, 28.0))
+			e.scale = Vector2(0.4, 0.4)
+			var t: Tween = create_tween()
+			t.tween_property(e, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+# Cura i nemici nell'area (mini-meccanica del Risanatore), con un alone verde.
+func cura_nemici_area(pos: Vector2, raggio: float, cura: int) -> void:
+	for e in nemici_in_area(pos, raggio):
+		if is_instance_valid(e) and e.has_method("cura"):
+			e.cura(cura)
+	fx_anello(pos, raggio, Color(0.5, 1.0, 0.6))
 
 
 func _on_enemy_arrivato(e: SiegeEnemy, danno: int) -> void:
@@ -872,7 +1127,7 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 80.0
 	b.stagger_cambiato.connect(_on_boss_stagger)
 	_world.add_child(b)
-	b.global_position = Vector2(SPAWN_X - 30.0, LANE_Y[b.corsia])
+	b.global_position = Vector2(SPAWN_X - 30.0, ROAD_MID)
 	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
 	b.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(b, dn))
 	b.furia_entrata.connect(func() -> void:
@@ -882,6 +1137,7 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.frenesia_entrata.connect(func() -> void:
 		_flash_info("%s È IN FRENESIA!" % b.nome_boss.to_upper())
 		scuoti_forte())
+	b.trasforma_entrata.connect(func() -> void: cinematica_trasformazione(b))
 	_enemies.append(b)
 	_boss = b
 	_crea_barra_boss(b.nome_boss)
@@ -1054,6 +1310,77 @@ func segnala_stagger(nome: String) -> void:
 	AudioManager.play_sfx("quest_complete")
 
 
+# --- Boss 2.0 (Fase F4): cambio fase cinematografico + ultimate + evoca esercito ----------
+
+# Cinematica del CAMBIO FASE al 50% HP (Docs/14 §5): breve hitstop (tempo reale, ripristina il
+# time_scale qualunque esso sia — playtest incluso), poi zoom-punch sul boss + vignetta + banner.
+func cinematica_trasformazione(boss: SiegeBoss) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	AudioManager.play_sfx("era_transition")
+	_flash_info("%s SI TRASFORMA!" % boss.nome_boss.to_upper())
+	scuoti_forte()
+	_vignetta_furia_attiva()
+	# Hitstop: rallenta quasi a zero per un istante (tempo reale), poi ripristina. Il ripristino
+	# è agganciato al timer (robusto: avviene anche se questa coroutine venisse interrotta).
+	var prev_ts: float = Engine.time_scale
+	Engine.time_scale = 0.06
+	var hs: SceneTreeTimer = get_tree().create_timer(0.16, true, false, true)
+	hs.timeout.connect(func() -> void: Engine.time_scale = prev_ts)
+	await hs.timeout
+	# Zoom-punch del campo verso il boss, poi ritorno.
+	if _world != null and is_instance_valid(_world) and is_instance_valid(boss):
+		var f: Vector2 = boss.global_position
+		var s: float = 1.16
+		var zt: Tween = create_tween()
+		zt.tween_property(_world, "scale", Vector2(s, s), 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.20)
+		zt.tween_interval(0.7)
+		zt.tween_property(_world, "scale", Vector2.ONE, 0.35)
+		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.35)
+
+
+# Ultimate del boss: devastazione a tutto campo sui difensori (per archetipo d'era). Il danno
+# `potenza` è già scalato dal boss (cala a ogni uso). Lampo + esplosioni sparse + shake.
+func boss_ultimate(era_b: int, potenza: int) -> void:
+	var nome: String = "TEMPESTA DI FUOCO" if era_b >= 2 else "FRANA ROVINOSA"
+	_flash_info("ULTIMATE — %s!" % nome)
+	scuoti_forte()
+	for i in range(_difensori.size() - 1, -1, -1):
+		var d: SiegeDefender = _difensori[i]
+		if d == null or not is_instance_valid(d):
+			_difensori.remove_at(i)
+			continue
+		d.colpisci(potenza)
+	# Lampo a tutto schermo + esplosioni diffuse sul campo.
+	var flash: ColorRect = ColorRect.new()
+	flash.color = Color(1.0, 0.5, 0.2, 0.0) if era_b >= 2 else Color(0.85, 0.62, 0.32, 0.0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(flash)
+	var t: Tween = create_tween()
+	t.tween_property(flash, "color:a", 0.5, 0.10)
+	t.tween_property(flash, "color:a", 0.0, 0.5)
+	t.tween_callback(flash.queue_free)
+	for k in range(6):
+		var p: Vector2 = Vector2(randf_range(VILLAGGIO_X + 120.0, SPAWN_X - 220.0),
+			randf_range(ROAD_TOP + 40.0, ROAD_BOTTOM - 40.0))
+		fx_esplosione(p, 110.0)
+	AudioManager.play_sfx("stat_down")
+
+
+# Il boss chiama rinforzi (§4): n nemici leggeri dell'era entrano dal lato spawn.
+func evoca_rinforzi_boss(n: int) -> void:
+	if not _attivo or _concluso or _enemies.size() > 38:
+		return
+	var lista: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])[0]["cr"]
+	var hp_r: int = int(round(26.0 * (1.0 + 0.18 * float(era - 1))))
+	for i in range(n):
+		_spawn_enemy({"hp": hp_r, "vel": 84.0, "danno": 8, "bounty": 1,
+			"corsia": i % N_FILE_SPAWN, "creatura": str(lista[i % lista.size()])})
+	AudioManager.play_sfx("drag_hover")
+
+
 # --- API usate da difensori/nemici/proiettili (disaccoppiamento) ------------
 
 func bersaglio_per(da: Vector2, raggio: float) -> SiegeEnemy:
@@ -1069,22 +1396,22 @@ func bersaglio_per(da: Vector2, raggio: float) -> SiegeEnemy:
 	return best
 
 
-func nemico_per_blocco(corsia: int, x: float, reach: float) -> SiegeEnemy:
-	# Nemico sulla stessa corsia, alla destra del bloccatore, entro la portata.
+func nemico_per_blocco(pos: Vector2, reach: float) -> SiegeEnemy:
+	# Nemico davanti al bloccatore (x maggiore) entro la portata e la banda verticale.
 	var best: SiegeEnemy = null
 	var best_x: float = INF
 	for e in _enemies:
-		if e == null or not is_instance_valid(e) or not e.vivo() or e.corsia != corsia:
+		if e == null or not is_instance_valid(e) or not e.vivo():
 			continue
 		var ex: float = e.global_position.x
-		if ex >= x and ex - x <= reach and ex < best_x:
+		if ex >= pos.x and ex - pos.x <= reach and absf(e.global_position.y - pos.y) <= BANDA_Y and ex < best_x:
 			best_x = ex
 			best = e
 	return best
 
 
-func cerca_blocco(corsia: int, x: float) -> SiegeDefender:
-	# Bloccatore più vicino davanti (x minore) sulla corsia del nemico.
+func cerca_blocco(pos: Vector2) -> SiegeDefender:
+	# Bloccatore vivo più vicino DAVANTI (x minore) entro la banda verticale del chiamante.
 	var best: SiegeDefender = null
 	var best_x: float = -INF
 	for i in range(_blocchi.size() - 1, -1, -1):
@@ -1092,7 +1419,7 @@ func cerca_blocco(corsia: int, x: float) -> SiegeDefender:
 		if d == null or not is_instance_valid(d) or not d.vivo():
 			_blocchi.remove_at(i)
 			continue
-		if d.corsia == corsia and d.global_position.x < x and d.global_position.x > best_x:
+		if d.global_position.x < pos.x and absf(d.global_position.y - pos.y) <= BANDA_Y and d.global_position.x > best_x:
 			best_x = d.global_position.x
 			best = d
 	return best
@@ -1125,7 +1452,73 @@ func difensori_in_area(pos: Vector2, raggio: float) -> Array:
 func danno_area_difensori(pos: Vector2, raggio: float, danno: int) -> void:
 	for d in difensori_in_area(pos, raggio):
 		if is_instance_valid(d):
-			d.colpisci(danno)
+			# Scudo di pelli (Bloccatore Lv3 vicino): -40% danno ad area subìto.
+			var dmg: int = int(round(float(danno) * 0.6)) if _scudo_attivo(d.global_position) else danno
+			d.colpisci(dmg)
+
+
+# C'è un Bloccatore di Lv3+ entro 130px da `pos`? (Scudo di pelli: mitiga il danno ad area.)
+func _scudo_attivo(pos: Vector2) -> bool:
+	for d in _difensori:
+		if is_instance_valid(d) and d.tipo == "bloccatore" and d.livello >= 3 \
+				and d.vivo() and pos.distance_to(d.global_position) <= 130.0:
+			return true
+	return false
+
+
+# Danno ad area sui NEMICI (ultimate/brace/calore delle unità ascese). Ritorna i colpiti.
+func danno_area_nemici(pos: Vector2, raggio: float, danno: int) -> int:
+	var n: int = 0
+	for e in nemici_in_area(pos, raggio):
+		if is_instance_valid(e):
+			e.subisci_danno(danno)
+			n += 1
+	return n
+
+
+# --- Ultimate delle unità ASCESE (Lv5), auto-cast periodico (Docs/14 §3) -----
+
+func ultimate_tiratore(pos: Vector2, danno: int) -> void:
+	# Pioggia di lance: raffica ad area davanti al tiratore.
+	var centro: Vector2 = pos + Vector2(230.0, -10.0)
+	danno_area_nemici(centro, 150.0, danno)
+	fx_anello(centro, 150.0, Color(1.0, 0.92, 0.6))
+
+
+func ultimate_totem(pos: Vector2, danno: int) -> void:
+	# Eruzione: colonna di fuoco ad area.
+	var centro: Vector2 = pos + Vector2(190.0, 0.0)
+	danno_area_nemici(centro, 145.0, danno)
+	fx_esplosione(centro, 145.0)
+
+
+func ultimate_sciamano(pos: Vector2, raggio: float) -> void:
+	# Tempesta di ghiaccio: congela (rallentamento fortissimo) i nemici vicini.
+	for e in nemici_in_area(pos, raggio):
+		if is_instance_valid(e):
+			e.applica_slow(0.08, 2.2)
+	fx_anello(pos, raggio, Color(0.6, 0.92, 1.0))
+
+
+func ultimate_bloccatore(pos: Vector2) -> void:
+	# Grido di guerra: stordisce i nemici davanti, in banda.
+	for e in _enemies:
+		if e == null or not is_instance_valid(e) or not e.vivo():
+			continue
+		var ex: float = e.global_position.x
+		if ex >= pos.x and ex - pos.x <= 280.0 and absf(e.global_position.y - pos.y) <= 95.0:
+			e.stordisci(1.4)
+	_scuoti()
+	fx_anello(pos + Vector2(120.0, 0.0), 180.0, Color(1.0, 0.85, 0.5))
+
+
+# Brace (Totem Lv3): zona di fuoco a terra che brucia nel tempo (tick di danno per ~2s).
+func crea_brace(pos: Vector2, danno: int) -> void:
+	fx_brace(pos)
+	var t: Tween = create_tween()
+	for i in range(4):
+		t.tween_callback(func() -> void: danno_area_nemici(pos, 72.0, danno))
+		t.tween_interval(0.5)
 
 
 func stordisci_difensori(durata: float) -> void:
@@ -1157,11 +1550,14 @@ func segnala_abilita_boss(nome: String) -> void:
 		_pulsa_vignetta_furia()   # le abilità in furia ravvivano la vignetta rossa
 
 
-func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggio: float = 0.0) -> void:
+func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggio: float = 0.0,
+		pierce: int = 0, brace: bool = false) -> void:
 	var p: SiegeProjectile = SiegeProjectile.new()
 	p.bersaglio = bersaglio
 	p.danno = danno
 	p.aoe_raggio = aoe_raggio
+	p.pierce = pierce
+	p.brace = brace
 	p.arena = self
 	p.sprite = _fx_tex("proiettile_aoe") if aoe_raggio > 0.0 else _fx_tex("proiettile")
 	_world.add_child(p)
@@ -1200,6 +1596,42 @@ func fx_esplosione(pos: Vector2, raggio: float) -> void:
 	t.tween_callback(s.queue_free)
 
 
+# Anello che si espande e svanisce (ultimate delle unità ascese), nel colore dato.
+func fx_anello(pos: Vector2, raggio: float, col: Color) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = _disc_texture()
+	s.centered = true
+	s.modulate = Color(col.r, col.g, col.b, 0.55)
+	var base: float = raggio * 2.0 / 64.0
+	s.scale = Vector2(base * 0.3, base * 0.3)
+	_world.add_child(s)
+	s.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_property(s, "scale", Vector2(base, base), 0.32)
+	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
+	t.tween_callback(s.queue_free)
+
+
+# Macchia di fuoco a terra (Brace del Totem): resta accesa ~2s e svanisce.
+func fx_brace(pos: Vector2) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = _disc_texture()
+	s.centered = true
+	s.modulate = Color(1.0, 0.5, 0.2, 0.0)
+	s.scale = Vector2(2.3, 2.3)
+	_world.add_child(s)
+	s.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_property(s, "modulate:a", 0.5, 0.25)
+	t.tween_interval(1.5)
+	t.tween_property(s, "modulate:a", 0.0, 0.4)
+	t.tween_callback(s.queue_free)
+
+
 # --- Schieramento difensori -------------------------------------------------
 
 # Numero di danno fluttuante (usato sul boss): sale e svanisce. crit = colpo durante la
@@ -1225,53 +1657,50 @@ func fx_numero_danno(pos: Vector2, n: int, crit: bool) -> void:
 	t.chain().tween_callback(lbl.queue_free)
 
 
-func _on_plot(slot: int, pos: Vector2) -> void:
-	if _concluso:
-		return
-	if slot < 0 or slot >= _plot_occupato.size() or _plot_occupato[slot]:
-		return
-	var costo: int = int(ROSTER[_unita_selezionata]["costo"])
-	if risorse < costo:
-		_flash_info("Risorse insufficienti per %s" % _skin[_unita_selezionata]["nome"])
-		AudioManager.play_sfx("stat_down")
-		return
-	risorse -= costo
-	_aggiorna_risorse()
-	_piazza(_unita_selezionata, slot, pos, _plot_corsia[slot])
-	AudioManager.play_sfx("quest_complete")
-
-
-func _piazza(tipo: String, slot: int, pos: Vector2, corsia: int, alleato: bool = false) -> void:
+# Evoca un'unità: compare al CANCELLO del villaggio (con un pop) e poi cammina fino al suo
+# posto in formazione, che `_ridisponi` calcola coprendo l'altezza (Docs/14 §1). Restituisce
+# l'unità (per i ritocchi degli alleati).
+func _piazza(tipo: String, alleato: bool = false) -> SiegeDefender:
 	var d: SiegeDefender = _crea_unita(tipo)
-	d.corsia = corsia
-	d.slot = slot
+	d.corsia = 0
+	d.slot = -1
 	d.alleato = alleato
 	if d.ruolo == "blocco":
 		_blocchi.append(d)
 		d.distrutto.connect(_on_blocco_distrutto)
 	_difensori.append(d)
 	_world.add_child(d)
-	d.global_position = pos
-	d.avvia_idle()
-	if slot >= 0:
-		_plot_occupato[slot] = true
-		if slot < _plot_markers.size() and is_instance_valid(_plot_markers[slot]):
-			_plot_markers[slot].visible = false
+	# Parte dal cancello (lato villaggio), poi `_ridisponi` lo manda al suo posto camminando.
+	d.global_position = Vector2(VILLAGGIO_X - 30.0, ROAD_MID + randf_range(-30.0, 30.0))
+	_pop_evoca(d)
+	_ridisponi("fronte" if d.ruolo == "blocco" else "retro")
+	return d
 
 
-# Costruisce un'unità con parametri SCALATI dalle statistiche della run.
+# Scatto d'evocazione: l'unità compare con un pop di scala + un alone caldo al cancello.
+func _pop_evoca(d: Node2D) -> void:
+	d.scale = Vector2(0.5, 0.5)
+	var t: Tween = create_tween()
+	t.tween_property(d, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_morte_poof(d.global_position, Color(0.95, 0.86, 0.55))
+
+
+# Costruisce un'unità con parametri SCALATI dalle stat della run E dal livello del tipo.
 func _crea_unita(tipo: String) -> SiegeDefender:
 	var def: Dictionary = ROSTER[tipo]
 	var skin: Dictionary = _skin[tipo]
+	var lv: int = int(_livello[tipo])
 	var d: SiegeDefender = SiegeDefender.new()
 	d.arena = self
 	d.ruolo = def["ruolo"]
+	d.tipo = tipo
+	d.livello = lv
 	d.nome = skin["nome"]
 	d.colore = skin["colore"]
 	d.sprite = _siege_tex("unit_" + tipo)
 	d.costo = int(def["costo"])
-	d.cadenza = float(def["cadenza"])
-	d.raggio_tiro = float(def["raggio"])
+	d.cadenza = maxf(0.25, float(def["cadenza"]) * (1.0 - 0.08 * float(lv - 1)))
+	d.raggio_tiro = float(def["raggio"]) * (1.0 + 0.10 * float(lv - 1))
 	var s: Dictionary = _stat_unita(tipo)
 	d.danno = int(s["danno"])
 	if tipo == "bloccatore":
@@ -1285,74 +1714,76 @@ func _crea_unita(tipo: String) -> SiegeDefender:
 	return d
 
 
-# Valori di combattimento di un'unità, scalati dalle stat correnti. Unica fonte di
-# verità per `_crea_unita` e per il tooltip della barra (niente divergenze, Fase B/H).
+# Valori di combattimento di un'unità, scalati dalle stat correnti E dal livello del tipo.
+# Unica fonte di verità per `_crea_unita`, `_ristat_difensore` e il tooltip (niente divergenze).
 func _stat_unita(tipo: String) -> Dictionary:
 	var out: Dictionary = {"danno": 0, "hp": 0, "aoe": 0.0, "slow": 0.0}
+	var m: float = _lv_mult(int(_livello[tipo]))
 	match tipo:
 		"tiratore":
-			out["danno"] = 6 + int(GameState.get_stat("militare") / 9.0)
+			out["danno"] = int(round((6 + int(GameState.get_stat("militare") / 9.0)) * m))
 		"bloccatore":
-			out["hp"] = 45 + int(GameState.get_stat("costruzione") * 1.3) + int(GameState.get_stat("militare") * 0.3)
-			out["danno"] = 4 + int(GameState.get_stat("militare") / 14.0)
+			out["hp"] = int(round((45 + int(GameState.get_stat("costruzione") * 1.3) + int(GameState.get_stat("militare") * 0.3)) * m))
+			out["danno"] = int(round((4 + int(GameState.get_stat("militare") / 14.0)) * m))
 		"sciamano":
-			out["slow"] = clampf(0.62 - float(GameState.get_stat("scienza")) / 420.0, 0.34, 0.62)
+			# Più livello = rallenta di più (fattore più basso).
+			var base_slow: float = clampf(0.62 - float(GameState.get_stat("scienza")) / 420.0, 0.34, 0.62)
+			out["slow"] = clampf(base_slow * (1.0 - 0.06 * float(int(_livello[tipo]) - 1)), 0.18, 0.62)
 		"totem":
-			out["danno"] = 6 + int(float(GameState.get_stat("scienza") + GameState.get_stat("spionaggio")) / 14.0)
-			out["aoe"] = 80.0 + float(GameState.get_stat("scienza")) / 3.0
+			out["danno"] = int(round((6 + int(float(GameState.get_stat("scienza") + GameState.get_stat("spionaggio")) / 14.0)) * m))
+			out["aoe"] = (80.0 + float(GameState.get_stat("scienza")) / 3.0) * (1.0 + 0.12 * float(int(_livello[tipo]) - 1))
 	return out
 
 
-# Testo del tooltip della carta-unità, coi numeri reali (richiesta dei giocatori "strategist").
+# Tooltip della carta: livello, stat reali del livello attuale, e cosa sblocca il prossimo
+# (Lv3 abilità, Lv5 ascensione) + abilità già ottenute. Per i giocatori "strategist".
 func _tooltip_unita(tipo: String) -> String:
-	var def: Dictionary = ROSTER[tipo]
 	var s: Dictionary = _stat_unita(tipo)
 	var nome: String = _skin[tipo]["nome"]
+	var lv: int = int(_livello[tipo])
+	var raggio: int = int(float(ROSTER[tipo]["raggio"]) * (1.0 + 0.10 * float(lv - 1)))
+	var cad: float = maxf(0.25, float(ROSTER[tipo]["cadenza"]) * (1.0 - 0.08 * float(lv - 1)))
+	var righe: Array[String] = ["%s — Lv %d/%d" % [nome, lv, LV_MAX]]
 	match tipo:
 		"tiratore":
-			return "%s — tiro a distanza\nDanno %d · raggio %d · ogni %.1fs\nScala con Militare (%d)" % [
-				nome, int(s["danno"]), int(def["raggio"]), float(def["cadenza"]), GameState.get_stat("militare")]
+			righe.append("Danno %d · raggio %d · ogni %.1fs (Militare)" % [int(s["danno"]), raggio, cad])
 		"bloccatore":
-			return "%s — sbarra la corsia\nHP %d · danno mischia %d\nScala con Costruzione (%d)" % [
-				nome, int(s["hp"]), int(s["danno"]), GameState.get_stat("costruzione")]
+			righe.append("HP %d · danno mischia %d (Costruzione)" % [int(s["hp"]), int(s["danno"])])
 		"sciamano":
-			return "%s — rallenta i nemici nell'aura\nVelocità nemici ×%.2f · raggio %d\nScala con Scienza (%d)" % [
-				nome, float(s["slow"]), int(def["raggio"]), GameState.get_stat("scienza")]
+			righe.append("Velocità nemici ×%.2f · raggio %d (Scienza)" % [float(s["slow"]), raggio])
 		"totem":
-			return "%s — danno ad area\nDanno %d · raggio AoE %d · ogni %.1fs\nScala con Scienza/Spionaggio" % [
-				nome, int(s["danno"]), int(s["aoe"]), float(def["cadenza"])]
-	return nome
+			righe.append("Danno %d · raggio AoE %d · ogni %.1fs (Scienza/Spionaggio)" % [int(s["danno"]), int(s["aoe"]), cad])
+	# Abilità già sbloccate.
+	if lv >= 3:
+		righe.append("✓ %s: %s" % [str(ABILITA[tipo]["lv3"]["nome"]), str(ABILITA[tipo]["lv3"]["desc"])])
+	if lv >= LV_MAX:
+		righe.append("✦ %s + passivo %s" % [str(ABILITA[tipo]["lv5"]["nome"]), str(ABILITA[tipo]["lv5"]["passivo"]["nome"])])
+	# Prossimo sblocco.
+	if lv < 3:
+		righe.append("→ Lv3: %s" % str(ABILITA[tipo]["lv3"]["nome"]))
+	elif lv < LV_MAX:
+		righe.append("→ Lv5 (ascensione): %s + %s" % [str(ABILITA[tipo]["lv5"]["nome"]), str(ABILITA[tipo]["lv5"]["passivo"]["nome"])])
+	return "\n".join(righe)
 
 
-func _on_blocco_distrutto(slot: int) -> void:
-	if slot >= 0 and slot < _plot_occupato.size():
-		_plot_occupato[slot] = false
-		if slot < _plot_markers.size() and is_instance_valid(_plot_markers[slot]):
-			_plot_markers[slot].visible = true
+func _on_blocco_distrutto(_slot: int) -> void:
 	AudioManager.play_sfx("stat_down")
 
 
-# Le civiltà amiche schierano truppe gratuite; le ostili sono già nei rinforzi nemici.
+# Le civiltà amiche schierano truppe gratuite (tiratori) nel retro; le ostili sono già nei
+# rinforzi nemici. Si auto-schierano in formazione come le unità evocate.
 func _schiera_alleati() -> void:
 	for i in range(_alleati_civ.size()):
-		var corsia: int = i % LANE_Y.size()
-		var pos: Vector2 = Vector2(450.0, LANE_Y[corsia])
-		var d: SiegeDefender = _crea_unita("tiratore")
-		d.alleato = true
-		d.corsia = corsia
-		d.slot = -1
+		var d: SiegeDefender = _piazza("tiratore", true)
 		d.colore = Color(0.55, 0.92, 0.6)
 		d.danno = maxi(5, d.danno - 1)
-		_difensori.append(d)
-		_world.add_child(d)
-		d.global_position = pos
-		d.avvia_idle()
+		d.queue_redraw()
 
 
-# Usato dallo shoot harness per popolare lo screenshot senza click reali.
-func schiera_unita_test(slot: int, tipo: String) -> void:
-	if slot >= 0 and slot < _plot_pos.size() and not _plot_occupato[slot]:
-		_piazza(tipo, slot, _plot_pos[slot], _plot_corsia[slot])
+# Usato dallo shoot harness/playtest per popolare lo schieramento senza click reali: evoca
+# (gratis) un'unità del tipo in formazione. Lo `slot` è ignorato (compat. Fase B).
+func schiera_unita_test(_slot: int, tipo: String) -> void:
+	_piazza(tipo, false)
 
 
 # Compatibilità con la Fase A (shoot harness): piazza un tiratore.
@@ -1361,7 +1792,7 @@ func schiera_difensore_test(slot: int) -> void:
 
 
 # Usato dallo shoot harness: spawn immediato di un nemico di un tipo, riposizionato a `x`
-# sulla corsia (per popolare la mandria nello screenshot senza aspettare le ondate).
+# sulla fila `corsia` (per popolare la mandria nello screenshot senza aspettare le ondate).
 func spawn_enemy_test(creatura: String, corsia: int, x: float) -> void:
 	if _world == null:
 		return
@@ -1370,7 +1801,7 @@ func spawn_enemy_test(creatura: String, corsia: int, x: float) -> void:
 	if not _enemies.is_empty():
 		var e: SiegeEnemy = _enemies[-1]
 		if is_instance_valid(e):
-			e.global_position = Vector2(x, LANE_Y[clampi(corsia, 0, LANE_Y.size() - 1)])
+			e.global_position = Vector2(x, _corsia_y(corsia))
 
 
 # Usato dallo shoot harness: fa entrare subito il boss (salta le ondate).
@@ -1485,6 +1916,10 @@ func _mostra_esito(esito: String) -> void:
 
 
 func _riprova() -> void:
+	# Ripristina eventuale zoom della cinematica boss rimasto a metà.
+	_world.scale = Vector2.ONE
+	_world.position = Vector2.ZERO
+	Engine.time_scale = 1.0
 	for c in _world.get_children():
 		c.queue_free()
 	_enemies.clear()
@@ -1501,10 +1936,8 @@ func _riprova() -> void:
 		_vignetta_furia.queue_free()
 	_vignetta_furia = null
 	_spawn_queue.clear()
-	for i in range(_plot_occupato.size()):
-		_plot_occupato[i] = false
-		if i < _plot_markers.size() and is_instance_valid(_plot_markers[i]):
-			_plot_markers[i].visible = true
+	for k in _livello.keys():
+		_livello[k] = 1
 	configura(era)
 	_tempo = 0.0
 	_schiera_alleati()
@@ -1529,7 +1962,7 @@ func _aggiorna_hp() -> void:
 
 func _aggiorna_risorse() -> void:
 	if _risorse_label != null:
-		_risorse_label.text = "Risorse: %d" % risorse
+		_risorse_label.text = "Monete: %d" % risorse
 	_aggiorna_cards()
 
 

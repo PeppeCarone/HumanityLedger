@@ -63,6 +63,18 @@ func _process(delta: float) -> void:
 		_next_log += 4.0
 		print("  t=%5.1f  villaggio=%d/%d  boss=%s%%  nemici=%d  risorse=%d" % [
 			_t, _siege.hp_villaggio, _siege.hp_villaggio_max, str(bhp), _siege._enemies.size(), _siege.risorse])
+	# La schermata d'esito emette `assedio_concluso` solo al clic di "Continua" (assente in
+	# headless): se l'arena ha già concluso, deduci l'esito dall'HP del villaggio e riporta.
+	if _concluso == "" and _siege._concluso:
+		var pct: int = int(100.0 * float(_siege.hp_villaggio) / float(maxi(_siege.hp_villaggio_max, 1)))
+		if _siege.hp_villaggio <= 0:
+			_concluso = "sopraffatto"
+		elif pct >= 100:
+			_concluso = "immacolata"
+		elif pct >= 40:
+			_concluso = "trionfo"
+		else:
+			_concluso = "fatica"
 	if _concluso != "":
 		print("PLAYTEST_ESITO=%s | t=%.1f | villaggio_finale=%d/%d (%d%%) | stagger=%d | furia=%s frenesia=%s" % [
 			_concluso, _t, _siege.hp_villaggio, _siege.hp_villaggio_max,
@@ -70,6 +82,6 @@ func _process(delta: float) -> void:
 			_stagger_count, str(_furia), str(_frenesia)])
 		Engine.time_scale = 1.0
 		get_tree().quit()
-	elif _t > 160.0:
+	elif _t > 260.0:   # 6 ondate (F3) richiedono più tempo delle 4 precedenti
 		print("PLAYTEST_TIMEOUT | t=%.1f | villaggio=%d | boss=%s%%" % [_t, _siege.hp_villaggio, str(bhp)])
 		get_tree().quit()

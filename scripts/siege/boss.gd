@@ -15,6 +15,7 @@ signal abilita_usata(nome: String)
 signal furia_entrata
 signal frenesia_entrata
 signal stagger_cambiato(frac: float, vulnerabile: bool)
+signal trasforma_entrata   # prima volta sotto furia_soglia: l'arena fa la cinematica (F4)
 
 var _frenesia: bool = false         # 3ª fase sotto il 25% HP: abilità a raffica
 
@@ -57,6 +58,19 @@ var _pioggia_pts: Array[Vector2] = []   # punti d'impatto della Pioggia di fuoco
 #   Era 2 — Il Drago: caster di fuoco a distanza (soffio sulla corsia + pioggia sparsa).
 var _abilita: Array[String] = ["pestone", "ruggito", "carica"]
 
+# Cambio fase cinematografico (Fase F4, Docs/14 §5): alla PRIMA discesa sotto furia_soglia il
+# boss si TRASFORMA (cinematica hitstop/zoom dall'arena), diventa più forte e scatena l'ULTIMATE.
+# Poi l'ultimate torna a cadenza CRESCENTE e potenza CALANTE (anti-ripetizione). Per tutto lo
+# scontro evoca un esercito di rinforzi (§4).
+var _trasformato: bool = false
+var _trasf_fino: float = 0.0
+var _ult_t: float = 0.0
+var _ult_usata: int = 0
+var _evoca_t: float = 6.0
+const TRASF_DUR: float = 1.4        # durata dell'animazione di trasformazione (tempo locale)
+const EVOCA_BOSS_CD: float = 8.0    # ogni quanto il boss chiama rinforzi
+const ULT_POT_BASE: int = 30        # potenza base dell'ultimate (cala a ogni uso)
+
 
 # Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).
 func imposta_era(e: int) -> void:
@@ -86,11 +100,12 @@ func _process(delta: float) -> void:
 		var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
 		scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
 
-	# Furia a meta' HP: abilita' piu' frequenti, corpo che vira al rosso.
+	# Furia a meta' HP: abilita' piu' frequenti + CAMBIO FASE CINEMATOGRAFICO (F4).
 	if not _in_furia and float(hp) <= float(hp_max) * furia_soglia:
 		_in_furia = true
 		_abil_t = minf(_abil_t, 1.2)
 		furia_entrata.emit()
+		_inizia_trasformazione()
 	# Frenesia (3ª fase) sotto il 25% HP: abilità a raffica — l'ultimo, disperato assalto.
 	if not _frenesia and float(hp) <= float(hp_max) * 0.25:
 		_frenesia = true
@@ -127,11 +142,11 @@ func _process(delta: float) -> void:
 			return
 		"dash":
 			position.x -= velocita * DASH_MULT * delta
-			# Contromossa: un BLOCCATORE sulla sua corsia FERMA la Carica (ci si schianta
+			# Contromossa: un BLOCCATORE sulla sua banda FERMA la Carica (ci si schianta
 			# contro). Sfonda il muro ma il villaggio è salvo: leggere il telegrafo e tenere
-			# una corsia bloccata è la difesa giusta.
+			# la linea bloccata è la difesa giusta.
 			if arena != null:
-				var muro: Node = arena.cerca_blocco(corsia, position.x)
+				var muro: Node = arena.cerca_blocco(global_position)
 				if muro != null and position.x > muro.global_position.x and position.x - muro.global_position.x <= 64.0:
 					muro.subisci_danno(70)
 					arena.scuoti_forte()
@@ -149,7 +164,28 @@ func _process(delta: float) -> void:
 				_abil_t = _cooldown_abilita()
 			queue_redraw()
 			return
+		"trasforma":
+			# Cambio fase: il boss ribolle e cresce sul posto (la cinematica la fa l'arena),
+			# poi scatena l'ultimate e riparte più forte.
+			var g: float = 1.0 + 0.12 * sin(_bt * 16.0)
+			scale = Vector2(g, g)
+			if _bt >= _trasf_fino:
+				_completa_trasformazione()
+			queue_redraw()
+			return
 		_:  # marcia
+			# Evoca rinforzi durante tutto lo scontro (§4).
+			_evoca_t -= delta
+			if _evoca_t <= 0.0:
+				_evoca_t = EVOCA_BOSS_CD
+				if arena != null and arena.has_method("evoca_rinforzi_boss"):
+					arena.evoca_rinforzi_boss(2 + era_boss)
+			# Ultimate periodica dopo la trasformazione (potenza calante, cadenza crescente).
+			if _trasformato:
+				_ult_t -= delta
+				if _ult_t <= 0.0:
+					_cast_ultimate()
+					_ult_t = _ult_cooldown()
 			_abil_t -= delta
 			if _abil_t <= 0.0:
 				_inizia_telegrafo()
@@ -171,7 +207,8 @@ func subisci_danno(d: int) -> void:
 	var dmg: int = d
 	if _staggerato:
 		dmg = int(round(float(d) * STAGGER_BONUS))
-	elif _stagger_cd <= 0.0 and _stato != "entrata":
+	elif _stagger_cd <= 0.0 and _stato != "entrata" and _stato != "trasforma":
+		# Niente stagger durante entrata/trasformazione: la cinematica non va interrotta.
 		_stagger = minf(stagger_max, _stagger + float(d) * stagger_gain)
 		if _stagger >= stagger_max:
 			_entra_stagger()
@@ -202,6 +239,42 @@ func _notifica_stagger() -> void:
 func _cooldown_abilita() -> float:
 	var base: float = 2.0 if _frenesia else (3.0 if _in_furia else 5.2)
 	return base + randf_range(-0.4, 0.6)
+
+
+# Prima volta sotto furia_soglia: entra nello stato "trasforma" (l'arena fa la cinematica).
+func _inizia_trasformazione() -> void:
+	_stato = "trasforma"
+	_trasf_fino = _bt + TRASF_DUR
+	AudioManager.play_sfx("stat_down")
+	trasforma_entrata.emit()
+
+
+# Fine della trasformazione: il boss diventa più grosso e più forte, scatena l'ultimate e riparte.
+func _completa_trasformazione() -> void:
+	_trasformato = true
+	raggio *= 1.2
+	danno_villaggio = int(round(float(danno_villaggio) * 1.35))
+	danno_melee = int(round(float(danno_melee) * 1.35))
+	velocita *= 1.12
+	scale = Vector2.ONE
+	_cast_ultimate()
+	_stato = "marcia"
+	_abil_t = _cooldown_abilita()
+	_ult_t = _ult_cooldown()
+
+
+# Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).
+# Potenza CALANTE a ogni uso: non si può vincere per ripetizione.
+func _cast_ultimate() -> void:
+	var pot: int = int(round(float(ULT_POT_BASE) * pow(0.72, float(_ult_usata))))
+	_ult_usata += 1
+	if arena != null and arena.has_method("boss_ultimate"):
+		arena.boss_ultimate(era_boss, maxi(6, pot))
+
+
+# Cadenza dell'ultimate: cresce a ogni uso (anti-ripetizione).
+func _ult_cooldown() -> float:
+	return 9.0 + 3.0 * float(_ult_usata)
 
 
 func _inizia_telegrafo() -> void:
@@ -317,6 +390,11 @@ func _difensore_vicino() -> Vector2:
 
 func _draw() -> void:
 	var r: float = raggio
+	# Forma trasformata (F4): alone cremisi pulsante dietro il boss (più minaccioso).
+	if _trasformato:
+		var pa: float = 0.28 + 0.16 * sin(_bt * 5.0)
+		draw_circle(Vector2.ZERO, r * 1.28, Color(0.85, 0.12, 0.1, pa))
+		draw_arc(Vector2.ZERO, r * 1.34, 0.0, TAU, 44, Color(1.0, 0.4, 0.2, 0.7), 3.0)
 	# Telegrafo a terra del Pestone (cerchio rosso pulsante nell'area bersaglio).
 	if _stato == "telegrafo" and _abil_corrente == "pestone":
 		var local: Vector2 = _tele_pos - global_position
