@@ -772,7 +772,9 @@ func _posa_camminatore(era: int, nome: String, banda_y: float, scala: float,
 	var holder: Control = Control.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var py: float = banda_y * s.y
-	var xa: float = randf_range(0.16, 0.40) * s.x
+	# Patrol clear del pannello HUD a sinistra (~0.22 della larghezza): niente camminatori
+	# nascosti dietro la UI (rifinitura 2026-06-23).
+	var xa: float = randf_range(0.30, 0.48) * s.x
 	var xb: float = randf_range(0.60, 0.88) * s.x
 	holder.position = Vector2(randf_range(minf(xa, xb), maxf(xa, xb)), py)
 	# Ombra di contatto come blob soft figlio del holder (segue il camminatore).
