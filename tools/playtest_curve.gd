@@ -18,20 +18,23 @@ const ROTAZIONE := ["bloccatore", "bloccatore", "tiratore", "bloccatore", "totem
 
 func _ready() -> void:
 	Engine.time_scale = 8.0
-	for cfg in BUILDS:
-		await _run_build(cfg)
+	for era in [1, 2]:
+		print("===== ERA %d =====" % era)
+		for cfg in BUILDS:
+			await _run_build(cfg, era)
 	Engine.time_scale = 1.0
 	print("CURVA_DONE")
 	get_tree().quit()
 
 
-func _run_build(cfg: Dictionary) -> void:
+func _run_build(cfg: Dictionary, era_n: int = 1) -> void:
 	GameState.reset_run()
+	GameState.era_corrente = era_n
 	GameState.militare = cfg["mil"]; GameState.costruzione = cfg["cos"]
 	GameState.scienza = cfg["sci"]; GameState.spionaggio = cfg["spi"]; GameState.legge = cfg["leg"]
 	GameState.tesoro = cfg["tes"]; GameState.risorse = cfg["ris"]; GameState.popolo = cfg["pop"]
 	var siege: Node = SiegeArena.new()
-	siege.configura(1)
+	siege.configura(era_n)
 	get_tree().root.add_child.call_deferred(siege)
 	await get_tree().process_frame
 	await get_tree().process_frame
