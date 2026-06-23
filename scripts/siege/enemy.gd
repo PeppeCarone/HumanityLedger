@@ -53,6 +53,7 @@ var _carica_cd: float = 2.0         # countdown alla prossima carica
 var _carica_fino: float = -1.0      # scatto attivo finché _t < _carica_fino
 var _evoca_cd: float = 3.0
 var _cura_cd: float = 2.0
+var _last_num: float = -1.0         # throttle dei numeri di danno fluttuanti (juice)
 
 
 func _process(delta: float) -> void:
@@ -156,6 +157,10 @@ func subisci_danno(d: int) -> void:
 			var ts: Tween = create_tween()
 			ts.tween_property(self, "modulate", Color.WHITE, 0.16)
 			return
+	# Numero di danno fluttuante (juice), con throttle per non intasare lo schermo.
+	if _t - _last_num >= 0.28 and arena != null and arena.has_method("fx_numero_danno"):
+		arena.fx_numero_danno(global_position, dmg, false)
+		_last_num = _t
 	hp -= dmg
 	if hp <= 0:
 		# Risurrezione (scheletro): una volta sola si rialza a metà HP invece di morire.

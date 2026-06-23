@@ -160,6 +160,7 @@ var _card_up: Dictionary = {}         # tipo -> Button (potenzia)
 var _tempo: float = 0.0
 var _attivo: bool = false
 var _concluso: bool = false
+var _in_hitstop: bool = false   # juice: evita hit-stop sovrapposti (time_scale resterebbe basso)
 
 var _hp_fill: ColorRect = null
 var _hp_label: Label = null
@@ -1188,6 +1189,7 @@ func _on_boss_morto(b: SiegeEnemy) -> void:
 # lampo a dare il "peso" del colpo decisivo — il momento più applaudito del video.
 func _finisher_boss(b: SiegeEnemy) -> void:
 	var pos: Vector2 = b.global_position if is_instance_valid(b) else Vector2(900.0, 520.0)
+	hitstop(0.13, 0.04)   # colpo decisivo: l'uccisione del boss "pesa"
 	_morte_poof(pos, Color(1.0, 0.85, 0.5))
 	_morte_poof(pos, Color(1.0, 0.6, 0.3))
 	fx_esplosione(pos, 120.0)
@@ -1378,6 +1380,7 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 		marker.append(_telegrafo_disco(z, raggio))
 	await get_tree().create_timer(1.0).timeout
 	# Impatto: danno SOLO nelle zone (lo Scudo di pelli del Bloccatore Lv3 lo mitiga).
+	hitstop(0.09, 0.05)   # l'ultimate "atterra" con peso
 	for z in zone:
 		danno_area_difensori(z, raggio, potenza)
 		fx_esplosione(z, raggio)
@@ -1579,6 +1582,24 @@ func scuoti_forte() -> void:
 	for i in range(6):
 		t.tween_property(self, "offset", Vector2(randf_range(-14, 14), randf_range(-9, 9)), 0.045)
 	t.tween_property(self, "offset", Vector2.ZERO, 0.1)
+
+
+# Hit-stop (Fase F5 juice): micro-freeze per i colpi DECISIVI (rottura tenuta, morte boss,
+# impatto ultimate) — dà "peso" all'impatto. Solo sui momenti grossi (no su ogni colpo, per
+# non rendere il gioco a scatti). Ripristina il time_scale precedente in modo robusto;
+# re-entrant-safe così hit-stop sovrapposti non lo lasciano bloccato lento.
+func hitstop(dur: float = 0.09, scala: float = 0.05) -> void:
+	if _in_hitstop:
+		return
+	var prev: float = Engine.time_scale
+	if prev <= scala:
+		return
+	_in_hitstop = true
+	Engine.time_scale = scala
+	var tmr: SceneTreeTimer = get_tree().create_timer(dur, true, false, true)
+	tmr.timeout.connect(func() -> void:
+		Engine.time_scale = prev
+		_in_hitstop = false)
 
 
 func segnala_abilita_boss(nome: String) -> void:
