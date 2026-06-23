@@ -78,19 +78,29 @@ const ROSTER: Dictionary = {
 	"totem":      {"ruolo": "aoe",    "costo": 7, "raggio": 230.0, "cadenza": 1.5,  "desc": "Danno ad area"},
 }
 const SKIN: Dictionary = {
+	# Le 4 truppe sono PERSONAGGI dell'era (Docs/14): niente oggetti (no "Totem"/"Catapulta").
+	# Gli archetipi-chiave (tiratore/bloccatore/sciamano/totem) restano id interni; cambia il
+	# nome mostrato e l'arte. "totem" = il caster d'area (Piromante/Mago del Fuoco).
 	1: {
 		"tiratore":   {"nome": "Cacciatore", "colore": Color(0.55, 0.8, 0.95)},
 		"bloccatore": {"nome": "Guerriero",  "colore": Color(0.78, 0.6, 0.4)},
-		"sciamano":   {"nome": "Sciamana",   "colore": Color(0.62, 0.9, 0.95)},
-		"totem":      {"nome": "Totem del Fuoco", "colore": Color(0.95, 0.55, 0.3)},
+		"sciamano":   {"nome": "Sciamano del Gelo", "colore": Color(0.62, 0.9, 0.95)},
+		"totem":      {"nome": "Piromante tribale", "colore": Color(0.95, 0.55, 0.3)},
 	},
 	2: {
 		"tiratore":   {"nome": "Arciere",    "colore": Color(0.6, 0.82, 0.95)},
 		"bloccatore": {"nome": "Legionario", "colore": Color(0.82, 0.7, 0.45)},
 		"sciamano":   {"nome": "Sacerdote",  "colore": Color(0.85, 0.85, 1.0)},
-		"totem":      {"nome": "Catapulta",  "colore": Color(0.9, 0.6, 0.35)},
+		"totem":      {"nome": "Mago del Fuoco", "colore": Color(0.9, 0.6, 0.35)},
 	},
 }
+
+# Nome-file dell'arte per archetipo (quando diverso dall'id). Il caster d'area NON è più un
+# oggetto (Totem/Catapulta) ma un PERSONAGGIO: carica `unit_caster`/`caster` (Piromante era1,
+# Mago del Fuoco era2). Finché l'arte non c'è → placeholder a figura. I vecchi `unit_totem.png`
+# (totem/catapulta) restano su disco ma inutilizzati.
+const ART_UNITA: Dictionary = {"totem": "caster"}
+
 
 # Progressione per-TIPO (Docs/14 §3): Lv1→Lv5. Lv1-2/4 solo stat; Lv3 nuova abilità + nuovo
 # aspetto; Lv5 ASCENSIONE (forma finale + ultimate + passivo). Le abilità si "cablano" in F2b;
@@ -644,7 +654,7 @@ func _crea_barra_unita() -> void:
 		lv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cvb.add_child(lv)
 		_card_lv[tipo] = lv
-		var ic: Texture2D = UiStyle.icona("siege", tipo)
+		var ic: Texture2D = UiStyle.icona("siege", str(ART_UNITA.get(tipo, tipo)))
 		if ic != null:
 			var iw: TextureRect = TextureRect.new()
 			iw.texture = ic
@@ -1697,7 +1707,7 @@ func _crea_unita(tipo: String) -> SiegeDefender:
 	d.livello = lv
 	d.nome = skin["nome"]
 	d.colore = skin["colore"]
-	d.sprite = _siege_tex("unit_" + tipo)
+	d.sprite = _siege_tex("unit_" + str(ART_UNITA.get(tipo, tipo)))
 	d.costo = int(def["costo"])
 	d.cadenza = maxf(0.25, float(def["cadenza"]) * (1.0 - 0.08 * float(lv - 1)))
 	d.raggio_tiro = float(def["raggio"]) * (1.0 + 0.10 * float(lv - 1))

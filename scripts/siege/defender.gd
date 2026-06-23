@@ -254,10 +254,12 @@ func _draw() -> void:
 				draw_polyline(PackedVector2Array([
 					Vector2(0, -52), Vector2(13, -38), Vector2(0, -24), Vector2(-13, -38), Vector2(0, -52)]), scuro, 2.0)
 			"aoe":
-				# Catapulta/braciere: base larga + coppa.
-				draw_rect(Rect2(Vector2(-20, -6), Vector2(40, 18)), Color(0.32, 0.23, 0.15))
-				draw_circle(Vector2(0, -16), 13.0, lv_col)
-				draw_arc(Vector2(0, -16), 13.0, 0.0, TAU, 24, scuro, 2.0)
+				# Piromante/Mago del Fuoco: figura robata con una fiamma in mano (PERSONA, non oggetto).
+				draw_rect(Rect2(Vector2(-12, -34), Vector2(24, 46)), lv_col)
+				draw_rect(Rect2(Vector2(-12, -34), Vector2(24, 46)), scuro, false, 2.0)
+				draw_circle(Vector2(0, -42), 8.0, Color(0.86, 0.72, 0.55))      # testa
+				draw_circle(Vector2(-15, -30), 6.0, Color(1.0, 0.6, 0.25))      # fiamma in mano
+				draw_circle(Vector2(-15, -30), 3.0, Color(1.0, 0.92, 0.6))
 	# Barra HP del muro (sopra lo sprite o la forma).
 	if ruolo == "blocco":
 		var bw: float = 44.0
