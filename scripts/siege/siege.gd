@@ -98,7 +98,7 @@ const SKIN: Dictionary = {
 # Nome-file dell'arte per archetipo (quando diverso dall'id). Il caster d'area NON è più un
 # oggetto (Totem/Catapulta) ma un PERSONAGGIO: carica `unit_caster`/`caster` (Piromante era1,
 # Mago del Fuoco era2). Finché l'arte non c'è → placeholder a figura. I vecchi `unit_totem.png`
-# (totem/catapulta) restano su disco ma inutilizzati.
+# (totem/catapulta) sono stati rimossi: superati da `unit_caster`.
 const ART_UNITA: Dictionary = {"totem": "caster"}
 
 
