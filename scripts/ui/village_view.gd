@@ -108,6 +108,7 @@ const DECORAZIONI_ERA: Dictionary = {
 		{"n": "pozzo",    "x": 0.90, "y": 0.64, "s": 0.62},
 		{"n": "carretto", "x": 0.85, "y": 0.83, "s": 0.58},
 		{"n": "lampione", "x": 0.86, "y": 0.60, "s": 0.80, "sway": true},
+		{"n": "fontana",  "x": 0.30, "y": 0.69, "s": 0.62},
 		{"n": "fontana_acqua", "x": 0.12, "y": 0.92, "s": 0.72},
 	],
 }
