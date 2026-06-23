@@ -179,34 +179,32 @@ def simulate(target_stats, target_key, want_mystery):
 
 
 def assedio_check(stats, pop, era, ostili=0):
-    """Euristico di bilanciamento de L'Assedio (mirror di siege.gd._prepara_ondate +
-    _crea_unita + configura). NON e' un game over (D024): stima solo se una difesa
-    tipica copre la minaccia. ratio>=1.4 comodo · >=0.9 sfida · <0.9 duro (ma vincibile).
-    L'efficienza di fuoco (EFF) sconta range/targeting/sovrapposizione del TD."""
+    """Pre-check EURISTICO (rozzo) de L'Assedio 2.0 — stima solo se una difesa tipica copre
+    la minaccia totale. NON e' un game over (D024). La verifica AUTORITATIVA del bilanciamento
+    e' in-engine: `tools/playtest_curve.tscn` (giocatore attivo, Era 1 e 2 — i caricatori che
+    sfondano e l'economia attiva non sono catturabili da una formula statica).
+    ratio>=1.4 comodo · >=0.9 sfida · <0.9 duro (ma vincibile)."""
     EFF = 0.18
     ef = 1.0 + 0.18 * (era - 1)
     of = 1.0 + 0.12 * ostili
-    waves = [(4 + ostili, 18), (6 + ostili, 26), (4 + ostili, 50)]
-    bounties = [2, 3, 4]
-    # Moltiplicatore HP medio per ondata: mirror di siege.gd CREATURE_PROFILI (le coppie
-    # fragile+tank), incl. l'effetto risurrezione scheletro (era2 w1, ~×1.5) e armatura
-    # golem (era2 w2). La minaccia totale resta ~quella base (le creature redistribuiscono).
-    WAVE_MULT = {
-        1: [0.80, 1.08, 1.18],   # cinghiale+iena · iena+orso · orso+cinghiale
-        2: [1.00, 1.10, 1.85],   # predone · scheletro(risorge)+predone · minotauro+golem(armato)
-    }
-    wm = WAVE_MULT.get(era, WAVE_MULT[1])
-    enemy_hp = sum(round(n * round(hp * ef * of) * wm[i]) for i, (n, hp) in enumerate(waves))
+    # Assedio 2.0: 4 ondate "normali" + mini-boss (w3) + boss (w6). Mirror grezzo di
+    # ONDATE_NORMALI/MINI_BOSS in siege.gd (numeri Era 1 scalati per era con ef).
+    waves = [(7 + ostili, 24), (10 + ostili, 33), (10 + ostili, 46), (11 + ostili, 62)]
+    bounties = [2, 2, 3, 3]
+    enemy_hp = sum(round(n * round(hp * ef * of)) for n, hp in waves)
+    mini_hp = round(220 * ef * of)        # mini-boss ondata 3
     boss_hp = round((300 + 45 * ostili) * ef)
-    threat = enemy_hp + boss_hp
+    threat = enemy_hp + mini_hp + boss_hp
     village_hp = 70 + stats["costruzione"] + pop // 4
     budget = 12 + stats["tesoro"] // 22 + stats["popolo"] // 18
-    bounty = sum(n * b for (n, _), b in zip(waves, bounties)) + 14
-    n_units = min(9, (budget + bounty) // 5)
+    bounty = sum(n * b for (n, _), b in zip(waves, bounties)) + 8 + 14  # +mini +boss
+    n_units = min(14, (budget + bounty) // 5)
     dps_tir = (6 + stats["militare"] // 9) / 0.8
     dps_tot = (6 + (stats["scienza"] + stats["spionaggio"]) // 14) / 1.5
     avg_dps = (dps_tir + dps_tot) / 2.0
-    duration = 42.0 * ef
+    # 6 ondate + economia ATTIVA (rievochi di continuo): molti piu' "unit-secondi" di fuoco
+    # di un esercito statico. Durata lunga per approssimare il re-summon (vero dato: playtest_curve).
+    duration = 80.0 * ef
     capacity = n_units * avg_dps * duration * EFF + village_hp
     ratio = capacity / threat
     verdict = "comodo" if ratio >= 1.4 else ("sfida" if ratio >= 0.9 else "duro")
@@ -215,7 +213,7 @@ def assedio_check(stats, pop, era, ostili=0):
 
 
 def assedio_report():
-    print("\n=== ASSEDIO (boss fight, euristico — no game over) ===")
+    print("\n=== ASSEDIO 2.0 (boss fight, pre-check euristico — autorevole: playtest_curve.tscn) ===")
     profili = {
         "fine-era tipica": ({"militare": 50, "tesoro": 50, "diplomazia": 45, "scienza": 50,
                              "legge": 45, "spionaggio": 45, "popolo": 50, "costruzione": 55}, 45),
