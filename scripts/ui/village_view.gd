@@ -78,6 +78,48 @@ const FX_CONSEGUENZA: Dictionary = {
 	"neutro":      {"idx": 1, "col": Color(0.92, 0.88, 0.80)},
 }
 
+# --- Villaggio Vivo (P11): diorama atmosferico. Tutto fallback-safe ----------
+# Decorazioni e attori compaiono SOLO se lo sprite esiste (assenza elegante, mai
+# placeholder). Meteo è procedurale (texture opzionale in fx/meteo migliora la resa).
+const DECO: String = "res://Assets/art/villaggio/deco/era%d/%s.png"
+const VITA: String = "res://Assets/art/villaggio/vita/era%d/%s.png"
+const METEO: String = "res://Assets/art/fx/meteo/%s.png"
+
+# Props sparsi sul board, lontani dalla zona del CallButton (x 0.40-0.72, y>0.81)
+# e dagli slot edificio. {n: nome-file, x/y: posizione normalizzata, s: scala, sway: dondolio}
+const DECORAZIONI_ERA: Dictionary = {
+	1: [
+		{"n": "albero_secco", "x": 0.08, "y": 0.55, "s": 0.85, "sway": true},
+		{"n": "masso",        "x": 0.14, "y": 0.67, "s": 0.55},
+		{"n": "pelli",        "x": 0.17, "y": 0.80, "s": 0.55},
+		{"n": "erba",         "x": 0.44, "y": 0.69, "s": 0.42, "sway": true},
+		{"n": "ossa",         "x": 0.71, "y": 0.70, "s": 0.42},
+		{"n": "cespuglio",    "x": 0.89, "y": 0.63, "s": 0.50, "sway": true},
+		{"n": "idolo",        "x": 0.93, "y": 0.55, "s": 0.55},
+		{"n": "catasta",      "x": 0.84, "y": 0.81, "s": 0.52},
+		{"n": "pozza",        "x": 0.13, "y": 0.90, "s": 0.70},
+	],
+	2: [
+		{"n": "statua",   "x": 0.09, "y": 0.62, "s": 0.85},
+		{"n": "casse",    "x": 0.15, "y": 0.78, "s": 0.55},
+		{"n": "lampione", "x": 0.20, "y": 0.62, "s": 0.80, "sway": true},
+		{"n": "fioriera", "x": 0.45, "y": 0.72, "s": 0.42},
+		{"n": "panca",    "x": 0.72, "y": 0.73, "s": 0.50},
+		{"n": "pozzo",    "x": 0.90, "y": 0.64, "s": 0.62},
+		{"n": "carretto", "x": 0.85, "y": 0.83, "s": 0.58},
+		{"n": "lampione", "x": 0.86, "y": 0.60, "s": 0.80, "sway": true},
+		{"n": "fontana_acqua", "x": 0.12, "y": 0.92, "s": 0.72},
+	],
+}
+
+# Attori della vita ambientale per era. Persone/animali camminano; uccelli volano a timer.
+const VITA_ERA: Dictionary = {
+	1: {"persone": ["abitante1", "abitante2", "anziano"], "bambino": "bambino",
+		"animali": ["cane", "cervo"], "uccelli": "corvi"},
+	2: {"persone": ["mercante", "guardia", "studioso"], "bambino": "bambino",
+		"animali": ["cavallo", "gatto"], "uccelli": "colombe"},
+}
+
 var _era: int = 1
 var _slot_usati: int = 0
 var _edifici_nodi: Array[Node] = []  # tutti i nodi da liberare alla resync (TextureRect, particelle, ombre)
@@ -349,10 +391,13 @@ func sincronizza(era: int, n: int) -> void:
 	_bandiere.clear()
 	_slot_usati = 0
 	var quanti: int = mini(n, _slots().size())
+	_posa_decorazioni(era)
 	for i in quanti:
 		_posa_edificio(false)
 	_fuoco_centrale()
 	_avvia_fumo()
+	_avvia_meteo(era)
+	_avvia_vita_ambientale(era)
 	_aggiorna_plot_costruibile()
 
 
@@ -601,6 +646,222 @@ func _avvia_fumo() -> void:
 	ramp.offsets = PackedFloat32Array([0.0, 1.0])
 	_fumo.color_ramp = ramp
 	_suolo.add_child(_fumo)
+
+
+# --- Villaggio Vivo (P11): decorazioni, meteo, vita ambientale ---------------
+
+# Props sparsi che riempiono il board, dietro agli edifici. Solo-se-asset
+# (assenza elegante, nessun placeholder). Fuori dalla zona del CallButton.
+func _posa_decorazioni(era: int) -> void:
+	var lista: Array = DECORAZIONI_ERA.get(era, [])
+	var s: Vector2 = _baseline()
+	for d in lista:
+		var path: String = DECO % [era, str(d["n"])]
+		if not ResourceLoader.exists(path):
+			continue
+		var tex: Texture2D = load(path)
+		var scala: float = float(d.get("s", 0.5))
+		var dim: Vector2 = Vector2(tex.get_size()) * SCALA_EDIFICIO * scala
+		var px: float = float(d["x"]) * s.x
+		var py: float = float(d["y"]) * s.y
+		var ombra: TextureRect = _ombra(px, py, dim.x, false)
+		var tr: TextureRect = TextureRect.new()
+		tr.texture = tex
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.size = dim
+		tr.pivot_offset = Vector2(dim.x * 0.5, dim.y)
+		tr.position = Vector2(px - dim.x * 0.5, py - dim.y)
+		tr.modulate = _tinta_prosperita
+		_suolo.add_child(tr)
+		_edifici_nodi.append(tr)
+		if ombra != null:
+			_edifici_nodi.append(ombra)
+		if bool(d.get("sway", false)):
+			_idle_edificio(tr)
+
+
+# Meteo per era: neve che scende (Era 1) o brace/cenere che sale (Era 2). Procedurale;
+# usa fx/meteo/<nome>.png se presente, altrimenti un puntino soft (fallback-safe).
+func _avvia_meteo(era: int) -> void:
+	var s: Vector2 = _baseline()
+	var neve: bool = era < 2
+	var p: CPUParticles2D = CPUParticles2D.new()
+	p.local_coords = false
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(s.x * 0.55, 30.0)
+	p.spread = 12.0
+	var nome: String = "neve" if neve else "brace"
+	var mpath: String = METEO % nome
+	p.texture = load(mpath) if ResourceLoader.exists(mpath) else _disc_texture()
+	if neve:
+		p.position = Vector2(s.x * 0.5, -20.0)
+		p.amount = 55
+		p.lifetime = 9.0
+		p.direction = Vector2(0.25, 1)
+		p.gravity = Vector2(7, 22)
+		p.initial_velocity_min = 18.0
+		p.initial_velocity_max = 40.0
+		p.scale_amount_min = 0.05
+		p.scale_amount_max = 0.14
+		var rn: Gradient = Gradient.new()
+		rn.colors = PackedColorArray([
+			Color(0.95, 0.97, 1.0, 0.0), Color(0.95, 0.97, 1.0, 0.8),
+			Color(0.9, 0.93, 1.0, 0.0)])
+		rn.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
+		p.color_ramp = rn
+	else:
+		p.position = Vector2(s.x * 0.5, s.y * 1.02)
+		p.amount = 38
+		p.lifetime = 6.5
+		p.direction = Vector2(0, -1)
+		p.gravity = Vector2(4, -18)
+		p.initial_velocity_min = 14.0
+		p.initial_velocity_max = 34.0
+		p.scale_amount_min = 0.04
+		p.scale_amount_max = 0.12
+		var re: Gradient = Gradient.new()
+		re.colors = PackedColorArray([
+			Color(1.0, 0.7, 0.3, 0.0), Color(1.0, 0.6, 0.25, 0.85),
+			Color(0.7, 0.2, 0.1, 0.0)])
+		re.offsets = PackedFloat32Array([0.0, 0.25, 1.0])
+		p.color_ramp = re
+	p.preprocess = p.lifetime
+	_fx.add_child(p)
+	_edifici_nodi.append(p)
+
+
+# Vita ambientale: abitanti/animali camminano, uccelli attraversano il cielo. Conteggio
+# legato a Popolazione (riusa GameState.popolo). Tutto solo-se-asset.
+func _avvia_vita_ambientale(era: int) -> void:
+	if _slot_usati == 0:
+		return
+	var cfg: Dictionary = VITA_ERA.get(era, VITA_ERA[1])
+	var popolo: int = GameState.popolo
+	var persone: Array = cfg.get("persone", [])
+	var n_persone: int = clampi(int(popolo / 14.0) + 1, 1, 4)
+	for i in range(n_persone):
+		if persone.is_empty():
+			break
+		_posa_camminatore(era, str(persone[i % persone.size()]),
+			randf_range(0.60, 0.80), randf_range(0.55, 0.85))
+	if popolo >= 20 and cfg.has("bambino"):
+		_posa_camminatore(era, str(cfg["bambino"]), randf_range(0.66, 0.82), 0.5, true)
+	var animali: Array = cfg.get("animali", [])
+	if not animali.is_empty():
+		_posa_camminatore(era, str(animali[randi() % animali.size()]),
+			randf_range(0.70, 0.86), 0.62)
+	if cfg.has("uccelli"):
+		_avvia_uccelli(era, str(cfg["uccelli"]))
+
+
+# Un camminatore: holder (ombra + sprite) che va avanti/indietro con flip di direzione
+# e leggero bob. Default sprite rivolto a destra (asset §11c/d).
+func _posa_camminatore(era: int, nome: String, banda_y: float, scala: float,
+		veloce: bool = false) -> void:
+	var path: String = VITA % [era, nome]
+	if not ResourceLoader.exists(path):
+		return
+	var tex: Texture2D = load(path)
+	var s: Vector2 = _baseline()
+	var dim: Vector2 = Vector2(tex.get_size()) * SCALA_EDIFICIO * 0.42 * scala
+	var holder: Control = Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var py: float = banda_y * s.y
+	var xa: float = randf_range(0.16, 0.40) * s.x
+	var xb: float = randf_range(0.60, 0.88) * s.x
+	holder.position = Vector2(randf_range(minf(xa, xb), maxf(xa, xb)), py)
+	# Ombra di contatto come blob soft figlio del holder (segue il camminatore).
+	var shdim: Vector2 = Vector2(dim.x * 0.7, dim.x * 0.24)
+	var sh: TextureRect = TextureRect.new()
+	sh.texture = _disc_texture()
+	sh.modulate = Color(0, 0, 0, 0.3)
+	sh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sh.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sh.stretch_mode = TextureRect.STRETCH_SCALE
+	sh.size = shdim
+	sh.position = Vector2(-shdim.x * 0.5, -shdim.y * 0.5)
+	holder.add_child(sh)
+	var sp: TextureRect = TextureRect.new()
+	sp.texture = tex
+	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sp.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sp.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sp.size = dim
+	sp.pivot_offset = Vector2(dim.x * 0.5, dim.y)
+	sp.position = Vector2(-dim.x * 0.5, -dim.y)
+	sp.modulate = _tinta_prosperita
+	holder.add_child(sp)
+	_suolo.add_child(holder)
+	_edifici_nodi.append(holder)
+	var vel: float = 70.0 if veloce else 42.0
+	var dur: float = maxf(2.0, absf(xb - xa) / vel)
+	var t: Tween = holder.create_tween()
+	t.set_loops()
+	t.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_callback(_face.bind(sp, true))
+	t.tween_property(holder, "position:x", maxf(xa, xb), dur)
+	t.tween_callback(_face.bind(sp, false))
+	t.tween_property(holder, "position:x", minf(xa, xb), dur)
+	var base_y: float = sp.position.y
+	var b: Tween = sp.create_tween()
+	b.set_loops()
+	b.set_trans(Tween.TRANS_SINE)
+	b.tween_property(sp, "position:y", base_y - 4.0, 0.4)
+	b.tween_property(sp, "position:y", base_y, 0.4)
+
+
+func _face(sp: TextureRect, destra: bool) -> void:
+	if not is_instance_valid(sp):
+		return
+	var a: float = absf(sp.scale.x)
+	if a == 0.0:
+		a = 1.0
+	sp.scale.x = a if destra else -a
+
+
+# Uccelli che attraversano il cielo a intervalli (uno stormo per volta).
+func _avvia_uccelli(era: int, nome: String) -> void:
+	var path: String = VITA % [era, nome]
+	if not ResourceLoader.exists(path):
+		return
+	var tex: Texture2D = load(path)
+	var timer: Timer = Timer.new()
+	timer.wait_time = randf_range(8.0, 14.0)
+	timer.autostart = true
+	timer.timeout.connect(func() -> void: _vola_stormo(tex))
+	_suolo.add_child(timer)
+	_edifici_nodi.append(timer)
+	_vola_stormo(tex)
+
+
+func _vola_stormo(tex: Texture2D) -> void:
+	var s: Vector2 = _baseline()
+	var tr: TextureRect = TextureRect.new()
+	tr.texture = tex
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var dim: Vector2 = Vector2(tex.get_size()) * 0.22
+	tr.size = dim
+	var dir: int = 1 if randf() < 0.5 else -1
+	var y0: float = randf_range(0.10, 0.30) * s.y
+	var x_start: float = -dim.x if dir > 0 else s.x + dim.x
+	var x_end: float = s.x + dim.x if dir > 0 else -dim.x
+	tr.position = Vector2(x_start, y0)
+	tr.scale.x = float(dir)
+	tr.modulate = Color(1, 1, 1, 0.85)
+	_fx.add_child(tr)
+	var dur: float = randf_range(5.0, 8.0)
+	var t: Tween = tr.create_tween()
+	t.tween_property(tr, "position:x", x_end, dur).set_trans(Tween.TRANS_LINEAR)
+	t.tween_callback(tr.queue_free)
+	var w: Tween = tr.create_tween()
+	w.set_loops()
+	w.set_trans(Tween.TRANS_SINE)
+	w.tween_property(tr, "position:y", y0 - 10.0, 0.7)
+	w.tween_property(tr, "position:y", y0, 0.7)
 
 
 # Lo stato del regno si legge sugli edifici: crisi = spenti, benessere = dorati.

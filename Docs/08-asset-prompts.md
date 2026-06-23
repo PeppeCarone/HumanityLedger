@@ -709,6 +709,163 @@ no watermark.
 
 ---
 
+## P11 — Villaggio Vivo (diorama atmosferico: decorazioni, vita, atmosfera)
+
+> **Il villaggio diventa un diorama vivo** (camera esplorabile, giorno/notte + meteo, vita
+> ambientale + decorazioni — scelta utente 2026-06-23). **NIENTE** economia "raccogli risorse":
+> il villaggio resta guidato dalle decisioni (coerente con `D046`).
+>
+> **Tutto fallback-safe a due livelli** (il codice è già/sarà cablato per nome):
+> - **Atmosfera e meteo** sono **a codice** (overlay colore + particelle): funzionano già senza
+>   asset. Gli overlay §11e e le texture-particella §11f sono **migliorativi**: se esistono,
+>   il codice li usa al posto delle texture procedurali.
+> - **Decorazioni §11a/§11b**, **attori §11c/§11d** e **acqua §11g** compaiono **solo se il PNG
+>   esiste** (assenza elegante, **nessun** placeholder geometrico → "mai effetto prototipo").
+>
+> **Stile**: identico agli edifici villaggio esistenti — sprite **isometrico/tre-quarti**,
+> painterly dark-fantasy, **palette bronzo/sepia Era 1**, **pietra/metallo/toni mitici Era 2**,
+> luce coerente (alto-sinistra), **ombra di contatto morbida**, **vera alpha (MAI scacchiera)**,
+> nessuna piattaforma/base sotto i soggetti. Gli **sheet** vanno con elementi ben separati
+> (≥60px di vuoto), poi affettati col tool (`slice_villaggio.py`/`slice_assets.py`).
+>
+> **Convenzioni di percorso** (dopo lo slicing, rinominare ai nomi-file indicati sotto):
+> - Decorazioni: `Assets/art/villaggio/deco/era<N>/<nome>.png`
+> - Attori vita: `Assets/art/villaggio/vita/era<N>/<nome>.png`
+> - Overlay atmosfera: `Assets/art/villaggio/atmosfera/<nome>.png`
+> - FX meteo (texture particella): `Assets/art/fx/meteo/<nome>.png`
+
+### 11a. Decorazioni Era 1 — paleolitico (sheet, 9 elementi)
+
+```
+Sprite sheet, 9 separate isolated isometric decorative props on a fully transparent
+background, generous spacing (at least 60px), painterly dark-fantasy style, warm
+bronze-and-sepia palette, consistent scale and light direction (top-left), soft contact
+shadow under each, TRUE alpha transparency (NO painted checkerboard). Paleolithic tribal
+clutter to dress a village ground: (1) a mossy grey boulder, (2) a low thorny bush,
+(3) a bare dead tree with twisted branches, (4) a neat stack of cut firewood logs,
+(5) a small pile of bleached animal bones and a skull, (6) stretched hides drying on a
+simple wooden frame, (7) a small carved stone idol with red ochre marks, (8) a thick tuft
+of dry grass and reeds, (9) a short tribal banner of hide and feathers on a leaning pole.
+No ground platform, no text, no labels, no watermark.
+```
+> File (dopo slice): `villaggio/deco/era1/` → `masso.png` `cespuglio.png` `albero_secco.png`
+> `catasta.png` `ossa.png` `pelli.png` `idolo.png` `erba.png` `stendardo.png`.
+
+### 11b. Decorazioni Era 2 — regno mitico (sheet, 10 elementi)
+
+```
+Sprite sheet, 10 separate isolated isometric decorative props on a fully transparent
+background, generous spacing (at least 60px), painterly dark-fantasy style, weathered
+stone-bronze-and-deep-color palette, consistent scale and light direction (top-left), soft
+contact shadow under each, TRUE alpha transparency (NO painted checkerboard). Mythic-medieval
+town dressing: (1) a low carved stone fountain (dry), (2) a cluster of wooden crates and
+barrels, (3) a tall iron lamp-post with an unlit brazier bowl, (4) a weathered hero statue on
+a small plinth, (5) a stone planter with flowers, (6) a simple stone bench, (7) a stone
+well with a wooden roof and bucket, (8) a hay cart with a single wheel, (9) a hanging cloth
+banner with bronze fittings, (10) a short stretch of paved flagstone path tiles. No ground
+platform, no text, no labels, no watermark.
+```
+> File: `villaggio/deco/era2/` → `fontana.png` `casse.png` `lampione.png` `statua.png`
+> `fioriera.png` `panca.png` `pozzo.png` `carretto.png` `stendardo.png` `lastre.png`.
+
+### 11c. Abitanti & fauna Era 1 (sheet, 7 soggetti — vista laterale, posa singola)
+
+> Posa singola di **camminata/profilo** (il codice anima passo con bob verticale e flip
+> orizzontale). Default **rivolti a DESTRA**. Leggibili anche in piccolo (silhouette netta).
+
+```
+Sprite sheet, 7 separate isolated full-body figures on a fully transparent background,
+generous spacing, painterly dark-fantasy style, warm earthy palette, side view ALL FACING
+RIGHT in a neutral mid-stride walking pose, consistent scale and light direction, soft
+contact shadow under each, readable silhouette at small size, TRUE alpha transparency (NO
+checkerboard). Paleolithic village life: (1) a fur-clad tribesman walking, (2) a tribeswoman
+in hides carrying a basket, (3) an elder leaning on a staff, (4) a small child running,
+(5) a domesticated wolf-dog trotting, (6) a wary deer, (7) a small flock of three black
+crows in flight (as one isolated sprite). No ground platform, no text, no labels, no watermark.
+```
+> File: `villaggio/vita/era1/` → `abitante1.png` `abitante2.png` `anziano.png` `bambino.png`
+> `cane.png` `cervo.png` `corvi.png`.
+
+### 11d. Abitanti & fauna Era 2 (sheet, 7 soggetti — vista laterale, posa singola)
+
+```
+Sprite sheet, 7 separate isolated full-body figures on a fully transparent background,
+generous spacing, painterly dark-fantasy style, mythic-medieval palette, side view ALL
+FACING RIGHT in a neutral mid-stride walking pose, consistent scale and light direction,
+soft contact shadow under each, readable silhouette at small size, TRUE alpha transparency
+(NO checkerboard). Mythic kingdom town life: (1) a robed merchant walking with a sack,
+(2) a town guard in leather and bronze with a spear, (3) a scholar in a long robe holding a
+scroll, (4) a small child running, (5) a draft horse pulling a small cart, (6) a pair of
+white doves in flight (as one isolated sprite), (7) a stray cat walking. No ground platform,
+no text, no labels, no watermark.
+```
+> File: `villaggio/vita/era2/` → `mercante.png` `guardia.png` `studioso.png` `bambino.png`
+> `cavallo.png` `colombe.png` `gatto.png`.
+
+### 11e. Overlay atmosferici (migliorativi — luce/cielo del diorama)
+
+> NON isometrici: sono **overlay a tutta larghezza**, semi-trasparenti, che il codice stende
+> sul villaggio modulandone l'alpha col ciclo giorno/notte. Bordi che sfumano nel trasparente.
+
+```
+Sprite sheet, 5 separate isolated atmospheric overlay sprites on a fully transparent
+background, painterly, soft semi-transparent gradients, generous spacing, TRUE alpha
+transparency (NO checkerboard), no hard edges: (1) warm diagonal volumetric light shafts /
+god-rays from the upper-left, (2) a wide low band of soft drifting mist/fog, transparent at
+top and bottom, (3) a layer of thin wispy clouds, (4) a deep-blue night-sky gradient with a
+pale moon and faint stars meant to sit along the TOP of the frame, (5) a warm amber
+dawn/dusk halo glow. Each soft and edgeless. No text, no watermark.
+```
+> File: `villaggio/atmosfera/` → `raggi.png` `nebbia.png` `nuvole.png` `cielo_notte.png`
+> `alone_alba.png`.
+
+### 11f. FX meteo (texture-particella migliorative)
+
+> Piccole texture per i sistemi particellari (neve Era 1, brace/cenere Era 2, pioggia/foglie).
+> Se mancano, il codice usa un puntino soft procedurale.
+
+```
+Sprite sheet, 5 separate isolated tiny particle sprites on a fully transparent background,
+painterly, very soft edges, generous spacing, TRUE alpha transparency (NO checkerboard):
+(1) a soft white snowflake, (2) a glowing orange ember mote, (3) a thin pale-blue rain
+streak, (4) a small falling autumn leaf, (5) a warm firefly spark with a faint halo. Tiny
+and soft. No hard borders, no text, no watermark.
+```
+> File: `fx/meteo/` → `neve.png` `brace.png` `pioggia.png` `foglia.png` `lucciola.png`.
+
+### 11g. Acqua del villaggio (uno per era, sprite isometrico)
+
+```
+Two separate isolated isometric water features on a fully transparent background, painterly
+dark-fantasy, generous spacing, soft contact shadow, gentle painted reflections and ripples
+on the water surface, TRUE alpha transparency (NO checkerboard): (1) ERA 1 — a small natural
+tribal pond ringed with stones and reeds; (2) ERA 2 — a carved stone fountain with a calm
+water basin. Same camera angle and scale as a village building. No ground platform beyond the
+feature itself, no text, no watermark.
+```
+> File: `villaggio/deco/era1/pozza.png` e `villaggio/deco/era2/fontana_acqua.png` (lo shimmer
+> animato è a codice; questo sprite è la base).
+
+### 11h. (Fase 2) Terreni arricchiti + varianti notturne/stagionali
+
+> Opzionale, post-esame: ridipingere i terreni-tabellone (§P0) con più dettaglio (sentieri,
+> chiazze d'erba, acqua) e fornire una **variante notturna** e una **stagionale** per era, che
+> il codice incrocia col ciclo giorno/notte (swap morbido). Stessa inquadratura ed estensione
+> di `Assets/art/terreni/era<N>.jpg` (1920×1080), board VUOTO (gli edifici li piazza il gioco).
+
+```
+Epic painterly dark-fantasy digital painting, 1920x1080, elevated three-quarter strategy-board
+angle, a COMPLETELY EMPTY village ground (game board, no buildings/people). Provide as a set:
+DAY warm golden-hour version, NIGHT deep-blue moonlit version, and a SEASONAL version. ERA1 =
+tribal dirt-and-grass clearing with worn footpaths, a stone-ringed center, scattered rocks, a
+stream; SEASONAL = light snow cover. ERA2 = paved stone plateau with a central emblem, low
+walls, stairs, braziers; SEASONAL = autumn leaves on the flagstones. Visible brushstrokes,
+cinematic, atmospheric depth. No text, no watermark.
+```
+> File: `terreni/era<N>.jpg` (giorno, base) + `terreni/era<N>_notte.jpg` + `terreni/era<N>_stag.jpg`.
+
+---
+
 ## Già a posto (NON rigenerare — vedi STATO ASSET in cima per la lista completa)
 
 - UI-kit §P8 completo, edifici per-stadio §P0b (Era 1+2), terreni §P0, backgrounds (incl. Era 3)
