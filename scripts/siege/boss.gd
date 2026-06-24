@@ -264,7 +264,8 @@ func _completa_trasformazione() -> void:
 	danno_melee = int(round(float(danno_melee) * 1.35))
 	velocita *= 1.12
 	scale = Vector2.ONE
-	_cast_ultimate()
+	# Niente ultimate ISTANTANEO alla trasformazione: l'esercito già evocato e VIVO sopravvive
+	# al cambio fase (non si "resetta"). L'ultimate arriva dopo, sul suo cooldown.
 	_stato = "marcia"
 	_abil_t = _cooldown_abilita()
 	_ult_t = _ult_cooldown()
@@ -316,7 +317,7 @@ func _esegui_abilita() -> void:
 	match _abil_corrente:
 		"pestone":
 			if arena != null:
-				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 34 if _in_furia else 26)
+				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 38 if _in_furia else 28)
 				arena.fx_esplosione(_tele_pos, RAGGIO_PESTONE)
 				arena.scuoti_forte()
 			_stato = "marcia"
@@ -338,7 +339,7 @@ func _esegui_abilita() -> void:
 			# Lingua di fuoco lungo la corsia: colpisce i difensori in una banda davanti
 			# al Drago (a distanza, senza doverli raggiungere — il contrario del Colosso).
 			if arena != null:
-				var dmg: int = 30 if _in_furia else 24
+				var dmg: int = 34 if _in_furia else 26
 				for off in [180.0, 320.0, 460.0, 600.0]:
 					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
 					arena.danno_area_difensori(p, 85.0, dmg)
@@ -350,7 +351,7 @@ func _esegui_abilita() -> void:
 		"pioggia":
 			# Pioggia di fuoco: piu' impatti sparsi sul campo (area denial diffuso).
 			if arena != null:
-				var dmg2: int = 24 if _in_furia else 18
+				var dmg2: int = 27 if _in_furia else 20
 				for p in _pioggia_pts:
 					arena.danno_area_difensori(p, 90.0, dmg2)
 					arena.fx_esplosione(p, 90.0)

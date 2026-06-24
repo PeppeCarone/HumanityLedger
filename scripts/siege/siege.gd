@@ -100,6 +100,7 @@ const SKIN: Dictionary = {
 # Mago del Fuoco era2). Finché l'arte non c'è → placeholder a figura. I vecchi `unit_totem.png`
 # (totem/catapulta) sono stati rimossi: superati da `unit_caster`.
 const ART_UNITA: Dictionary = {"totem": "caster"}
+const ASCESA_LV: int = 4   # dal Lv4 il difensore usa lo sprite "ascesa" (elite) se esiste
 
 
 # Progressione per-TIPO (Docs/14 §3): Lv1→Lv5. Lv1-2/4 solo stat; Lv3 nuova abilità + nuovo
@@ -215,6 +216,17 @@ func _carica_tex(path: String) -> Texture2D:
 # Sprite dell'era corrente: Assets/art/siege/era<N>/<nome>.png (null se assente).
 func _siege_tex(nome: String) -> Texture2D:
 	return _carica_tex(SIEGE_DIR + "era%d/%s.png" % [era, nome])
+
+
+# Sprite del difensore: versione "ascesa" (elite) dal Lv ASCESA_LV se l'asset esiste,
+# altrimenti lo sprite base. Convenzione: unit_<tipo>[_ascesa].png in era<N>/.
+func _sprite_difensore(tipo: String, lv: int) -> Texture2D:
+	var base_nome: String = "unit_" + str(ART_UNITA.get(tipo, tipo))
+	if lv >= ASCESA_LV:
+		var asc: Texture2D = _siege_tex(base_nome + "_ascesa")
+		if asc != null:
+			return asc
+	return _siege_tex(base_nome)
 
 
 # Sfondo campo: accetta campo.jpg o campo.png (null se assenti).
@@ -853,6 +865,7 @@ func _ristat_difensore(d: SiegeDefender, tipo: String) -> void:
 		"totem":
 			d.aoe_raggio = float(s["aoe"])
 	d.livello = lv
+	d.sprite = _sprite_difensore(tipo, lv)   # swap a/da "ascesa" al cambio livello
 	d.queue_redraw()
 
 
@@ -1881,7 +1894,7 @@ func _crea_unita(tipo: String) -> SiegeDefender:
 	d.livello = lv
 	d.nome = skin["nome"]
 	d.colore = skin["colore"]
-	d.sprite = _siege_tex("unit_" + str(ART_UNITA.get(tipo, tipo)))
+	d.sprite = _sprite_difensore(tipo, lv)
 	d.costo = int(def["costo"])
 	d.cadenza = maxf(0.25, float(def["cadenza"]) * (1.0 - 0.08 * float(lv - 1)))
 	d.raggio_tiro = float(def["raggio"]) * (1.0 + 0.10 * float(lv - 1))
