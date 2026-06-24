@@ -170,10 +170,36 @@ const EVENTI_REGISTRY: Dictionary = {
 func _ready() -> void:
 	background.gui_input.connect(_on_background_input)
 	_aggiungi_cornici()
+	_aggiungi_icone_sezioni()
 	_setup_contatori()
 	_populate_lore()
 	_populate_artefatti()
 	_populate_eventi()
+
+
+# Icona-categoria sopra ogni titolo di sezione (Lore/Artefatti/Eventi): medaglioni bronzo in
+# icons/ledger/. Fallback-safe: niente icona se il file manca.
+func _aggiungi_icone_sezioni() -> void:
+	var mappa: Dictionary = {
+		"Panel/Margin/VBox/SectionsRow/LoreSection": "lore",
+		"Panel/Margin/VBox/SectionsRow/ArtefattiSection": "artefatto",
+		"Panel/Margin/VBox/SectionsRow/EventiSection": "evento",
+	}
+	for path in mappa:
+		var sez: Node = get_node_or_null(path)
+		if sez == null:
+			continue
+		var p: String = "res://Assets/art/icons/ledger/%s.png" % str(mappa[path])
+		if not ResourceLoader.exists(p):
+			continue
+		var ic: TextureRect = TextureRect.new()
+		ic.texture = load(p)
+		ic.custom_minimum_size = Vector2(0, 58)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sez.add_child(ic)
+		sez.move_child(ic, 0)
 
 
 # Ornamenti d'angolo (§8f, Docs/13): incorniciano il pannello come un tomo rilegato,

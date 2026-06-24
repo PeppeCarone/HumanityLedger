@@ -254,6 +254,11 @@ func _inizia_trasformazione() -> void:
 # Fine della trasformazione: il boss diventa più grosso e più forte, scatena l'ultimate e riparte.
 func _completa_trasformazione() -> void:
 	_trasformato = true
+	# Swap allo sprite di FASE 2 se esiste (es. drago Era 2 trasformato); fallback: tiene lo sprite.
+	if arena != null and arena.has_method("_siege_tex"):
+		var tex2: Texture2D = arena._siege_tex("boss_fase2")
+		if tex2 != null:
+			sprite = tex2
 	raggio *= 1.2
 	danno_villaggio = int(round(float(danno_villaggio) * 1.35))
 	danno_melee = int(round(float(danno_melee) * 1.35))
