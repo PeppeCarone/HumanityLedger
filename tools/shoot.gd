@@ -58,8 +58,9 @@ func _run() -> void:
 	# Lotto "costruisci qui" (slot vuoto) + pannello di costruzione.
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 2)
-	GameState.costruzione = 40
+	GameState.costruzione = 55
 	GameState.tesoro = 40
+	GameState.risorse = 80   # abbastanza per abilitare le opzioni (pulsanti attivi, non grigi)
 	await _shot("res://scenes/main.tscn", "shot_build_panel", Callable(), func(inst: Node) -> void:
 		inst._apri_pannello_costruzione(2), 0.9)
 	# Vista villaggio gestionale (tasto V): elenco edifici, produzione, upgrade in un posto.

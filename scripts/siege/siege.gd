@@ -564,12 +564,12 @@ func _crea_hud() -> void:
 	vb.add_theme_constant_override("separation", 4)
 	cornice.add_child(vb)
 	_hp_label = Label.new()
-	_hp_label.add_theme_font_size_override("font_size", 15)
+	_hp_label.add_theme_font_size_override("font_size", 17)
 	_hp_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.72))
 	vb.add_child(_hp_label)
 	var track: ColorRect = ColorRect.new()
 	track.color = Color(0.2, 0.12, 0.12, 0.9)
-	track.custom_minimum_size = Vector2(330.0, 16.0)
+	track.custom_minimum_size = Vector2(330.0, 18.0)
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(track)
 	_hp_fill = ColorRect.new()
@@ -2121,7 +2121,13 @@ func _aggiorna_hp() -> void:
 	if _hp_fill != null:
 		var frac: float = clampf(float(hp_villaggio) / float(maxi(hp_villaggio_max, 1)), 0.0, 1.0)
 		_hp_fill.anchor_right = frac
-		_hp_fill.color = Color(0.8, 0.32, 0.3) if frac > 0.35 else Color(0.9, 0.4, 0.25)
+		# Barra di salute a colpo d'occhio (verde sano → ambra → rosso critico).
+		if frac > 0.6:
+			_hp_fill.color = Color(0.46, 0.70, 0.40)
+		elif frac > 0.3:
+			_hp_fill.color = Color(0.85, 0.70, 0.34)
+		else:
+			_hp_fill.color = Color(0.82, 0.30, 0.26)
 
 
 func _aggiorna_risorse() -> void:

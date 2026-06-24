@@ -2432,7 +2432,7 @@ func _riga_costo(icon: Texture2D, etichetta: String, valore: String, ok: bool) -
 	if icon != null:
 		var ic: TextureRect = TextureRect.new()
 		ic.texture = icon
-		ic.custom_minimum_size = Vector2(24, 24)
+		ic.custom_minimum_size = Vector2(28, 28)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -2440,11 +2440,52 @@ func _riga_costo(icon: Texture2D, etichetta: String, valore: String, ok: bool) -
 	var l: Label = Label.new()
 	# Glifo ✓/✗ oltre al colore: leggibile anche con daltonismo (accessibilità).
 	l.text = "%s  %s  %s" % ["✓" if ok else "✗", etichetta, valore]
-	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_font_size_override("font_size", 18)
 	l.add_theme_color_override("font_color", Color(0.62, 0.95, 0.62) if ok else Color(1.0, 0.6, 0.55))
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hb.add_child(l)
 	return hb
+
+
+# Pulsante-opzione dei modali: grande, leggibile, tappabile (>=46px), icona ampia a sinistra.
+func _btn_modale(testo: String, icona: Texture2D, attivo: bool) -> Button:
+	var b: Button = Button.new()
+	b.text = testo
+	b.disabled = not attivo
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.custom_minimum_size = Vector2(0, 50)
+	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_constant_override("h_separation", 14)
+	# Riga "accesa" stile COC: fondo bronzo leggibile + bordo; hover più acceso, disabled spento.
+	var sb_n: StyleBoxFlat = StyleBoxFlat.new()
+	sb_n.bg_color = Color(0.26, 0.18, 0.12, 0.94)
+	sb_n.border_color = Color(0.62, 0.46, 0.27)
+	sb_n.set_border_width_all(1)
+	sb_n.set_corner_radius_all(8)
+	sb_n.content_margin_left = 14.0
+	sb_n.content_margin_right = 14.0
+	sb_n.content_margin_top = 6.0
+	sb_n.content_margin_bottom = 6.0
+	b.add_theme_stylebox_override("normal", sb_n)
+	var sb_h: StyleBoxFlat = sb_n.duplicate()
+	sb_h.bg_color = Color(0.38, 0.27, 0.15, 0.97)
+	sb_h.border_color = Color(0.95, 0.76, 0.42)
+	b.add_theme_stylebox_override("hover", sb_h)
+	b.add_theme_stylebox_override("focus", sb_h)
+	var sb_p: StyleBoxFlat = sb_h.duplicate()
+	sb_p.bg_color = Color(0.46, 0.33, 0.18, 1.0)
+	b.add_theme_stylebox_override("pressed", sb_p)
+	var sb_d: StyleBoxFlat = sb_n.duplicate()
+	sb_d.bg_color = Color(0.15, 0.12, 0.10, 0.6)
+	sb_d.border_color = Color(0.42, 0.35, 0.26, 0.55)
+	b.add_theme_stylebox_override("disabled", sb_d)
+	b.add_theme_color_override("font_color", Color(0.97, 0.92, 0.8))
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.97, 0.86))
+	b.add_theme_color_override("font_disabled_color", Color(0.62, 0.56, 0.48))
+	if icona != null:
+		b.icon = icona
+		b.add_theme_constant_override("icon_max_width", 46)
+	return b
 
 
 func _anima_apertura_pannello() -> void:
@@ -2709,14 +2750,8 @@ func _apri_pannello_costruzione(_slot: int) -> void:
 		var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
 		var eco: bool = bool(EDIFICIO_ECONOMICO.get(era, {}).get(tipo, false))
 		var extra: String = "  ·  Risorse ×2" if eco else ""
-		var b: Button = Button.new()
-		b.text = "%s   +%d %s%s" % [nome, BUILD_BONUS, STAT_LABELS.get(stat, stat), extra]
-		b.disabled = not ok
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		var bt: Texture2D = _tex_edificio(era, int(tipo))
-		if bt != null:
-			b.icon = bt
-			b.add_theme_constant_override("icon_max_width", 38)
+		var b: Button = _btn_modale("%s   +%d %s%s" % [nome, BUILD_BONUS, STAT_LABELS.get(stat, stat), extra], bt, ok)
 		var tipo_c: int = int(tipo)
 		var stat_c: String = stat
 		b.pressed.connect(func() -> void: _esegui_build(tipo_c, stat_c))
