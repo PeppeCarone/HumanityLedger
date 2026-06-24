@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/drop_zone.gd" id="1_drop"]
 
 [node name="DropZone" type="Control"]
-custom_minimum_size = Vector2(220, 320)
+custom_minimum_size = Vector2(220, 230)
 mouse_filter = 1
 script = ExtResource("1_drop")
 
@@ -22,7 +22,7 @@ color = Color(0.4, 0.75, 0.4, 0.55)
 
 [node name="PortraitTexture" type="TextureRect" parent="."]
 anchor_right = 1.0
-offset_bottom = 260.0
+offset_bottom = 180.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
@@ -31,7 +31,7 @@ stretch_mode = 5
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -60.0
+offset_top = -50.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.97, 0.92, 0.8, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)

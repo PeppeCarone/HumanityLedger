@@ -17,6 +17,9 @@ var options_instance: CanvasLayer = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Cornice ornata coerente con gli altri modali (Ledger, menu): UiStyle usa la
+	# texture §P8 se presente, altrimenti il fallback bronzo a codice.
+	$Dim/Panel.add_theme_stylebox_override("panel", UiStyle.panel_stylebox())
 	riprendi_btn.pressed.connect(_on_riprendi)
 	audio_btn.pressed.connect(_on_audio)
 	menu_btn.pressed.connect(_on_menu)
