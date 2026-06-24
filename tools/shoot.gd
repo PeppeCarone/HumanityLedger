@@ -182,6 +182,25 @@ func _run() -> void:
 	print("SHOT shot_assedio ", simg.get_size())
 	siege.queue_free()
 	await get_tree().process_frame
+	# Truppe ASCESA (Lv5): verifica gli sprite elite + proporzioni.
+	GameState.reset_run()
+	GameState.costruzione = 60
+	GameState.militare = 60
+	GameState.scienza = 55
+	var siegea: CanvasLayer = SiegeArena.new()
+	siegea.configura(1)
+	get_tree().root.add_child(siegea)
+	siegea._livello = {"tiratore": 5, "bloccatore": 5, "sciamano": 5, "totem": 5}
+	siegea.schiera_unita_test(0, "tiratore")
+	siegea.schiera_unita_test(3, "bloccatore")
+	siegea.schiera_unita_test(6, "sciamano")
+	siegea.schiera_unita_test(8, "totem")
+	await get_tree().create_timer(2.0).timeout
+	var aimg: Image = get_viewport().get_texture().get_image()
+	aimg.save_png(OUT + "shot_assedio_ascesa.png")
+	print("SHOT shot_assedio_ascesa ", aimg.get_size())
+	siegea.queue_free()
+	await get_tree().process_frame
 	# Assedio Fase C: il BOSS in campo (entrata + barra HP dedicata in alto).
 	GameState.reset_run()
 	GameState.costruzione = 55
