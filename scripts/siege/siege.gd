@@ -912,12 +912,12 @@ const ONDATE_NORMALI: Dictionary = {
 # Mini-boss dell'ondata 3 (creatura intermedia, mini-meccanica = EVOCA minion). Sprite
 # opzionale enemy_<creatura>.png; fallback al cerchione placeholder.
 const MINI_BOSS: Dictionary = {
-	1: {"nome": "Lo Stregone della Tribù", "creatura": "stregone_capo", "hp": 220, "vel": 42.0,
-		"danno": 22, "bounty": 8, "raggio": 40.0, "armatura": 2, "colore": Color(0.62, 0.4, 0.85),
-		"scorta": ["iena", "cinghiale"]},
-	2: {"nome": "Il Tessitore d'Ossa", "creatura": "tessitore", "hp": 270, "vel": 40.0,
-		"danno": 26, "bounty": 9, "raggio": 42.0, "armatura": 3, "colore": Color(0.6, 0.55, 0.72),
-		"scorta": ["scheletro", "predone"]},
+	1: {"nome": "Lo Stregone della Tribù", "creatura": "stregone_capo", "hp": 280, "vel": 40.0,
+		"danno": 16, "bounty": 10, "raggio": 44.0, "armatura": 2, "scudo": 70,
+		"colore": Color(0.62, 0.4, 0.85), "scorta": ["iena", "cinghiale"]},
+	2: {"nome": "Il Tessitore d'Ossa", "creatura": "tessitore", "hp": 340, "vel": 38.0,
+		"danno": 18, "bounty": 11, "raggio": 46.0, "armatura": 3, "scudo": 95,
+		"colore": Color(0.6, 0.55, 0.72), "scorta": ["scheletro", "predone"]},
 }
 
 # Fase F3: 6 ondate dinamiche. w1-w2 leggere → w3 MINI-BOSS → w4-w5 con nemici-abilità →
@@ -977,7 +977,8 @@ func _ondata_mini_boss(ef: float, of: float, extra: int) -> Dictionary:
 		"hp": int(round(float(info["hp"]) * ef * of)), "vel": float(info["vel"]),
 		"danno": int(info["danno"]), "bounty": int(info["bounty"]), "corsia": 2, "gap": 0.0,
 		"creatura": str(info["creatura"]), "raggio": float(info["raggio"]),
-		"armatura": int(info["armatura"]), "colore": info["colore"], "evocatore": true,
+		"armatura": int(info["armatura"]), "scudo": int(round(float(info["scudo"]) * ef)),
+		"colore": info["colore"], "evocatore": true, "caster": true,
 		"mini_boss": true, "nome": str(info["nome"]),
 	})
 	return {"nome": str(info["nome"]), "mini_boss": true, "spawns": spawns}
@@ -1034,8 +1035,9 @@ func _spawn_enemy(d: Dictionary) -> void:
 	e.caricatore = bool(prof.get("caricatore", false)) or bool(d.get("caricatore", false))
 	e.evocatore = bool(prof.get("evocatore", false)) or bool(d.get("evocatore", false))
 	e.risanatore = bool(prof.get("risanatore", false)) or bool(d.get("risanatore", false))
-	e.scudo_max = int(round(float(prof.get("scudo", 0)) * (1.0 + 0.15 * float(era - 1))))
+	e.scudo_max = int(d.get("scudo", 0)) + int(round(float(prof.get("scudo", 0)) * (1.0 + 0.15 * float(era - 1))))
 	e.scudo = e.scudo_max
+	e.caster = bool(d.get("caster", false))
 	e.mini_boss = bool(d.get("mini_boss", false))
 	e.nome = str(d.get("nome", ""))
 	e.raggio = float(d["raggio"]) if d.has("raggio") else float(prof.get("raggio", 18.0))
@@ -1502,10 +1504,35 @@ func _telegrafo_disco(pos: Vector2, raggio: float) -> Node:
 	_world.add_child(s)
 	s.global_position = pos
 	var t: Tween = create_tween()
-	t.set_loops()
+	t.set_loops(12)   # finito: evita "infinite loop detected" sotto time_scale accelerato (playtest)
 	t.tween_property(s, "modulate:a", 0.5, 0.16)
 	t.tween_property(s, "modulate:a", 0.22, 0.16)
 	return s
+
+
+# Bombardamento del MINI-BOSS caster: telegrafa una zona (su un difensore vicino o davanti al
+# villaggio), poi colpisce ad area dopo ~0.7s. Evitabile spargendo le difese e rompendo lo scudo.
+func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
+	if not _attivo or _concluso:
+		return
+	var raggio: float = 100.0
+	var bersaglio: Vector2 = Vector2(VILLAGGIO_X + randf_range(120.0, 320.0),
+		_corsia_y(randi() % N_FILE_SPAWN))
+	var lista: Array = difensori_in_area(origine, 1400.0)
+	if not lista.is_empty():
+		var d0: Node = lista[randi() % lista.size()]
+		if d0 != null and is_instance_valid(d0):
+			bersaglio = d0.global_position
+	var marker: Node = _telegrafo_disco(bersaglio, raggio)
+	var dmg: int = 12 + 4 * (era - 1)
+	var t: Tween = create_tween()
+	t.tween_interval(0.7)
+	t.tween_callback(func() -> void:
+		if is_instance_valid(marker):
+			marker.queue_free()
+		danno_area_difensori(bersaglio, raggio, dmg)
+		fx_esplosione(bersaglio, raggio)
+		hitstop(0.05, 0.2))
 
 
 # Il boss chiama rinforzi (§4): n nemici leggeri dell'era entrano dal lato spawn.

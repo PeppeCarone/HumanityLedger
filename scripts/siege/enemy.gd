@@ -29,6 +29,7 @@ var caricatore: bool = false        # Caricatore: scatti periodici in avanti (sf
 var scudo_max: int = 0              # Scudato: scudo frontale che assorbe danno, poi si rompe
 var scudo: int = 0
 var evocatore: bool = false         # Evocatore: chiama minion a cadenza
+var caster: bool = false            # Mini-boss caster: bombarda ad area da lontano e tiene la distanza
 var risanatore: bool = false        # Risanatore: cura i nemici vicini a cadenza
 var mini_boss: bool = false         # Mini-boss (ondata 3): più grosso, banner col nome
 var nome: String = ""               # nome (mini-boss) per il banner d'entrata
@@ -39,6 +40,9 @@ const CARICA_CD: float = 3.2        # ogni quanto il caricatore scatta
 const CARICA_DUR: float = 0.7       # durata dello scatto (lo scatto sfonda la linea)
 const CARICA_MULT: float = 2.7      # moltiplicatore velocità durante lo scatto
 const EVOCA_CD: float = 4.5         # ogni quanto l'evocatore chiama un minion
+const BOMBARDA_CD: float = 4.5      # cadenza del bombardamento del mini-boss caster
+const STANDOFF: float = 280.0       # distanza dal villaggio a cui il caster si ferma a bombardare
+const STANDOFF_HOLD: float = 7.0    # max tempo allo standoff: poi avanza (niente stallo battaglia)
 const CURA_CD: float = 2.4          # ogni quanto il risanatore cura i vicini
 
 var _vivo: bool = true
@@ -52,6 +56,8 @@ var _stun_fino: float = -1.0        # stordito (Grido di guerra, Bloccatore Lv5)
 var _carica_cd: float = 2.0         # countdown alla prossima carica
 var _carica_fino: float = -1.0      # scatto attivo finché _t < _carica_fino
 var _evoca_cd: float = 3.0
+var _bombarda_cd: float = 2.2
+var _standoff_t: float = 0.0
 var _cura_cd: float = 2.0
 var _last_num: float = -1.0         # throttle dei numeri di danno fluttuanti (juice)
 
@@ -96,6 +102,13 @@ func _process(delta: float) -> void:
 				tw.tween_property(self, "modulate", Color.WHITE, 0.2)
 			return
 
+	# Standoff del caster: tiene la distanza e bombarda; se non muore entro STANDOFF_HOLD secondi
+	# riprende ad avanzare (così la battaglia non si blocca mai ed è sempre raggiungibile/uccidibile).
+	if caster and _engaged == null and (position.x - villaggio_x) <= STANDOFF:
+		_standoff_t += delta
+		if _standoff_t < STANDOFF_HOLD:
+			queue_redraw()
+			return
 	# Marcia (eventualmente rallentata; ×CARICA_MULT durante lo scatto del caricatore).
 	var vel_eff: float = velocita * _slow_fattore
 	if _t < _carica_fino:
@@ -131,6 +144,16 @@ func _tick_abilita_nemico(delta: float) -> void:
 				tw.tween_property(self, "modulate", Color.WHITE, 0.5)
 			if arena.has_method("spawn_minion"):
 				arena.spawn_minion(global_position, corsia)
+	if caster:
+		_bombarda_cd -= delta
+		if _bombarda_cd <= 0.0:
+			_bombarda_cd = BOMBARDA_CD
+			# Tell del bombardamento (lampo viola); l'arena gestisce telegrafo e impatto ad area.
+			modulate = Color(1.45, 0.7, 1.6)
+			var twb: Tween = create_tween()
+			twb.tween_property(self, "modulate", Color.WHITE, 0.5)
+			if arena.has_method("mini_boss_bombarda"):
+				arena.mini_boss_bombarda(global_position, colore)
 	if risanatore:
 		_cura_cd -= delta
 		if _cura_cd <= 0.0:
