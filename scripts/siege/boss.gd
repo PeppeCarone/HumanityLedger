@@ -459,6 +459,21 @@ func _draw() -> void:
 		var eye: Color = Color(1.0, 0.85, 0.3) if not _in_furia else Color(1.0, 0.45, 0.3)
 		draw_circle(Vector2(rear - r * 0.45, -r * 0.2), 6.0, eye)
 		draw_circle(Vector2(rear - r * 0.2, -r * 0.25), 6.0, eye)
+		# Crepe d'ember sul corpo trasformato: la FASE si legge sul boss, non solo sul titolo.
+		if _trasformato:
+			var puls: float = 0.55 + 0.4 * sin(_bt * 6.0)
+			var ember: Color = Color(1.0, 0.5, 0.16, puls)
+			if _frenesia:
+				ember = Color(1.0, 0.34, 0.2, 0.7 + 0.3 * sin(_bt * 11.0))
+			draw_polyline(PackedVector2Array([
+				Vector2(rear - r * 0.1, -r * 0.55), Vector2(rear + r * 0.06, -r * 0.12),
+				Vector2(rear - r * 0.06, r * 0.28)]), ember, 3.0)
+			draw_polyline(PackedVector2Array([
+				Vector2(rear + r * 0.28, -r * 0.22), Vector2(rear + r * 0.46, r * 0.08),
+				Vector2(rear + r * 0.3, r * 0.46)]), ember, 3.0)
+			draw_polyline(PackedVector2Array([
+				Vector2(rear - r * 0.46, -r * 0.04), Vector2(rear - r * 0.24, r * 0.22)]), ember, 3.0)
+			draw_circle(Vector2(rear, r * 0.05), r * 0.16, Color(1.0, 0.6, 0.22, puls * 0.5))
 	# Stelle che orbitano sopra la testa: il boss è VULNERABILE (stordito).
 	if _staggerato:
 		var cy: float = -r * 1.05

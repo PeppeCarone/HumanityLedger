@@ -202,6 +202,27 @@ func _run() -> void:
 	print("SHOT shot_assedio_boss ", bimg.get_size())
 	siegeb.queue_free()
 	await get_tree().process_frame
+	# Assedio Boss 2.0 — CINEMATICA DI CAMBIO FASE (F4): letterbox + title-card "FASE II" + zoom.
+	GameState.reset_run()
+	GameState.costruzione = 55
+	GameState.militare = 60
+	GameState.scienza = 50
+	var sieget: CanvasLayer = SiegeArena.new()
+	sieget.configura(1)
+	get_tree().root.add_child(sieget)
+	sieget.schiera_unita_test(0, "tiratore")
+	sieget.schiera_unita_test(4, "bloccatore")
+	sieget.spawn_boss_test(true)
+	await get_tree().create_timer(0.6, true, false, true).timeout
+	if sieget._boss != null and is_instance_valid(sieget._boss):
+		sieget._boss._trasformato = true   # mostra le crepe d'ember sul corpo (verifica fasi)
+		sieget.cinematica_trasformazione(sieget._boss)
+	await get_tree().create_timer(0.9, true, false, true).timeout   # letterbox dentro + title visibile
+	var timg: Image = get_viewport().get_texture().get_image()
+	timg.save_png(OUT + "shot_assedio_trasforma.png")
+	print("SHOT shot_assedio_trasforma ", timg.get_size())
+	sieget.queue_free()
+	await get_tree().process_frame
 	# Assedio Era 2 (drago + set Era 2): verifica gli asset Era 2.
 	GameState.reset_run()
 	GameState.era_corrente = 2

@@ -141,6 +141,8 @@ var _ostili_civ: Array[String] = []
 var _livello: Dictionary = {"tiratore": 1, "bloccatore": 1, "sciamano": 1, "totem": 1}
 
 var _world: Node2D = null
+var _lb_top: ColorRect = null    # barre cinematografiche (letterbox) della cinematica di fase
+var _lb_bot: ColorRect = null
 var _ui: Control = null
 var _villaggio_panel: PanelContainer = null
 var _villaggio_label: Label = null
@@ -1142,12 +1144,9 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
 	b.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(b, dn))
 	b.furia_entrata.connect(func() -> void:
-		_flash_info("%s È INFURIATO" % b.nome_boss.to_upper())
-		scuoti_forte()
+		# La 2ª fase coincide con la trasformazione (stessa soglia): la cinematica fa il resto.
 		_vignetta_furia_attiva())
-	b.frenesia_entrata.connect(func() -> void:
-		_flash_info("%s È IN FRENESIA!" % b.nome_boss.to_upper())
-		scuoti_forte())
+	b.frenesia_entrata.connect(func() -> void: cinematica_frenesia(b))
 	b.trasforma_entrata.connect(func() -> void: cinematica_trasformazione(b))
 	_enemies.append(b)
 	_boss = b
@@ -1330,26 +1329,119 @@ func cinematica_trasformazione(boss: SiegeBoss) -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	AudioManager.play_sfx("era_transition")
-	_flash_info("%s SI TRASFORMA!" % boss.nome_boss.to_upper())
 	scuoti_forte()
 	_vignetta_furia_attiva()
-	# Hitstop: rallenta quasi a zero per un istante (tempo reale), poi ripristina. Il ripristino
-	# è agganciato al timer (robusto: avviene anche se questa coroutine venisse interrotta).
-	var prev_ts: float = Engine.time_scale
-	Engine.time_scale = 0.06
-	var hs: SceneTreeTimer = get_tree().create_timer(0.16, true, false, true)
-	hs.timeout.connect(func() -> void: Engine.time_scale = prev_ts)
-	await hs.timeout
-	# Zoom-punch del campo verso il boss, poi ritorno.
+	# 1) IL COLPO: fermo-immagine reale (hitstop robusto). Aspetto in TEMPO REALE che finisca,
+	#    così letterbox/title/zoom dopo partono a piena velocità (non congelati dal time_scale).
+	hitstop(0.20, 0.05)
+	await get_tree().create_timer(0.22, true, false, true).timeout
+	# 2) IL CLOU: barre cinema + title-card di fase + zoom-punch sul boss.
+	_cinema_letterbox(true, 0.30)
+	var sub: String = "L'IRA DEL DRAGO" if boss.era_boss >= 2 else "L'IRA DEL COLOSSO"
+	_cinema_titolo("FASE  II", sub, Color(1.0, 0.5, 0.32))
 	if _world != null and is_instance_valid(_world) and is_instance_valid(boss):
 		var f: Vector2 = boss.global_position
-		var s: float = 1.16
+		var s: float = 1.24
 		var zt: Tween = create_tween()
-		zt.tween_property(_world, "scale", Vector2(s, s), 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.20)
-		zt.tween_interval(0.7)
-		zt.tween_property(_world, "scale", Vector2.ONE, 0.35)
-		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.35)
+		zt.tween_property(_world, "scale", Vector2(s, s), 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.24)
+		zt.tween_interval(0.9)
+		zt.tween_property(_world, "scale", Vector2.ONE, 0.42).set_trans(Tween.TRANS_SINE)
+		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.42)
+		zt.tween_callback(func() -> void: _cinema_letterbox(false, 0.35))
+	else:
+		var lt: Tween = create_tween()
+		lt.tween_interval(1.4)
+		lt.tween_callback(func() -> void: _cinema_letterbox(false, 0.35))
+
+
+# Cinematica più SECCA della 3ª fase (FRENESIA, 25% HP): lampo rosso + title-card + micro
+# zoom-punch. È il secondo "battito" — non ripete lo slow-mo pieno, così resta sorprendente.
+func cinematica_frenesia(boss: SiegeBoss) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	AudioManager.play_sfx("stat_down")
+	scuoti_forte()
+	_pulsa_vignetta_furia()
+	hitstop(0.12, 0.06)
+	await get_tree().create_timer(0.14, true, false, true).timeout
+	var fl: ColorRect = ColorRect.new()
+	fl.color = Color(0.75, 0.08, 0.06, 0.0)
+	fl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(fl)
+	var ft: Tween = create_tween()
+	ft.tween_property(fl, "color:a", 0.34, 0.08)
+	ft.tween_property(fl, "color:a", 0.0, 0.5)
+	ft.tween_callback(fl.queue_free)
+	_cinema_titolo("FASE  III", "FRENESIA — l'ultimo assalto", Color(1.0, 0.36, 0.3))
+	if _world != null and is_instance_valid(_world) and is_instance_valid(boss):
+		var f: Vector2 = boss.global_position
+		var s: float = 1.12
+		var zt: Tween = create_tween()
+		zt.tween_property(_world, "scale", Vector2(s, s), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.16)
+		zt.tween_interval(0.5)
+		zt.tween_property(_world, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_SINE)
+		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.32)
+
+
+# Barre nere cinematografiche (letterbox) sopra/sotto: dichiarano "momento clou". Riusate da
+# entrambe le cinematiche di fase. Create una volta, poi solo animate.
+func _cinema_letterbox(mostra: bool, dur: float = 0.3) -> void:
+	var h: float = 118.0
+	if _lb_top == null or not is_instance_valid(_lb_top):
+		_lb_top = ColorRect.new()
+		_lb_top.color = Color(0, 0, 0, 1)
+		_lb_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lb_top.anchor_right = 1.0
+		_lb_top.offset_bottom = 0.0
+		_ui.add_child(_lb_top)
+		_lb_bot = ColorRect.new()
+		_lb_bot.color = Color(0, 0, 0, 1)
+		_lb_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lb_bot.anchor_top = 1.0
+		_lb_bot.anchor_right = 1.0
+		_lb_bot.anchor_bottom = 1.0
+		_lb_bot.offset_top = 0.0
+		_ui.add_child(_lb_bot)
+	var t: Tween = create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(_lb_top, "offset_bottom", h if mostra else 0.0, dur)
+	t.tween_property(_lb_bot, "offset_top", (-h) if mostra else 0.0, dur)
+
+
+# Title-card centrato del cambio fase: titolo grande + sottotitolo, dissolvenza in/out.
+func _cinema_titolo(titolo: String, sotto: String, col: Color) -> void:
+	var box: VBoxContainer = VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.set_anchors_preset(Control.PRESET_CENTER)
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.grow_vertical = Control.GROW_DIRECTION_BOTH
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 4)
+	var t1: Label = Label.new()
+	t1.text = titolo
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t1.add_theme_font_size_override("font_size", 66)
+	t1.add_theme_color_override("font_color", col)
+	t1.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.92))
+	t1.add_theme_constant_override("outline_size", 9)
+	box.add_child(t1)
+	var t2: Label = Label.new()
+	t2.text = sotto
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t2.add_theme_font_size_override("font_size", 27)
+	t2.add_theme_color_override("font_color", Color(0.96, 0.9, 0.82))
+	t2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	t2.add_theme_constant_override("outline_size", 5)
+	box.add_child(t2)
+	_ui.add_child(box)
+	box.modulate = Color(1, 1, 1, 0.0)
+	var t: Tween = create_tween()
+	t.tween_property(box, "modulate:a", 1.0, 0.22)
+	t.tween_interval(0.92)
+	t.tween_property(box, "modulate:a", 0.0, 0.42)
+	t.tween_callback(box.queue_free)
 
 
 # Ultimate del boss (Fase F4/profondità): TELEGRAFATA e a ZONE, diversa per archetipo. Mostra
@@ -1985,6 +2077,13 @@ func _riprova() -> void:
 	_world.scale = Vector2.ONE
 	_world.position = Vector2.ZERO
 	Engine.time_scale = 1.0
+	# Pulisci eventuali barre letterbox rimaste da una cinematica interrotta.
+	if _lb_top != null and is_instance_valid(_lb_top):
+		_lb_top.queue_free()
+	if _lb_bot != null and is_instance_valid(_lb_bot):
+		_lb_bot.queue_free()
+	_lb_top = null
+	_lb_bot = null
 	for c in _world.get_children():
 		c.queue_free()
 	_enemies.clear()
