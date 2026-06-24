@@ -11,6 +11,7 @@ extends Control
 @export var target_color: Color = Color(0.55, 0.88, 0.6)
 @export var hint_text: String = ""
 @export var stat_hint_text: String = ""
+@export var descrizione_strategia: String = ""   # "Nome — natura" della carta (tooltip ricco)
 
 @onready var bg: Panel = $Background
 @onready var icon_rect: TextureRect = $IconTexture
@@ -112,7 +113,11 @@ func _refresh() -> void:
 		if lbl != null:
 			lbl.add_theme_color_override("font_color", COL_LABEL_NORMALE)
 		mouse_default_cursor_shape = Control.CURSOR_DRAG
-		tooltip_text = hint_text
+		# Tooltip ricco: nome+natura della strategia, poi l'affordance "Trascina su X".
+		var tip: String = descrizione_strategia
+		if hint_text != "":
+			tip = (tip + "\n" + hint_text) if tip != "" else hint_text
+		tooltip_text = tip
 
 
 func _attivabile() -> bool:

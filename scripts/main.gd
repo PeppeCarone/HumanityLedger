@@ -106,6 +106,17 @@ const STAT_LABELS: Dictionary = {
 	"popolo": "Popolo",
 	"costruzione": "Costruzione",
 }
+# Descrizione breve di ogni stat (per i tooltip dell'HUD compatto, stile COC/AoE).
+const STAT_DESCR: Dictionary = {
+	"militare": "Capacità offensiva e difensiva",
+	"tesoro": "Ricchezza per costruire e spendere",
+	"diplomazia": "Rapporti con le altre civiltà",
+	"scienza": "Conoscenza e unità speciali",
+	"legge": "Ordine e morale del popolo",
+	"spionaggio": "Informazioni e vantaggio nascosto",
+	"popolo": "Numero e forza della gente",
+	"costruzione": "Solidità di mura ed edifici",
+}
 
 # --- Villaggio builder (D046): ogni tipo-edificio sviluppa una stat tematica.
 # Costruire/migliorare costa RISORSE (la valuta del villaggio, prodotta a ogni
@@ -583,57 +594,55 @@ func _setup_hud() -> void:
 	stat_value_labels.clear()
 	stat_icon_nodes.clear()
 	stat_bar_fills.clear()
+	# Stat in GRIGLIA 2×4 (stile COC/AoE): pill [icona][valore] + barra; il NOME va nel tooltip.
+	var griglia: GridContainer = GridContainer.new()
+	griglia.columns = 2
+	griglia.add_theme_constant_override("h_separation", 12)
+	griglia.add_theme_constant_override("v_separation", 8)
+	hud_container.add_child(griglia)
 	for stat_name in GameState.STAT_NAMES:
-		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 9)
+		var cell: VBoxContainer = VBoxContainer.new()
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.add_theme_constant_override("separation", 2)
+		cell.mouse_filter = Control.MOUSE_FILTER_STOP   # riceve l'hover → mostra il tooltip
+		cell.tooltip_text = "%s\n%s" % [STAT_LABELS[stat_name], STAT_DESCR.get(stat_name, "")]
+		var top: HBoxContainer = HBoxContainer.new()
+		top.add_theme_constant_override("separation", 6)
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(top)
 		var icon: TextureRect = TextureRect.new()
-		icon.custom_minimum_size = Vector2(34, 34)
+		icon.custom_minimum_size = Vector2(26, 26)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var icon_path: String = STAT_ICON_DIR + stat_name + ".png"
 		if ResourceLoader.exists(icon_path):
 			icon.texture = load(icon_path)
-		row.add_child(icon)
+		top.add_child(icon)
 		stat_icon_nodes[stat_name] = icon
-		# Colonna: riga "nome … valore" + barra 0–100. Da pannello di comando, non da debug.
-		var col: VBoxContainer = VBoxContainer.new()
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		col.add_theme_constant_override("separation", 3)
-		row.add_child(col)
-		var topline: HBoxContainer = HBoxContainer.new()
-		topline.add_theme_constant_override("separation", 6)
-		col.add_child(topline)
-		var nome_lbl: Label = Label.new()
-		nome_lbl.text = STAT_LABELS[stat_name]
-		nome_lbl.add_theme_font_size_override("font_size", 15)
-		nome_lbl.add_theme_color_override("font_color", Color(0.80, 0.73, 0.60))
-		nome_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nome_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		topline.add_child(nome_lbl)
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
 		label.text = str(GameState.get_stat(stat_name))
-		label.add_theme_font_size_override("font_size", 19)
+		label.add_theme_font_size_override("font_size", 18)
 		label.add_theme_color_override("font_color", Color(0.98, 0.94, 0.84))
-		label.custom_minimum_size = Vector2(30, 0)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		topline.add_child(label)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(label)
 		stat_value_labels[stat_name] = label
 		var track: ColorRect = ColorRect.new()
 		track.color = Color(0.17, 0.13, 0.09, 0.9)
-		track.custom_minimum_size = Vector2(0, 6)
+		track.custom_minimum_size = Vector2(0, 7)
 		track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(track)
+		cell.add_child(track)
 		var fill: ColorRect = ColorRect.new()
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		track.add_child(fill)
 		stat_bar_fills[stat_name] = fill
 		_aggiorna_barra_stat(stat_name, GameState.get_stat(stat_name))
-		hud_container.add_child(row)
+		griglia.add_child(cell)
 	var spacer_a: Control = Control.new()
 	spacer_a.custom_minimum_size = Vector2(0, 8)
 	hud_container.add_child(spacer_a)
@@ -1528,6 +1537,10 @@ func _setup_decision_panel_for_decision(decision: Decision) -> void:
 		var sid: String = opt.strategia.id if opt.strategia != null else ""
 		item.item_id = sid
 		item.label_text = opt.label_text
+		if opt.strategia != null:
+			item.descrizione_strategia = opt.strategia.nome
+			if opt.strategia.descrizione_breve != "":
+				item.descrizione_strategia += " — " + opt.strategia.descrizione_breve
 		if hint_stat_attivo:
 			var stat_p: String = _stat_principale(opt.effetto)
 			if stat_p != "":
@@ -1715,7 +1728,13 @@ func _aggiorna_barra_stat(nome: String, valore: int) -> void:
 	fill.offset_top = 0.0
 	fill.offset_right = 0.0
 	fill.offset_bottom = 0.0
-	fill.color = Color(0.52, 0.40, 0.24).lerp(Color(0.98, 0.82, 0.46), frac)
+	# Colore a fasce (colpo d'occhio stile COC): rosso critico, bronzo medio, verde forte.
+	if valore < 25:
+		fill.color = Color(0.74, 0.32, 0.26)
+	elif valore > 70:
+		fill.color = Color(0.46, 0.70, 0.40)
+	else:
+		fill.color = Color(0.52, 0.40, 0.24).lerp(Color(0.98, 0.82, 0.46), frac)
 
 
 func _on_stat_changed(nome: String, vecchio: int, nuovo: int) -> void:
@@ -2621,9 +2640,7 @@ func _setup_resource_bar() -> void:
 	ic.custom_minimum_size = Vector2(30, 30)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var icp: String = STAT_ICON_DIR + "costruzione.png"
-	if ResourceLoader.exists(icp):
-		ic.texture = load(icp)
+	ic.texture = _icona_risorse()   # icona Risorse dedicata (fallback a Costruzione)
 	hb.add_child(ic)
 	risorse_label = Label.new()
 	risorse_label.text = "Risorse: %d" % GameState.risorse
