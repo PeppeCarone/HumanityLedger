@@ -264,11 +264,12 @@ func _completa_trasformazione() -> void:
 	danno_melee = int(round(float(danno_melee) * 1.35))
 	velocita *= 1.12
 	scale = Vector2.ONE
-	# Niente ultimate ISTANTANEO alla trasformazione: l'esercito già evocato e VIVO sopravvive
-	# al cambio fase (non si "resetta"). L'ultimate arriva dopo, sul suo cooldown.
+	# L'ULTIMATE del cambio fase SI FA, ma non è istantanea: parte ~1.5s DOPO — a forma cambiata,
+	# finita la cinematica — ed è telegrafata. Così l'esercito già evocato e VIVO sopravvive alla
+	# trasformazione e il "colpo di scena" arriva al momento giusto.
 	_stato = "marcia"
 	_abil_t = _cooldown_abilita()
-	_ult_t = _ult_cooldown()
+	_ult_t = 1.5
 
 
 # Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).
