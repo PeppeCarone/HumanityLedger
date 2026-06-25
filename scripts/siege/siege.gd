@@ -949,8 +949,9 @@ func _prepara_ondate() -> void:
 	_ondate.append(_ondata_normale(normali[3], ef, of, extra))   # w5
 	# w6: il BOSS finale dell'era (redesign completo — evoca esercito, ultimate — in F4).
 	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
-	# HP per-FASE (il boss ha FASI barre piene): alto, così ogni fase è una vera "round".
-	var boss_hp: int = int(round((280 + 36 * float(extra)) * ef))
+	# HP per-FASE (il boss ha FASI barre piene): ALTO — un giocatore che evolve le truppe ha
+	# tanto DPS, il boss non deve fondersi in 2 secondi. Ogni fase è una vera battaglia.
+	var boss_hp: int = int(round((1300 + 160 * float(extra)) * ef))
 	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
 		{"boss": true, "hp": boss_hp, "vel": 48.0, "bounty": 14, "danno": 48,
 			"corsia": 2, "nome": nome_boss, "gap": 0.0}]})
@@ -1142,7 +1143,8 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.velocita = float(d.get("vel", 34.0))
 	b.bounty = int(d.get("bounty", 14))
 	b.danno_villaggio = int(d.get("danno", 40))
-	b.danno_melee = 14
+	b.danno_melee = 24
+	b.armatura = 14   # incassa parte di ogni colpo: con difensori evoluti non si fonde in 2s
 	b.villaggio_x = VILLAGGIO_X
 	b.corsia = int(d.get("corsia", 1))
 	b.raggio = 64.0
@@ -1152,7 +1154,7 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.sprite = _siege_tex("boss")
 	b.imposta_era(era)   # sceglie il kit di abilità per archetipo (Colosso vs Drago)
 	# Tenuta: ~un terzo della barra HP → lo stagger è un BEAT ricorrente, non un evento unico.
-	b.stagger_max = float(b.hp_max) * 0.32
+	b.stagger_max = float(b.hp_max) * 0.6
 	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 80.0
 	b.stagger_cambiato.connect(_on_boss_stagger)
 	_world.add_child(b)
@@ -1341,34 +1343,51 @@ func segnala_stagger(nome: String) -> void:
 
 # Cinematica del CAMBIO FASE al 50% HP (Docs/14 §5): breve hitstop (tempo reale, ripristina il
 # time_scale qualunque esso sia — playtest incluso), poi zoom-punch sul boss + vignetta + banner.
+# Lampo a tutto schermo (per i momenti grossi: trasformazione, impatti).
+func _flash_schermo(col: Color, peak: float = 0.5) -> void:
+	var fl: ColorRect = ColorRect.new()
+	fl.color = Color(col.r, col.g, col.b, 0.0)
+	fl.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(fl)
+	var t: Tween = create_tween()
+	t.tween_property(fl, "color:a", peak, 0.06)
+	t.tween_property(fl, "color:a", 0.0, 0.45)
+	t.tween_callback(fl.queue_free)
+
+
 func cinematica_trasformazione(boss: SiegeBoss, fase: int = 2) -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	AudioManager.play_sfx("era_transition")
 	scuoti_forte()
 	_vignetta_furia_attiva()
-	# 1) IL COLPO: fermo-immagine reale (hitstop robusto). Aspetto in TEMPO REALE che finisca,
-	#    così letterbox/title/zoom dopo partono a piena velocità (non congelati dal time_scale).
-	hitstop(0.20, 0.05)
-	await get_tree().create_timer(0.22, true, false, true).timeout
-	# 2) IL CLOU: barre cinema + title-card di fase + zoom-punch sul boss.
+	# 1) IL COLPO: fermo-immagine reale + LAMPO + onda d'urto sul boss (il "boom").
+	hitstop(0.24, 0.05)
+	await get_tree().create_timer(0.26, true, false, true).timeout
+	_flash_schermo(Color(1.0, 0.86, 0.6), 0.55)
+	if is_instance_valid(boss):
+		fx_vfx(boss.global_position, 560.0, "shockwave", true)
+		fx_esplosione(boss.global_position, 280.0)
+	scuoti_forte()
+	# 2) IL CLOU: barre cinema + title-card di fase + zoom-punch FORTE e lungo sul boss.
 	_cinema_letterbox(true, 0.30)
 	var romano: String = "III" if fase >= 3 else "II"
 	var sub: String = "FURIA FINALE" if fase >= 3 else ("L'IRA DEL DRAGO" if boss.era_boss >= 2 else "L'IRA DEL COLOSSO")
 	_cinema_titolo("FASE  " + romano, sub, Color(1.0, 0.5, 0.32))
 	if _world != null and is_instance_valid(_world) and is_instance_valid(boss):
 		var f: Vector2 = boss.global_position
-		var s: float = 1.24
+		var s: float = 1.42
 		var zt: Tween = create_tween()
-		zt.tween_property(_world, "scale", Vector2(s, s), 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.24)
-		zt.tween_interval(0.9)
-		zt.tween_property(_world, "scale", Vector2.ONE, 0.42).set_trans(Tween.TRANS_SINE)
-		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.42)
+		zt.tween_property(_world, "scale", Vector2(s, s), 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		zt.parallel().tween_property(_world, "position", f * (1.0 - s), 0.30)
+		zt.tween_interval(1.2)
+		zt.tween_property(_world, "scale", Vector2.ONE, 0.45).set_trans(Tween.TRANS_SINE)
+		zt.parallel().tween_property(_world, "position", Vector2.ZERO, 0.45)
 		zt.tween_callback(func() -> void: _cinema_letterbox(false, 0.35))
 	else:
 		var lt: Tween = create_tween()
-		lt.tween_interval(1.4)
+		lt.tween_interval(1.7)
 		lt.tween_callback(func() -> void: _cinema_letterbox(false, 0.35))
 
 

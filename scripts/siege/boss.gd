@@ -261,8 +261,8 @@ func _notifica_stagger() -> void:
 
 
 func _cooldown_abilita() -> float:
-	var base: float = 2.0 if _frenesia else (3.0 if _in_furia else 5.2)
-	return base + randf_range(-0.4, 0.6)
+	var base: float = 1.5 if _frenesia else (2.3 if _in_furia else 3.4)
+	return base + randf_range(-0.3, 0.5)
 
 
 # Prima volta sotto furia_soglia: entra nello stato "trasforma" (l'arena fa la cinematica).
