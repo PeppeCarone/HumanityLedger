@@ -233,10 +233,13 @@ func _run() -> void:
 	sieget.schiera_unita_test(0, "tiratore")
 	sieget.schiera_unita_test(4, "bloccatore")
 	sieget.spawn_boss_test(true)
+	sieget.spawn_enemy_test("cinghiale", 1, 1300.0)   # add che devono SPARIRE all'intermezzo
+	sieget.spawn_enemy_test("iena", 2, 1180.0)
+	sieget.spawn_enemy_test("orso", 0, 1420.0)
 	await get_tree().create_timer(0.6, true, false, true).timeout
 	if sieget._boss != null and is_instance_valid(sieget._boss):
-		sieget._boss._trasformato = true   # mostra le crepe d'ember sul corpo (verifica fasi)
-		sieget.cinematica_trasformazione(sieget._boss)
+		sieget._boss._trasformato = true   # crepe d'ember sul corpo
+		sieget.intermezzo_fase(sieget._boss, 2)   # nemici spariscono + cinematica "FASE II"
 	await get_tree().create_timer(0.9, true, false, true).timeout   # letterbox dentro + title visibile
 	var timg: Image = get_viewport().get_texture().get_image()
 	timg.save_png(OUT + "shot_assedio_trasforma.png")

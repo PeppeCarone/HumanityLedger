@@ -68,8 +68,16 @@ var _ult_t: float = 0.0
 var _ult_usata: int = 0
 var _evoca_t: float = 6.0
 const TRASF_DUR: float = 1.4        # durata dell'animazione di trasformazione (tempo locale)
-const EVOCA_BOSS_CD: float = 8.0    # ogni quanto il boss chiama rinforzi
+const EVOCA_BOSS_CD: float = 11.0   # ogni quanto il boss chiama rinforzi (meno add = boss focalizzabile)
 const ULT_POT_BASE: int = 30        # potenza base dell'ultimate (cala a ogni uso)
+
+# Sistema a FASI (idea utente): il boss attraversa FASI fasi, ognuna con la SUA barra HP piena.
+# Svuotata una fase (non l'ultima) NON muore: intermezzo cinematografico (INVULNERABILE, i nemici
+# spariscono), poi rientra più grande, con HP pieni e abilità/stat potenziate.
+const FASI: int = 3
+var _fase: int = 1
+var _invulnerabile: bool = false
+var _berserk: bool = false           # dopo ~60s: avanza imbloccabile E incassa ×2.5 → conclude sempre
 
 
 # Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).
@@ -88,6 +96,14 @@ func _process(delta: float) -> void:
 		return
 	_bt += delta
 
+	# Anti-stallo: se il fight si trascina (build che murano il boss fuori dal raggio dei ranged),
+	# dopo ~60s il boss va BERSERK — imbloccabile, avanza dritto al villaggio → la battaglia
+	# conclude SEMPRE (o lo fermi, o arriva). Evita lo stallo "villaggio 100% ma boss vivo".
+	if not _berserk and _bt > 60.0:
+		_berserk = true
+		_frenesia = true
+		_in_furia = true
+
 	# Tenuta: cooldown dopo una rottura, oppure decadimento se smetti di colpirlo.
 	if _stagger_cd > 0.0:
 		_stagger_cd -= delta
@@ -100,18 +116,8 @@ func _process(delta: float) -> void:
 		var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
 		scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
 
-	# Furia a meta' HP: abilita' piu' frequenti + CAMBIO FASE CINEMATOGRAFICO (F4).
-	if not _in_furia and float(hp) <= float(hp_max) * furia_soglia:
-		_in_furia = true
-		_abil_t = minf(_abil_t, 1.2)
-		furia_entrata.emit()
-		_inizia_trasformazione()
-	# Frenesia (3ª fase) sotto il 25% HP: abilità a raffica — l'ultimo, disperato assalto.
-	if not _frenesia and float(hp) <= float(hp_max) * 0.25:
-		_frenesia = true
-		_in_furia = true
-		_abil_t = minf(_abil_t, 0.8)
-		frenesia_entrata.emit()
+	# Le fasi NON scattano più su soglia HP: scattano quando la barra della fase si SVUOTA
+	# (in subisci_danno → _cambia_fase). _in_furia/_frenesia li imposta _completa_cambio_fase.
 
 	match _stato:
 		"entrata":
@@ -165,12 +171,12 @@ func _process(delta: float) -> void:
 			queue_redraw()
 			return
 		"trasforma":
-			# Cambio fase: il boss ribolle e cresce sul posto (la cinematica la fa l'arena),
-			# poi scatena l'ultimate e riparte più forte.
-			var g: float = 1.0 + 0.12 * sin(_bt * 16.0)
+			# INTERMEZZO di cambio fase: INVULNERABILE, ribolle e CRESCE sul posto mentre l'arena
+			# fa la cinematica e fa sparire i nemici. Poi rientra in fase nuova (HP pieni, più grande).
+			var g: float = (1.0 + 0.05 * float(_fase)) + 0.16 * sin(_bt * 14.0)
 			scale = Vector2(g, g)
 			if _bt >= _trasf_fino:
-				_completa_trasformazione()
+				_completa_cambio_fase()
 			queue_redraw()
 			return
 		_:  # marcia
@@ -191,8 +197,14 @@ func _process(delta: float) -> void:
 				_inizia_telegrafo()
 				queue_redraw()
 				return
-			# Marcia normale (rallentabile, fermata dai bloccatori) ereditata dal nemico.
-			super._process(delta)
+			# Marcia: normalmente fermata dai bloccatori. In FRENESIA (fase 3) il boss IGNORA i
+			# bloccatori e avanza dritto → niente stallo, climax "fermalo prima che arrivi al villaggio".
+			if _frenesia:
+				position.x -= velocita * delta
+				if position.x <= villaggio_x:
+					_arriva()
+			else:
+				super._process(delta)
 			queue_redraw()
 
 
@@ -204,17 +216,27 @@ func _arriva() -> void:
 
 # Override: il danno riempie la tenuta; durante la finestra VULNERABILE il boss incassa ×n.
 func subisci_danno(d: int) -> void:
+	# INVULNERABILE durante l'intermezzo di cambio fase e l'entrata → niente one-shot.
+	if _invulnerabile or _stato == "trasforma" or _stato == "entrata":
+		return
 	var dmg: int = d
 	if _staggerato:
 		dmg = int(round(float(d) * STAGGER_BONUS))
-	elif _stagger_cd <= 0.0 and _stato != "entrata" and _stato != "trasforma":
-		# Niente stagger durante entrata/trasformazione: la cinematica non va interrotta.
+	elif _stagger_cd <= 0.0:
 		_stagger = minf(stagger_max, _stagger + float(d) * stagger_gain)
 		if _stagger >= stagger_max:
 			_entra_stagger()
+	if _berserk:
+		dmg = int(round(float(dmg) * 2.5))   # berserk: incassa molto di più → la battaglia conclude
 	_notifica_stagger()
 	if arena != null and arena.has_method("fx_numero_danno"):
 		arena.fx_numero_danno(global_position, dmg, _staggerato)
+	# Se questo colpo SVUOTA la barra della fase corrente e non è l'ultima → CAMBIO FASE (non muore).
+	if hp - dmg <= 0 and _fase < FASI:
+		hp = 1
+		_notifica_stagger()
+		_cambia_fase()
+		return
 	super.subisci_danno(dmg)
 
 
@@ -244,32 +266,36 @@ func _cooldown_abilita() -> float:
 
 
 # Prima volta sotto furia_soglia: entra nello stato "trasforma" (l'arena fa la cinematica).
-func _inizia_trasformazione() -> void:
+func _cambia_fase() -> void:
+	_invulnerabile = true
 	_stato = "trasforma"
-	_trasf_fino = _bt + TRASF_DUR
+	_trasf_fino = _bt + TRASF_DUR + 0.5
 	AudioManager.play_sfx("stat_down")
-	trasforma_entrata.emit()
+	if arena != null and arena.has_method("intermezzo_fase"):
+		arena.intermezzo_fase(self, _fase + 1)
 
 
-# Fine della trasformazione: il boss diventa più grosso e più forte, scatena l'ultimate e riparte.
-func _completa_trasformazione() -> void:
+# Fine dell'intermezzo: NUOVA fase con barra HP PIENA, boss più grande, stat e abilità potenziate.
+func _completa_cambio_fase() -> void:
+	_fase += 1
 	_trasformato = true
-	# Swap allo sprite di FASE 2 se esiste (es. drago Era 2 trasformato); fallback: tiene lo sprite.
+	_invulnerabile = false
+	hp = hp_max                                   # barra NUOVA, piena
+	raggio *= 1.22                                # più grande a ogni fase
+	danno_villaggio = int(round(float(danno_villaggio) * 1.3))
+	danno_melee = int(round(float(danno_melee) * 1.3))
+	velocita *= 1.08
+	scale = Vector2.ONE
+	_in_furia = _fase >= 2                         # fase 2 = furia (abilità più frequenti)
+	_frenesia = _fase >= 3                         # fase 3 = frenesia (a raffica)
+	# Sprite della fase, se esiste (es. drago boss_fase2 / boss_fase3).
 	if arena != null and arena.has_method("_siege_tex"):
-		var tex2: Texture2D = arena._siege_tex("boss_fase2")
+		var tex2: Texture2D = arena._siege_tex("boss_fase%d" % _fase)
 		if tex2 != null:
 			sprite = tex2
-	raggio *= 1.2
-	danno_villaggio = int(round(float(danno_villaggio) * 1.35))
-	danno_melee = int(round(float(danno_melee) * 1.35))
-	velocita *= 1.12
-	scale = Vector2.ONE
-	# L'ULTIMATE del cambio fase SI FA, ma non è istantanea: parte ~1.5s DOPO — a forma cambiata,
-	# finita la cinematica — ed è telegrafata. Così l'esercito già evocato e VIVO sopravvive alla
-	# trasformazione e il "colpo di scena" arriva al momento giusto.
 	_stato = "marcia"
 	_abil_t = _cooldown_abilita()
-	_ult_t = 1.5
+	_ult_t = 1.5                                   # l'ultimate della nuova fase parte poco dopo (telegrafata)
 
 
 # Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).

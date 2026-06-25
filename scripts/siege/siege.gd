@@ -949,7 +949,8 @@ func _prepara_ondate() -> void:
 	_ondate.append(_ondata_normale(normali[3], ef, of, extra))   # w5
 	# w6: il BOSS finale dell'era (redesign completo — evoca esercito, ultimate — in F4).
 	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
-	var boss_hp: int = int(round((300 + 45 * float(extra)) * ef))
+	# HP per-FASE (il boss ha FASI barre piene): ogni fase è una "round" corta e punchy.
+	var boss_hp: int = int(round((120 + 16 * float(extra)) * ef))
 	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
 		{"boss": true, "hp": boss_hp, "vel": 48.0, "bounty": 14, "danno": 48,
 			"corsia": 2, "nome": nome_boss, "gap": 0.0}]})
@@ -1340,7 +1341,7 @@ func segnala_stagger(nome: String) -> void:
 
 # Cinematica del CAMBIO FASE al 50% HP (Docs/14 §5): breve hitstop (tempo reale, ripristina il
 # time_scale qualunque esso sia — playtest incluso), poi zoom-punch sul boss + vignetta + banner.
-func cinematica_trasformazione(boss: SiegeBoss) -> void:
+func cinematica_trasformazione(boss: SiegeBoss, fase: int = 2) -> void:
 	if boss == null or not is_instance_valid(boss):
 		return
 	AudioManager.play_sfx("era_transition")
@@ -1352,8 +1353,9 @@ func cinematica_trasformazione(boss: SiegeBoss) -> void:
 	await get_tree().create_timer(0.22, true, false, true).timeout
 	# 2) IL CLOU: barre cinema + title-card di fase + zoom-punch sul boss.
 	_cinema_letterbox(true, 0.30)
-	var sub: String = "L'IRA DEL DRAGO" if boss.era_boss >= 2 else "L'IRA DEL COLOSSO"
-	_cinema_titolo("FASE  II", sub, Color(1.0, 0.5, 0.32))
+	var romano: String = "III" if fase >= 3 else "II"
+	var sub: String = "FURIA FINALE" if fase >= 3 else ("L'IRA DEL DRAGO" if boss.era_boss >= 2 else "L'IRA DEL COLOSSO")
+	_cinema_titolo("FASE  " + romano, sub, Color(1.0, 0.5, 0.32))
 	if _world != null and is_instance_valid(_world) and is_instance_valid(boss):
 		var f: Vector2 = boss.global_position
 		var s: float = 1.24
@@ -1523,6 +1525,22 @@ func _telegrafo_disco(pos: Vector2, raggio: float) -> Node:
 	return s
 
 
+# INTERMEZZO di cambio fase (idea utente): i nemici-add SPARISCONO (poof), poi parte la cinematica
+# (il boss è invulnerabile e cresce; la barra HP si "ricarica" da sola leggendo _boss.hp). Chiamato
+# da SiegeBoss._cambia_fase quando una barra di fase si svuota.
+func intermezzo_fase(boss: SiegeBoss, fase: int) -> void:
+	if boss == null or not is_instance_valid(boss):
+		return
+	# I nemici evocati spariscono — resta solo il boss (campo pulito per il colpo di scena).
+	for e in _enemies.duplicate():
+		if e != null and is_instance_valid(e) and e != boss:
+			_morte_poof(e.global_position, e.colore)
+			_enemies.erase(e)
+			e.queue_free()
+	_spawn_queue.clear()
+	cinematica_trasformazione(boss, fase)
+
+
 # Bombardamento del MINI-BOSS caster: telegrafa una zona (su un difensore vicino o davanti al
 # villaggio), poi colpisce ad area dopo ~0.7s. Evitabile spargendo le difese e rompendo lo scudo.
 func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
@@ -1563,14 +1581,20 @@ func evoca_rinforzi_boss(n: int) -> void:
 # --- API usate da difensori/nemici/proiettili (disaccoppiamento) ------------
 
 func bersaglio_per(da: Vector2, raggio: float) -> SiegeEnemy:
-	# Nemico più avanzato (x minore = più vicino al villaggio) entro il raggio.
+	# Nemico più avanzato (x minore = più vicino al villaggio) entro il raggio. Il BOSS ha forte
+	# PRIORITÀ (x effettiva -500): altrimenti i suoi add gli fanno da scudo e resta inuccidibile.
 	var best: SiegeEnemy = null
 	var best_x: float = INF
 	for e in _enemies:
 		if e == null or not is_instance_valid(e) or not e.vivo():
 			continue
-		if da.distance_to(e.global_position) <= raggio and e.global_position.x < best_x:
-			best_x = e.global_position.x
+		if da.distance_to(e.global_position) > raggio:
+			continue
+		var ex: float = e.global_position.x
+		if _boss != null and e == _boss:
+			ex -= 500.0
+		if ex < best_x:
+			best_x = ex
 			best = e
 	return best
 

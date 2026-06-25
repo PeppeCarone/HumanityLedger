@@ -43,7 +43,7 @@ func _run_build(cfg: Dictionary, era_n: int = 1) -> void:
 	var frames: int = 0
 	var summon_t: float = 0.0
 	var ri: int = 0
-	while not siege._concluso and frames < 11000:   # boss/mini-boss piu tosti = fight piu lunghi
+	while not siege._concluso and frames < 14000:   # boss multi-fase = fight piu lunghi
 		await get_tree().process_frame
 		frames += 1
 		summon_t += get_process_delta_time()
