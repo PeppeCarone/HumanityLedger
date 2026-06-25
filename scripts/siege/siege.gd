@@ -949,8 +949,8 @@ func _prepara_ondate() -> void:
 	_ondate.append(_ondata_normale(normali[3], ef, of, extra))   # w5
 	# w6: il BOSS finale dell'era (redesign completo — evoca esercito, ultimate — in F4).
 	var nome_boss: String = "Il Drago" if era >= 2 else "Il Colosso"
-	# HP per-FASE (il boss ha FASI barre piene): ogni fase è una "round" corta e punchy.
-	var boss_hp: int = int(round((120 + 16 * float(extra)) * ef))
+	# HP per-FASE (il boss ha FASI barre piene): alto, così ogni fase è una vera "round".
+	var boss_hp: int = int(round((280 + 36 * float(extra)) * ef))
 	_ondate.append({"nome": nome_boss, "boss": true, "spawns": [
 		{"boss": true, "hp": boss_hp, "vel": 48.0, "bounty": 14, "danno": 48,
 			"corsia": 2, "nome": nome_boss, "gap": 0.0}]})
@@ -1473,16 +1473,19 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	_scuoti()
 	# Zone di pericolo (telegrafate).
 	var zone: Array[Vector2] = []
-	var raggio: float
-	if era_b >= 2:
-		raggio = 150.0
-		for i in range(4):
-			zone.append(Vector2(randf_range(VILLAGGIO_X + 140.0, SPAWN_X - 260.0),
-				randf_range(ROAD_TOP + 50.0, ROAD_BOTTOM - 50.0)))
-	else:
-		raggio = 230.0
-		zone.append(Vector2(maxf(VILLAGGIO_X + 180.0, origin.x - 200.0), ROAD_MID))
-		zone.append(Vector2(maxf(VILLAGGIO_X + 150.0, origin.x - 440.0), ROAD_MID))
+	var raggio: float = 175.0 if era_b >= 2 else 240.0
+	var n_zone: int = 4 if era_b >= 2 else 3
+	# Mira ai DIFENSORI (l'ultimate DEVE colpire, non cadere a vuoto).
+	var difs: Array = difensori_in_area(Vector2(VILLAGGIO_X + 600.0, ROAD_MID), 2200.0)
+	difs.shuffle()
+	for d in difs:
+		if d != null and is_instance_valid(d):
+			zone.append(d.global_position)
+		if zone.size() >= n_zone:
+			break
+	while zone.size() < n_zone:
+		zone.append(Vector2(randf_range(VILLAGGIO_X + 120.0, VILLAGGIO_X + 720.0),
+			randf_range(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0)))
 	# Telegrafo: dischi rossi pulsanti per ~1s.
 	var marker: Array[Node] = []
 	for z in zone:
@@ -1492,6 +1495,7 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	hitstop(0.09, 0.05)   # l'ultimate "atterra" con peso
 	for z in zone:
 		danno_area_difensori(z, raggio, potenza)
+		fx_vfx(z, raggio * 2.2, "fire_burst" if era_b >= 2 else "impatto_terra", true)
 		fx_esplosione(z, raggio)
 	for m in marker:
 		if is_instance_valid(m):
@@ -1835,6 +1839,30 @@ func fx_anello(pos: Vector2, raggio: float, col: Color) -> void:
 	t.tween_callback(s.queue_free)
 
 
+# VFX da sprite REALE (impatto_terra/fiammata_drago/onda_ruggito/aura_gelo/portale_evoca):
+# appare alla larghezza `dim`, si accende e svanisce. Fallback all'esplosione generica se manca.
+func fx_vfx(pos: Vector2, dim: float, nome: String, dir_destra: bool = false) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var tex: Texture2D = _fx_tex(nome)
+	if tex == null:
+		fx_esplosione(pos, dim * 0.5)
+		return
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = tex
+	s.centered = true
+	var base: float = dim / float(maxi(tex.get_width(), 1))
+	s.scale = Vector2((base if dir_destra else -base), base) * 0.8   # i nemici guardano a SINISTRA
+	s.modulate = Color(1, 1, 1, 0.0)
+	_world.add_child(s)
+	s.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_property(s, "modulate:a", 1.0, 0.07)
+	t.parallel().tween_property(s, "scale", Vector2((base if dir_destra else -base), base), 0.16)
+	t.tween_property(s, "modulate:a", 0.0, 0.34)
+	t.tween_callback(s.queue_free)
+
+
 # Macchia di fuoco a terra (Brace del Totem): resta accesa ~2s e svanisce.
 func fx_brace(pos: Vector2) -> void:
 	if _world == null or not is_instance_valid(_world):
@@ -2005,6 +2033,28 @@ func _schiera_alleati() -> void:
 # (gratis) un'unità del tipo in formazione. Lo `slot` è ignorato (compat. Fase B).
 func schiera_unita_test(_slot: int, tipo: String) -> void:
 	_piazza(tipo, false)
+
+
+# DEBUG: salta DRITTO all'ondata BOSS (per testare il boss fight). Usato da tools/boss_arena.tscn.
+func debug_solo_boss() -> void:
+	_spawn_queue.clear()
+	for e in _enemies.duplicate():
+		if is_instance_valid(e):
+			e.queue_free()
+	_enemies.clear()
+	_boss = null
+	if _boss_box != null and is_instance_valid(_boss_box):
+		_boss_box.queue_free()
+		_boss_box = null
+	if not _ondate.is_empty():
+		_ondate = [_ondate[_ondate.size() - 1]]   # solo l'ultima ondata = il BOSS
+	_ondata_idx = -1
+	_concluso = false
+	_in_pausa = true
+	_pausa_fino = _tempo + 1.2
+	risorse = 400
+	_aggiorna_risorse()
+	_flash_info("DEBUG — Boss diretto: piazza i difensori!")
 
 
 # Compatibilità con la Fase A (shoot harness): piazza un tiratore.

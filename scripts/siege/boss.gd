@@ -38,7 +38,7 @@ var legge: int = 30                 # mitigazione del Ruggito (impostata dall'ar
 var furia_soglia: float = 0.5
 var era_boss: int = 1               # 1 = Colosso (bruto a terra) · 2 = Drago (caster di fuoco)
 
-const RAGGIO_PESTONE: float = 160.0
+const RAGGIO_PESTONE: float = 210.0
 const DASH_MULT: float = 2.7
 
 var _stato: String = "entrata"      # entrata | marcia | telegrafo | dash
@@ -69,7 +69,7 @@ var _ult_usata: int = 0
 var _evoca_t: float = 6.0
 const TRASF_DUR: float = 1.4        # durata dell'animazione di trasformazione (tempo locale)
 const EVOCA_BOSS_CD: float = 11.0   # ogni quanto il boss chiama rinforzi (meno add = boss focalizzabile)
-const ULT_POT_BASE: int = 30        # potenza base dell'ultimate (cala a ogni uso)
+const ULT_POT_BASE: int = 46        # potenza base dell'ultimate (cala POCO a ogni uso)
 
 # Sistema a FASI (idea utente): il boss attraversa FASI fasi, ognuna con la SUA barra HP piena.
 # Svuotata una fase (non l'ultima) NON muore: intermezzo cinematografico (INVULNERABILE, i nemici
@@ -301,10 +301,10 @@ func _completa_cambio_fase() -> void:
 # Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).
 # Potenza CALANTE a ogni uso: non si può vincere per ripetizione.
 func _cast_ultimate() -> void:
-	var pot: int = int(round(float(ULT_POT_BASE) * pow(0.72, float(_ult_usata))))
+	var pot: int = int(round(float(ULT_POT_BASE) * pow(0.88, float(_ult_usata))))
 	_ult_usata += 1
 	if arena != null and arena.has_method("boss_ultimate"):
-		arena.boss_ultimate(era_boss, maxi(6, pot), global_position)
+		arena.boss_ultimate(era_boss, maxi(18, pot), global_position)
 
 
 # Cadenza dell'ultimate: cresce a ogni uso (anti-ripetizione).
@@ -344,17 +344,23 @@ func _esegui_abilita() -> void:
 	match _abil_corrente:
 		"pestone":
 			if arena != null:
-				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 38 if _in_furia else 28)
+				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 50 if _in_furia else 38)
+				arena.fx_vfx(_tele_pos, RAGGIO_PESTONE * 2.4, "impatto_terra", true)
 				arena.fx_esplosione(_tele_pos, RAGGIO_PESTONE)
 				arena.scuoti_forte()
+				arena.hitstop(0.06, 0.2)
 			_stato = "marcia"
 			_abil_t = _cooldown_abilita()
 		"ruggito":
 			# Legge alta riduce la durata dello stun (morale del popolo).
-			var dur: float = clampf(2.4 - float(legge) / 42.0, 0.7, 2.4)
+			var dur: float = clampf(2.4 - float(legge) / 42.0, 0.8, 2.4)
 			if arena != null:
 				arena.stordisci_difensori(dur)
+				var cen: Vector2 = global_position + Vector2(-260.0, 0.0)
+				arena.danno_area_difensori(cen, 320.0, 20 if _in_furia else 14)
+				arena.fx_vfx(global_position + Vector2(-120.0, 0.0), 640.0, "onda_ruggito", false)
 				arena.scuoti_forte()
+				arena.hitstop(0.05, 0.2)
 			AudioManager.play_sfx("stat_down")
 			_stato = "marcia"
 			_abil_t = _cooldown_abilita()
@@ -366,22 +372,23 @@ func _esegui_abilita() -> void:
 			# Lingua di fuoco lungo la corsia: colpisce i difensori in una banda davanti
 			# al Drago (a distanza, senza doverli raggiungere — il contrario del Colosso).
 			if arena != null:
-				var dmg: int = 34 if _in_furia else 26
-				for off in [180.0, 320.0, 460.0, 600.0]:
+				var dmg: int = 44 if _in_furia else 32
+				for off in [160.0, 340.0, 520.0, 700.0, 880.0, 1060.0]:
 					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
-					arena.danno_area_difensori(p, 85.0, dmg)
-					arena.fx_esplosione(p, 85.0)
+					arena.danno_area_difensori(p, 110.0, dmg)
+				arena.fx_vfx(global_position + Vector2(-560.0, 0.0), 1180.0, "fiammata_drago", false)
 				arena.scuoti_forte()
+				arena.hitstop(0.05, 0.2)
 			AudioManager.play_sfx("stat_down")
 			_stato = "marcia"
 			_abil_t = _cooldown_abilita()
 		"pioggia":
 			# Pioggia di fuoco: piu' impatti sparsi sul campo (area denial diffuso).
 			if arena != null:
-				var dmg2: int = 27 if _in_furia else 20
+				var dmg2: int = 36 if _in_furia else 26
 				for p in _pioggia_pts:
-					arena.danno_area_difensori(p, 90.0, dmg2)
-					arena.fx_esplosione(p, 90.0)
+					arena.danno_area_difensori(p, 110.0, dmg2)
+					arena.fx_vfx(p, 230.0, "fire_burst", true)
 				arena.scuoti_forte()
 			_pioggia_pts.clear()
 			_stato = "marcia"
