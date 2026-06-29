@@ -1511,7 +1511,7 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	var marker: Array[Node] = []
 	for z in zone:
 		marker.append(_telegrafo_disco(z, raggio))
-	await get_tree().create_timer(1.0).timeout
+	await get_tree().create_timer(1.3).timeout
 	# Impatto: danno SOLO nelle zone (lo Scudo di pelli del Bloccatore Lv3 lo mitiga).
 	hitstop(0.09, 0.05)   # l'ultimate "atterra" con peso
 	for z in zone:
