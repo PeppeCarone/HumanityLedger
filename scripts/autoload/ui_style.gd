@@ -176,6 +176,36 @@ func crea_vignette(intensity: float = 0.36, tint: Color = Color(0, 0, 0, 1)) -> 
 	return cr
 
 
+# Ornamenti d'angolo "tomo rilegato" (§8f) ai 4 angoli di un rettangolo (di norma lo schermo
+# intero): incorniciano menu/mappa come il Ledger. Riusa corner_*.png; fallback-safe (se i PNG
+# mancano non aggiunge nulla). Ritorna i TextureRect creati così il chiamante puo' animarli.
+func aggiungi_cornici(parent: Node, rect: Rect2, lato: float = 160.0, alpha: float = 0.9) -> Array:
+	var out: Array = []
+	if ui_texture("corner_tl") == null:
+		return out
+	var ang: Array = [
+		["corner_tl", rect.position],
+		["corner_tr", Vector2(rect.end.x - lato, rect.position.y)],
+		["corner_bl", Vector2(rect.position.x, rect.end.y - lato)],
+		["corner_br", Vector2(rect.end.x - lato, rect.end.y - lato)],
+	]
+	for a in ang:
+		var tex: Texture2D = ui_texture(a[0])
+		if tex == null:
+			continue
+		var tr: TextureRect = TextureRect.new()
+		tr.texture = tex
+		tr.position = a[1]
+		tr.size = Vector2(lato, lato)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.modulate = Color(1, 1, 1, alpha)
+		parent.add_child(tr)
+		out.append(tr)
+	return out
+
+
 # --- Interni -----------------------------------------------------------------
 
 func _carica(path: String) -> Texture2D:

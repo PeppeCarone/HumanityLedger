@@ -25,6 +25,8 @@ func _ready() -> void:
 	vignette.name = "Vignette"
 	add_child(vignette)
 	move_child(vignette, background.get_index() + 1)
+	# Cornici d'angolo "tomo rilegato" allo schermo (coerenti col Ledger): incorniciano il menu.
+	UiStyle.aggiungi_cornici(self, get_viewport_rect(), 168.0, 0.85)
 	nuova_btn.pressed.connect(_on_nuova)
 	continua_btn.pressed.connect(_on_continua)
 	ledger_btn.pressed.connect(_on_ledger)

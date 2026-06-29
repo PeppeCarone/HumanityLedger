@@ -2197,9 +2197,10 @@ func _apri_pannello_edificio(slot: int) -> void:
 			"%d Risorse  (hai %d)" % [costo, GameState.risorse], ok_risorse))
 		vb.add_child(_riga_costo(_icona_stat_tex("costruzione"), "Costruzione:",
 			"≥ %d  (hai %d)" % [gate, GameState.get_stat("costruzione")], ok_gate))
-		var migliora_btn: Button = Button.new()
-		migliora_btn.text = "Migliora"
-		migliora_btn.disabled = not (ok_risorse and ok_gate)
+		# CTA primaria prominente (18px + fondo bronzo acceso), coerente coi pulsanti del
+		# pannello costruzione; "Chiudi" resta secondaria a tema → gerarchia chiara.
+		var migliora_btn: Button = _btn_modale("Migliora", null, ok_risorse and ok_gate)
+		migliora_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		migliora_btn.pressed.connect(func() -> void:
 			_esegui_upgrade(era, slot, stat, costo, bonus))
 		vb.add_child(migliora_btn)

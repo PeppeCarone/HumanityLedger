@@ -136,6 +136,8 @@ func _ready() -> void:
 	sottotitolo_label.text = _sottotitolo
 	footer_label.text = "Premi INVIO per continuare"
 	_crea_vignette_mappa()
+	# Cornici d'angolo "tomo rilegato" (come Ledger/menu); appaiono col titolo in fase 1.
+	var cornici_mappa: Array = UiStyle.aggiungi_cornici(self, get_viewport().get_visible_rect(), 168.0, 0.0)
 
 	background.modulate.a = 0.0
 	titolo_label.modulate.a = 0.0
@@ -155,6 +157,8 @@ func _ready() -> void:
 	t.tween_property(background, "modulate:a", 1.0, 0.6)
 	t.parallel().tween_property(titolo_label, "modulate:a", 1.0, 0.8)
 	t.parallel().tween_property(sottotitolo_label, "modulate:a", 1.0, 1.0)
+	for c in cornici_mappa:
+		t.parallel().tween_property(c, "modulate:a", 0.82, 0.9)
 	# gli insediamenti primitivi compaiono con i titoli
 	t.parallel().tween_callback(_mostra_markers_iniziali)
 	# fase 2: il mondo si trasforma - i layer fanno crossfade in parallelo tra loro,
