@@ -2,6 +2,24 @@
 
 [ext_resource type="Script" path="res://scripts/ui/ledger_screen.gd" id="1_ledger"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ledger"]
+bg_color = Color(0.1, 0.08, 0.065, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.38, 0.2, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 12
+
 [node name="LedgerScreen" type="CanvasLayer"]
 layer = 10
 script = ExtResource("1_ledger")
@@ -10,13 +28,14 @@ script = ExtResource("1_ledger")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.7)
+color = Color(0, 0, 0, 0.95)
 
 [node name="Panel" type="PanelContainer" parent="."]
 offset_left = 120.0
 offset_top = 80.0
 offset_right = 1800.0
 offset_bottom = 1000.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_ledger")
 
 [node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 2
