@@ -587,7 +587,7 @@ func _setup_hud() -> void:
 	stat_value_labels.clear()
 	stat_icon_nodes.clear()
 	stat_bar_fills.clear()
-	# Stat in GRIGLIA 2×4 (stile COC/AoE): pill [icona][valore] + barra; il NOME va nel tooltip.
+	# Stat in GRIGLIA 2×4 (stile COC/AoE): riga [icona][nome][valore] + barra; descrizione nel tooltip.
 	var griglia: GridContainer = GridContainer.new()
 	griglia.columns = 2
 	griglia.add_theme_constant_override("h_separation", 12)
@@ -613,12 +613,23 @@ func _setup_hud() -> void:
 			icon.texture = load(icon_path)
 		top.add_child(icon)
 		stat_icon_nodes[stat_name] = icon
+		# Nome della stat accanto all'icona (oltre al tooltip): a colpo d'occhio si sa quale barra e'.
+		var name_lbl: Label = Label.new()
+		name_lbl.text = STAT_LABELS[stat_name]
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_lbl.clip_text = true
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(name_lbl)
 		var label: Label = Label.new()
 		label.name = "Stat_" + stat_name
 		label.text = str(GameState.get_stat(stat_name))
 		label.add_theme_font_size_override("font_size", 18)
 		label.add_theme_color_override("font_color", Color(0.98, 0.94, 0.84))
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.size_flags_horizontal = Control.SIZE_SHRINK_END
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
