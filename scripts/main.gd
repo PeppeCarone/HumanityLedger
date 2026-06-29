@@ -689,14 +689,54 @@ func _setup_hud() -> void:
 	var spacer4: Control = Control.new()
 	spacer4.custom_minimum_size = Vector2(0, 14)
 	hud_container.add_child(spacer4)
-	var tasti: Label = Label.new()
+	var hint: Label = Label.new()
+	hint.text = "Clicca un edificio per migliorarlo"
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.modulate = Color(1, 1, 1, 0.45)
+	hud_container.add_child(hint)
+	# Scorciatoie come chip-tasto (keycap bronzo + azione) invece di testo piatto (§1.E).
+	var tasti: HFlowContainer = HFlowContainer.new()
 	tasti.name = "Tasti"
-	tasti.text = "Clicca un edificio per migliorarlo\nV  Villaggio      L  Ledger      ESC  Pausa"
-	tasti.add_theme_font_size_override("font_size", 14)
-	tasti.modulate = Color(1, 1, 1, 0.45)
+	tasti.add_theme_constant_override("h_separation", 10)
+	tasti.add_theme_constant_override("v_separation", 4)
+	tasti.modulate = Color(1, 1, 1, 0.85)
+	tasti.add_child(_chip_tasto("V", "Villaggio"))
+	tasti.add_child(_chip_tasto("L", "Ledger"))
+	tasti.add_child(_chip_tasto("ESC", "Pausa"))
 	hud_container.add_child(tasti)
 	_refresh_rapporti()
 	_refresh_effetti_duraturi()
+
+
+# Chip-scorciatoia: keycap bronzo col tasto + etichetta azione (§1.E).
+func _chip_tasto(tasto: String, azione: String) -> Control:
+	var hb: HBoxContainer = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 6)
+	var cap: PanelContainer = PanelContainer.new()
+	var kb: StyleBoxFlat = StyleBoxFlat.new()
+	kb.bg_color = Color(0.22, 0.16, 0.10, 0.95)
+	kb.border_color = Color(0.72, 0.54, 0.31)
+	kb.set_border_width_all(1)
+	kb.set_corner_radius_all(4)
+	kb.content_margin_left = 6
+	kb.content_margin_right = 6
+	kb.content_margin_top = 1
+	kb.content_margin_bottom = 1
+	cap.add_theme_stylebox_override("panel", kb)
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var k: Label = Label.new()
+	k.text = tasto
+	k.add_theme_font_size_override("font_size", 13)
+	k.add_theme_color_override("font_color", Color(1.0, 0.92, 0.66))
+	cap.add_child(k)
+	hb.add_child(cap)
+	var a: Label = Label.new()
+	a.text = azione
+	a.add_theme_font_size_override("font_size", 13)
+	a.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62))
+	a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(a)
+	return hb
 
 
 func _load_personaggi() -> void:
