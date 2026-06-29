@@ -891,15 +891,26 @@ func _aggiorna_ciclo_luce() -> void:
 			parent.move_child(ciclo_luce, village.get_index() + 1)
 		_setup_atmosfera_overlays(parent)
 	var era2: bool = GameState.era_corrente >= 2
+	# J16 — Vigilia della scelta finale: la notte non scorre, resta (atmosfera solenne).
+	var vigilia: bool = current_quest != null and current_quest.id == "q_scelta_finale"
 	_pal_alba = Color(0.98, 0.74, 0.42, 0.16)
 	_pal_giorno = Color(1.0, 0.96, 0.86, 0.04)
 	_pal_tramonto = Color(0.96, 0.55, 0.32, 0.18) if not era2 else Color(0.86, 0.42, 0.40, 0.20)
 	_pal_notte = Color(0.18, 0.24, 0.45, 0.22) if not era2 else Color(0.15, 0.17, 0.42, 0.26)
+	if vigilia:
+		_pal_notte = Color(0.10, 0.12, 0.34, 0.42)  # notte profonda della vigilia
 	if _drift_tween != null and _drift_tween.is_valid():
 		_drift_tween.kill()
-	const DUR: float = 55.0
-	_drift_tween = create_tween().set_loops()
-	_drift_tween.tween_method(_applica_fase, 0.0, 4.0, DUR * 4.0)
+	if vigilia:
+		# Niente ciclo: la fase oscilla appena attorno alla notte piena (lieve respiro).
+		_drift_tween = create_tween().set_loops()
+		_drift_tween.set_trans(Tween.TRANS_SINE)
+		_drift_tween.tween_method(_applica_fase, 2.88, 3.08, 9.0)
+		_drift_tween.tween_method(_applica_fase, 3.08, 2.88, 9.0)
+	else:
+		const DUR: float = 55.0
+		_drift_tween = create_tween().set_loops()
+		_drift_tween.tween_method(_applica_fase, 0.0, 4.0, DUR * 4.0)
 
 
 # Crea i 5 overlay (una volta), ancorati a bande di cielo, dentro il mondo (pan/zoom).
@@ -965,6 +976,9 @@ func _aggiorna_scena_decisione() -> void:
 # Cambio sfondo morbido quando la quest sposta la scena (es. caverna -> accampamento).
 func _aggiorna_sfondo_quest() -> void:
 	_aggiorna_scena_decisione()
+	# Il ciclo luce si rivaluta al cambio quest: vigilia notturna su q_scelta_finale (J16).
+	if is_instance_valid(village):
+		_aggiorna_ciclo_luce()
 	if scene_bg == null:
 		return
 	var path: String = _terreno_corrente()

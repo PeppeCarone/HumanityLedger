@@ -20,10 +20,35 @@ var _is_hovering: bool = false
 var _last_can_drop: bool = false
 var _hover_tween: Tween = null
 var _portrait_tween: Tween = null
+var _ring: TextureRect = null
+var _ring_tween: Tween = null
 
 
 func _ready() -> void:
+	_setup_ring()
 	_refresh()
+
+
+# Alone-anello verde (ring_focus.png) attorno alla piazzola: appare quando una carta
+# compatibile e' in aria, rendendo ovvio "lascia qui". Fallback-safe (niente se manca il PNG).
+func _setup_ring() -> void:
+	var tex: Texture2D = UiStyle.ui_texture("ring_focus")
+	if tex == null:
+		return
+	_ring = TextureRect.new()
+	_ring.name = "FocusRing"
+	_ring.texture = tex
+	_ring.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_ring.offset_left = -18.0
+	_ring.offset_top = -18.0
+	_ring.offset_right = 18.0
+	_ring.offset_bottom = 18.0
+	_ring.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_ring.stretch_mode = TextureRect.STRETCH_SCALE
+	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ring.modulate = Color(0.45, 0.9, 0.45, 0.0)
+	add_child(_ring)
+	move_child(_ring, 0)
 
 
 func _refresh() -> void:
@@ -90,13 +115,26 @@ func _animate_hover(active: bool) -> void:
 		_hover_tween.kill()
 	_hover_tween = create_tween()
 	if active:
-		# La zona "respira" finche' la card compatibile e' in aria.
+		# La zona "respira" finche' la card compatibile e' in aria. Fill tenue: il
+		# protagonista del feedback e' l'alone-anello, il ritratto resta leggibile.
 		_hover_tween.set_loops()
 		_hover_tween.set_trans(Tween.TRANS_SINE)
-		_hover_tween.tween_property(hover, "modulate:a", 0.95, 0.35)
-		_hover_tween.tween_property(hover, "modulate:a", 0.55, 0.45)
+		_hover_tween.tween_property(hover, "modulate:a", 0.6, 0.35)
+		_hover_tween.tween_property(hover, "modulate:a", 0.34, 0.45)
 	else:
 		_hover_tween.tween_property(hover, "modulate:a", 0.0, 0.12)
+	# Alone-anello sincronizzato col respiro del fill.
+	if _ring != null:
+		if _ring_tween != null and _ring_tween.is_valid():
+			_ring_tween.kill()
+		_ring_tween = create_tween()
+		if active:
+			_ring_tween.set_loops()
+			_ring_tween.set_trans(Tween.TRANS_SINE)
+			_ring_tween.tween_property(_ring, "modulate:a", 1.0, 0.35)
+			_ring_tween.tween_property(_ring, "modulate:a", 0.6, 0.45)
+		else:
+			_ring_tween.tween_property(_ring, "modulate:a", 0.0, 0.12)
 	# Il consigliere reagisce: leggero scale-up e luce calda sul ritratto.
 	if portrait_rect != null:
 		if _portrait_tween != null and _portrait_tween.is_valid():
