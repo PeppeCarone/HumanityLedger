@@ -18,6 +18,7 @@ const QUEST_SEQUENZE: Dictionary = {
 	2: [
 		"q_corte_si_forma",
 		"q_pressione_imperi",
+		"q_prova_del_regno",
 		"q_scelta_finale",
 	],
 }
@@ -280,15 +281,7 @@ func _stile_call_button() -> void:
 	call_button.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	call_button.add_theme_constant_override("outline_size", 5)
 	for stato in ["normal", "hover", "pressed", "focus"]:
-		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(0.16, 0.11, 0.07, 0.94) if stato == "hover" else Color(0.12, 0.085, 0.06, 0.92)
-		sb.border_color = Color(0.78, 0.55, 0.28)
-		sb.set_border_width_all(3)
-		sb.set_corner_radius_all(10)
-		sb.shadow_color = Color(0, 0, 0, 0.5)
-		sb.shadow_size = 8
-		sb.set_content_margin_all(14)
-		call_button.add_theme_stylebox_override(stato, sb)
+		call_button.add_theme_stylebox_override(stato, UiStyle.cta_button_stylebox(stato))
 
 
 # Nodi che compongono la view-decisione: si mostrano/nascondono come gruppo.
@@ -1705,7 +1698,7 @@ func _show_narrative(text: String) -> void:
 				narrative_label.visible_characters = int(v),
 		0.0,
 		float(text.length()),
-		text.length() / 45.0,
+		minf(text.length() / 45.0, 1.6),
 	)
 
 

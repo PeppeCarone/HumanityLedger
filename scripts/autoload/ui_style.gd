@@ -90,6 +90,33 @@ func panel_clean() -> StyleBoxFlat:
 	return sb
 
 
+# StyleBox CTA (Call-To-Action) per i pulsanti prominenti tipo `CallButton` ("Decidi") e i
+# CTA modali build/upgrade: bordo bronzo acceso, angoli morbidi, ombra. Centralizza il look
+# che prima era duplicato inline in main.gd. Il chiamante itera sugli stati e mantiene i propri
+# override di font/outline. `hover`/`pressed`/`focus` schiariscono leggermente il fondo.
+func cta_button_stylebox(stato: String) -> StyleBoxFlat:
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.16, 0.11, 0.07, 0.94) if stato == "hover" else Color(0.12, 0.085, 0.06, 0.92)
+	sb.border_color = Color(0.78, 0.55, 0.28)
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(10)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 8
+	sb.set_content_margin_all(14)
+	return sb
+
+
+# Backing DISCRETO della card-strategia trascinabile: volutamente tenue (alpha basso) così il
+# medaglione circolare resta il protagonista. Centralizza il box prima inline in draggable_item.
+func card_backing_stylebox() -> StyleBoxFlat:
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.10, 0.08, 0.06, 0.45)
+	sb.border_color = Color(COL_BORDO.r, COL_BORDO.g, COL_BORDO.b, 0.5)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(10)
+	return sb
+
+
 # Chip/badge tinto (rapporti, effetti duraturi). `tinta` colora bordo/fondo nel fallback
 # e fa da modulate sulla texture §8c se presente.
 func chip_stylebox(tinta: Color = COL_BORDO) -> StyleBox:

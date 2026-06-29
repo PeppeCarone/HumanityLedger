@@ -559,8 +559,10 @@ func _idle_edificio(tr: TextureRect) -> void:
 
 # Ombra di contatto ellittica sotto l'edificio: lo ancora al terreno.
 func _ombra(px: float, py: float, larghezza: float, animata: bool) -> TextureRect:
+	# Scuro-caldo (non nero piatto, che su terreno dipinto sembra un buco) + ellisse piu' ampia
+	# e offset coerente con la luce -> l'oggetto appoggia sul terreno invece di galleggiarci sopra.
 	var grad: Gradient = Gradient.new()
-	grad.colors = PackedColorArray([Color(0, 0, 0, 0.42), Color(0, 0, 0, 0.0)])
+	grad.colors = PackedColorArray([Color(0.03, 0.02, 0.02, 0.5), Color(0.03, 0.02, 0.02, 0.0)])
 	grad.offsets = PackedFloat32Array([0.0, 1.0])
 	var tex: GradientTexture2D = GradientTexture2D.new()
 	tex.gradient = grad
@@ -574,9 +576,9 @@ func _ombra(px: float, py: float, larghezza: float, animata: bool) -> TextureRec
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
-	var dim: Vector2 = Vector2(larghezza * 1.05, larghezza * 0.34)
+	var dim: Vector2 = Vector2(larghezza * 1.18, larghezza * 0.36)
 	tr.size = dim
-	tr.position = Vector2(px - dim.x * 0.5, py - dim.y * 0.58)
+	tr.position = Vector2(px - dim.x * 0.5 + larghezza * 0.07, py - dim.y * 0.55)
 	_suolo.add_child(tr)
 	if animata:
 		tr.modulate.a = 0.0
@@ -777,16 +779,17 @@ func _posa_camminatore(era: int, nome: String, banda_y: float, scala: float,
 	var xa: float = randf_range(0.30, 0.48) * s.x
 	var xb: float = randf_range(0.60, 0.88) * s.x
 	holder.position = Vector2(randf_range(minf(xa, xb), maxf(xa, xb)), py)
-	# Ombra di contatto come blob soft figlio del holder (segue il camminatore).
-	var shdim: Vector2 = Vector2(dim.x * 0.7, dim.x * 0.24)
+	# Ombra di contatto come blob soft figlio del holder (segue il camminatore). Scuro-caldo
+	# (non nero piatto) + offset coerente con la luce -> radica la figura sul terreno dipinto.
+	var shdim: Vector2 = Vector2(dim.x * 0.84, dim.x * 0.30)
 	var sh: TextureRect = TextureRect.new()
 	sh.texture = _disc_texture()
-	sh.modulate = Color(0, 0, 0, 0.3)
+	sh.modulate = Color(0.03, 0.02, 0.02, 0.5)
 	sh.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sh.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	sh.stretch_mode = TextureRect.STRETCH_SCALE
 	sh.size = shdim
-	sh.position = Vector2(-shdim.x * 0.5, -shdim.y * 0.5)
+	sh.position = Vector2(-shdim.x * 0.5 + dim.x * 0.06, -shdim.y * 0.42)
 	holder.add_child(sh)
 	var sp: TextureRect = TextureRect.new()
 	sp.texture = tex
@@ -810,12 +813,28 @@ func _posa_camminatore(era: int, nome: String, banda_y: float, scala: float,
 	t.tween_property(holder, "position:x", maxf(xa, xb), dur)
 	t.tween_callback(_face.bind(sp, false))
 	t.tween_property(holder, "position:x", minf(xa, xb), dur)
+	# Camminata procedurale per sprite a frame singolo (niente walk-cycle disegnato):
+	# il pivot e' ai piedi, quindi un rollio "a papera" attorno ai piedi + uno step-bob
+	# sincronizzato vendono lo sforzo del passo invece di far scivolare un ritaglio piatto.
 	var base_y: float = sp.position.y
+	# Cadenza con jitter per-attore: periodi diversi + fase iniziale casuale -> i camminatori
+	# NON ondeggiano all'unisono (eviti l'effetto "marcia sincronizzata").
+	var passo: float = (0.30 if veloce else 0.42) * randf_range(0.85, 1.15)
+	var rock: float = deg_to_rad(4.5) if veloce else deg_to_rad(3.5)
+	var verso: float = 1.0 if randf() < 0.5 else -1.0
+	sp.rotation = -rock * verso
+	var r: Tween = sp.create_tween()
+	r.set_loops()
+	r.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	r.tween_property(sp, "rotation", rock * verso, passo)   # appoggio piede ad ogni estremo del rollio
+	r.tween_property(sp, "rotation", -rock * verso, passo)
+	# Step-bob: il corpo si solleva a meta' passo e si abbassa sull'appoggio (due appoggi per
+	# ciclo di rollio) -> lettura di passi, non di galleggiamento. In fase col rollio.
 	var b: Tween = sp.create_tween()
 	b.set_loops()
-	b.set_trans(Tween.TRANS_SINE)
-	b.tween_property(sp, "position:y", base_y - 4.0, 0.4)
-	b.tween_property(sp, "position:y", base_y, 0.4)
+	b.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	b.tween_property(sp, "position:y", base_y - 3.0, passo * 0.5)
+	b.tween_property(sp, "position:y", base_y, passo * 0.5)
 
 
 func _face(sp: TextureRect, destra: bool) -> void:

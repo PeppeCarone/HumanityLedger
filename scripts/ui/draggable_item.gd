@@ -80,12 +80,7 @@ func _crea_medaglione() -> void:
 func _refresh() -> void:
 	if bg != null:
 		# Backing della card reso discreto: il medaglione circolare è il protagonista.
-		var sb: StyleBoxFlat = StyleBoxFlat.new()
-		sb.bg_color = Color(0.10, 0.08, 0.06, 0.45)
-		sb.border_color = Color(0.5, 0.38, 0.22, 0.5)
-		sb.set_border_width_all(1)
-		sb.set_corner_radius_all(10)
-		bg.add_theme_stylebox_override("panel", sb)
+		bg.add_theme_stylebox_override("panel", UiStyle.card_backing_stylebox())
 	if icon_rect != null:
 		icon_rect.texture = icon_texture
 		icon_rect.visible = icon_texture != null

@@ -23,7 +23,7 @@ QUEST_DIR = "data/quests"
 # Quest order per era (mirror main.gd QUEST_SEQUENZE)
 ERA_SEQ = {
     1: ["q_caverna_tutorial", "q_accampamento", "q_confronto", "q_idolo_del_fuoco"],
-    2: ["q_corte_si_forma", "q_pressione_imperi", "q_scelta_finale"],
+    2: ["q_corte_si_forma", "q_pressione_imperi", "q_prova_del_regno", "q_scelta_finale"],
 }
 
 # Endings (mirror data/finali/*.tres)
