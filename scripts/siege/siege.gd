@@ -2105,7 +2105,7 @@ func debug_solo_boss() -> void:
 	_pausa_fino = _tempo + 1.2
 	risorse = 400
 	_aggiorna_risorse()
-	_flash_info("DEBUG — Boss diretto: piazza i difensori!")
+	_flash_info("DEBUG — 1=Colosso  2=Drago  R=ricomincia  ·  piazza i difensori!")
 
 
 # Compatibilità con la Fase A (shoot harness): piazza un tiratore.
