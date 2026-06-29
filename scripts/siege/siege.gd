@@ -1159,6 +1159,7 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.stagger_cambiato.connect(_on_boss_stagger)
 	_world.add_child(b)
 	b.global_position = Vector2(SPAWN_X - 30.0, ROAD_MID)
+	b._spawn_x = float(SPAWN_X) - 30.0
 	b.morto.connect(func(_bt: int) -> void: _on_boss_morto(b))
 	b.arrivato.connect(func(dn: int) -> void: _on_enemy_arrivato(b, dn))
 	b.furia_entrata.connect(func() -> void:
@@ -1369,6 +1370,7 @@ func cinematica_trasformazione(boss: SiegeBoss, fase: int = 2) -> void:
 	if is_instance_valid(boss):
 		fx_vfx(boss.global_position, 560.0, "shockwave", true)
 		fx_esplosione(boss.global_position, 280.0)
+		_burst_ember(boss.global_position, Color(1.0, 0.62, 0.3))
 	scuoti_forte()
 	# 2) IL CLOU: barre cinema + title-card di fase + zoom-punch FORTE e lungo sul boss.
 	_cinema_letterbox(true, 0.30)
@@ -1561,6 +1563,9 @@ func intermezzo_fase(boss: SiegeBoss, fase: int) -> void:
 			_enemies.erase(e)
 			e.queue_free()
 	_spawn_queue.clear()
+	# Ricompensa di fase (piccola): un attimo di respiro per ripiazzare/potenziare i difensori.
+	risorse += 25
+	_aggiorna_risorse()
 	cinematica_trasformazione(boss, fase)
 
 
@@ -1591,7 +1596,7 @@ func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
 
 # Il boss chiama rinforzi (§4): n nemici leggeri dell'era entrano dal lato spawn.
 func evoca_rinforzi_boss(n: int) -> void:
-	if not _attivo or _concluso or _enemies.size() > 38:
+	if not _attivo or _concluso or _enemies.size() > 55:
 		return
 	var lista: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])[0]["cr"]
 	var hp_r: int = int(round(26.0 * (1.0 + 0.18 * float(era - 1))))
@@ -1856,6 +1861,33 @@ func fx_anello(pos: Vector2, raggio: float, col: Color) -> void:
 	t.tween_property(s, "scale", Vector2(base, base), 0.32)
 	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
 	t.tween_callback(s.queue_free)
+
+
+# Esplosione di scintille/ember (per i momenti grossi: trasformazione del boss).
+func _burst_ember(pos: Vector2, col: Color) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var p: CPUParticles2D = CPUParticles2D.new()
+	p.texture = _disc_texture()
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 40
+	p.lifetime = 0.95
+	p.spread = 180.0
+	p.gravity = Vector2(0, 140)
+	p.initial_velocity_min = 200.0
+	p.initial_velocity_max = 560.0
+	p.scale_amount_min = 0.3
+	p.scale_amount_max = 0.85
+	var ramp: Gradient = Gradient.new()
+	ramp.colors = PackedColorArray([Color(col.r, col.g, col.b, 1.0), Color(0.45, 0.18, 0.1, 0.0)])
+	p.color_ramp = ramp
+	_world.add_child(p)
+	p.global_position = pos
+	var t: Tween = create_tween()
+	t.tween_interval(1.5)
+	t.tween_callback(p.queue_free)
 
 
 # VFX da sprite REALE (impatto_terra/fiammata_drago/onda_ruggito/aura_gelo/portale_evoca):

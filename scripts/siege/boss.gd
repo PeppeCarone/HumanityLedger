@@ -78,6 +78,7 @@ const FASI: int = 3
 var _fase: int = 1
 var _invulnerabile: bool = false
 var _berserk: bool = false           # dopo ~60s: avanza imbloccabile E incassa ×2.5 → conclude sempre
+var _spawn_x: float = 1800.0         # lato di spawn: il boss vi RITORNA a ogni cambio fase
 
 
 # Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).
@@ -183,9 +184,10 @@ func _process(delta: float) -> void:
 			# Evoca rinforzi durante tutto lo scontro (§4).
 			_evoca_t -= delta
 			if _evoca_t <= 0.0:
-				_evoca_t = EVOCA_BOSS_CD
+				# MOLTI più nemici e più spesso a ogni fase (fase 2-3 = ondate fitte).
+				_evoca_t = EVOCA_BOSS_CD * (0.5 if _frenesia else (0.68 if _in_furia else 1.0))
 				if arena != null and arena.has_method("evoca_rinforzi_boss"):
-					arena.evoca_rinforzi_boss(2 + era_boss)
+					arena.evoca_rinforzi_boss(2 + era_boss + _fase * 2)
 			# Ultimate periodica dopo la trasformazione (potenza calante, cadenza crescente).
 			if _trasformato:
 				_ult_t -= delta
@@ -261,8 +263,8 @@ func _notifica_stagger() -> void:
 
 
 func _cooldown_abilita() -> float:
-	var base: float = 1.5 if _frenesia else (2.3 if _in_furia else 3.4)
-	return base + randf_range(-0.3, 0.5)
+	var base: float = 1.2 if _frenesia else (1.9 if _in_furia else 2.8)
+	return base + randf_range(-0.25, 0.45)
 
 
 # Prima volta sotto furia_soglia: entra nello stato "trasforma" (l'arena fa la cinematica).
@@ -286,6 +288,9 @@ func _completa_cambio_fase() -> void:
 	danno_melee = int(round(float(danno_melee) * 1.3))
 	velocita *= 1.08
 	scale = Vector2.ONE
+	# Riparte DALL'INIZIO: torna al lato di spawn e rimarcia (round nuovo per la fase).
+	position.x = _spawn_x
+	_engaged = null
 	_in_furia = _fase >= 2                         # fase 2 = furia (abilità più frequenti)
 	_frenesia = _fase >= 3                         # fase 3 = frenesia (a raffica)
 	# Sprite della fase, se esiste (es. drago boss_fase2 / boss_fase3).
@@ -293,9 +298,12 @@ func _completa_cambio_fase() -> void:
 		var tex2: Texture2D = arena._siege_tex("boss_fase%d" % _fase)
 		if tex2 != null:
 			sprite = tex2
+	# Ondata di rinforzi SUBITO all'inizio della nuova fase.
+	if arena != null and arena.has_method("evoca_rinforzi_boss"):
+		arena.evoca_rinforzi_boss(4 + _fase * 3)
 	_stato = "marcia"
-	_abil_t = _cooldown_abilita()
-	_ult_t = 1.5                                   # l'ultimate della nuova fase parte poco dopo (telegrafata)
+	_abil_t = 0.8                                  # casta quasi subito nella fase nuova
+	_ult_t = 1.8
 
 
 # Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).
@@ -344,7 +352,7 @@ func _esegui_abilita() -> void:
 	match _abil_corrente:
 		"pestone":
 			if arena != null:
-				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 50 if _in_furia else 38)
+				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 58 if _in_furia else 44)
 				arena.fx_vfx(_tele_pos, RAGGIO_PESTONE * 2.4, "impatto_terra", true)
 				arena.fx_esplosione(_tele_pos, RAGGIO_PESTONE)
 				arena.scuoti_forte()
@@ -357,7 +365,7 @@ func _esegui_abilita() -> void:
 			if arena != null:
 				arena.stordisci_difensori(dur)
 				var cen: Vector2 = global_position + Vector2(-260.0, 0.0)
-				arena.danno_area_difensori(cen, 320.0, 20 if _in_furia else 14)
+				arena.danno_area_difensori(cen, 320.0, 26 if _in_furia else 18)
 				arena.fx_vfx(global_position + Vector2(-120.0, 0.0), 640.0, "onda_ruggito", false)
 				arena.scuoti_forte()
 				arena.hitstop(0.05, 0.2)
@@ -372,7 +380,7 @@ func _esegui_abilita() -> void:
 			# Lingua di fuoco lungo la corsia: colpisce i difensori in una banda davanti
 			# al Drago (a distanza, senza doverli raggiungere — il contrario del Colosso).
 			if arena != null:
-				var dmg: int = 44 if _in_furia else 32
+				var dmg: int = 52 if _in_furia else 38
 				for off in [160.0, 340.0, 520.0, 700.0, 880.0, 1060.0]:
 					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
 					arena.danno_area_difensori(p, 110.0, dmg)
@@ -385,7 +393,7 @@ func _esegui_abilita() -> void:
 		"pioggia":
 			# Pioggia di fuoco: piu' impatti sparsi sul campo (area denial diffuso).
 			if arena != null:
-				var dmg2: int = 36 if _in_furia else 26
+				var dmg2: int = 42 if _in_furia else 30
 				for p in _pioggia_pts:
 					arena.danno_area_difensori(p, 110.0, dmg2)
 					arena.fx_vfx(p, 230.0, "fire_burst", true)
