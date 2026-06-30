@@ -33,7 +33,8 @@ func _ready() -> void:
 	titolo_label.text = finale.nome
 	titolo_label.add_theme_color_override("font_color", TONI.get(finale.id, Color.WHITE))
 	testo_label.text = finale.testo
-	footer_label.text = "Premi R per ricominciare, L per il Ledger"
+	footer_label.text = "R  Ricomincia      ·      N  Nuovo Ciclo+ (%s)      ·      L  Ledger" % Ledger.eone_nome(Ledger.eone + 1)
+	_badge_eone()
 	_imposta_illustrazione()
 	AudioManager.play_music_id("ending")
 	_anima_ingresso()
@@ -92,6 +93,51 @@ func _box_footer() -> void:
 	footer_label.custom_minimum_size = Vector2.ZERO
 	footer_label.modulate = Color.WHITE
 	footer_label.add_theme_color_override("font_color", Color(0.85, 0.74, 0.52))
+
+
+# Se la run conclusa era già un Nuovo Ciclo+, un cartiglio in alto la celebra:
+# "Eone N — <Mutatore>". Niente se è la prima vita (Ledger.eone == 0).
+func _badge_eone() -> void:
+	if not Ledger.in_eone():
+		return
+	var box: PanelContainer = PanelContainer.new()
+	box.name = "BadgeEone"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.05, 0.09, 0.7)
+	sb.border_color = Color(0.72, 0.55, 0.95, 0.9)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 6
+	box.add_theme_stylebox_override("panel", sb)
+	add_child(box)
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 0.0
+	box.anchor_bottom = 0.0
+	box.offset_left = -240.0
+	box.offset_right = 240.0
+	box.offset_top = 26.0
+	box.offset_bottom = 70.0
+	var lbl: Label = Label.new()
+	lbl.text = "✦ %s — %s" % [Ledger.eone_nome(), Ledger.mutatore_nome()]
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(0.88, 0.8, 1.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	lbl.add_theme_constant_override("outline_size", 4)
+	var cinzel: String = "res://Assets/fonts/Cinzel.ttf"
+	if ResourceLoader.exists(cinzel):
+		var fv: FontVariation = FontVariation.new()
+		fv.base_font = load(cinzel)
+		fv.variation_opentype = {"wght": 600}
+		lbl.add_theme_font_override("font", fv)
+	box.add_child(lbl)
 
 
 func _crea_scrims() -> void:

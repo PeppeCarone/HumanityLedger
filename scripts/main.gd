@@ -1416,7 +1416,7 @@ func _show_ending() -> void:
 		if finale.id == "fine_guerra":
 			Ledger.unlock_artefatto("corno_adunata")
 		proposer_name_label.text = "Epilogo: %s" % finale.nome
-		quest_log_label.text = "Era 2 completata.\nPremi R per ricominciare."
+		quest_log_label.text = "Era 2 completata.\nR: ricomincia · N: Nuovo Ciclo+ (%s)" % Ledger.eone_nome(Ledger.eone + 1)
 	else:
 		proposer_name_label.text = "Epilogo"
 	proposer_text_label.text = ""
@@ -2094,6 +2094,17 @@ func _refresh_disabled_options() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed and not event.echo):
 		return
+	# All'epilogo R/N ricominciano in OGNI build (non solo debug): il footer le promette.
+	if ending_instance != null and is_instance_valid(ending_instance):
+		match event.keycode:
+			KEY_R:
+				get_viewport().set_input_as_handled()
+				_reset_run()
+				return
+			KEY_N:
+				get_viewport().set_input_as_handled()
+				_nuovo_eone()
+				return
 	match event.keycode:
 		KEY_L: _toggle_ledger()
 		KEY_V: _toggle_villaggio()
@@ -2892,6 +2903,13 @@ func _separatore_panel() -> ColorRect:
 	sep.color = Color(0.5, 0.38, 0.22, 0.4)
 	sep.custom_minimum_size = Vector2(0, 1)
 	return sep
+
+
+func _nuovo_eone() -> void:
+	# Sale di un tier di Nuovo Ciclo+ e riparte: la nuova run eredita minaccia/mutatore.
+	Ledger.avanza_eone()
+	AudioManager.play_sfx("era_transition")
+	_reset_run()
 
 
 func _reset_run() -> void:

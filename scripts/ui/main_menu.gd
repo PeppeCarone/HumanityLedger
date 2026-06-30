@@ -34,6 +34,7 @@ func _ready() -> void:
 	_usa_tema_globale()
 	_stilizza_primario()
 	_aggiungi_tagline()
+	_badge_eone()
 	_setup_hover()
 	for b in [nuova_btn, continua_btn, ledger_btn, esci_btn]:
 		b.pressed.connect(func() -> void: AudioManager.play_sfx("ui_click"))
@@ -89,6 +90,56 @@ func _aggiungi_tagline() -> void:
 	var tw: Tween = create_tween()
 	tw.tween_interval(0.15)
 	tw.tween_property(t, "modulate:a", 1.0, 0.7)
+
+
+# Badge "Eone N · <Mutatore>" in alto a destra quando si è in Nuovo Ciclo+: ricorda
+# al giocatore di ritorno il tier di rigiocabilità raggiunto. Niente alla prima vita.
+func _badge_eone() -> void:
+	if not Ledger.in_eone():
+		return
+	var box: PanelContainer = PanelContainer.new()
+	box.name = "BadgeEone"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
+	sb.bg_color = Color(0.07, 0.05, 0.09, 0.72)
+	sb.border_color = Color(0.72, 0.55, 0.95, 0.9)
+	sb.set_border_width_all(1)
+	sb.set_corner_radius_all(8)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 6
+	box.add_theme_stylebox_override("panel", sb)
+	box.anchor_left = 1.0
+	box.anchor_right = 1.0
+	box.anchor_top = 0.0
+	box.anchor_bottom = 0.0
+	# A sinistra della cornice d'angolo (168px) per non sovrapporsi al filigrana dorato.
+	box.offset_left = -520.0
+	box.offset_right = -188.0
+	box.offset_top = 30.0
+	box.offset_bottom = 78.0
+	add_child(box)
+	var lbl: Label = Label.new()
+	lbl.text = "✦ %s · %s" % [Ledger.eone_nome(), Ledger.mutatore_nome()]
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 17)
+	lbl.add_theme_color_override("font_color", Color(0.88, 0.8, 1.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	lbl.add_theme_constant_override("outline_size", 4)
+	var cinzel: String = "res://Assets/fonts/Cinzel.ttf"
+	if ResourceLoader.exists(cinzel):
+		var fv: FontVariation = FontVariation.new()
+		fv.base_font = load(cinzel)
+		fv.variation_opentype = {"wght": 600}
+		lbl.add_theme_font_override("font", fv)
+	box.add_child(lbl)
+	box.modulate = Color(1, 1, 1, 0)
+	var tw2: Tween = create_tween()
+	tw2.tween_interval(0.3)
+	tw2.tween_property(box, "modulate:a", 1.0, 0.7)
 
 
 func _setup_hover() -> void:
