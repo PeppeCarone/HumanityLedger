@@ -8,6 +8,13 @@ const PAUSE_SCENE: PackedScene = preload("res://scenes/ui/pause_menu.tscn")
 const WORLD_MAP_SCENE: PackedScene = preload("res://scenes/world_map.tscn")
 const CHARACTERS_DIR: String = "res://data/characters/"
 const FINALI_DIR: String = "res://data/finali/"
+# Finale segreto 7°: NON entra nello scoring normale (escluso da _carica_finali) e
+# si attiva solo via _finale_segreto() su una condizione nascosta — premio del
+# Nuovo Ciclo+: essere in un Eone, aver accolto la Voce, e padroneggiare OGNI stat.
+const FINALE_SEGRETO_ID: String = "fine_ascensione"
+const FINALE_SEGRETO_EONE_MIN: int = 1
+const FINALE_SEGRETO_STAT_MIN: int = 50
+const FINALE_SEGRETO_DECISIONE: String = "accolto_la_voce"
 const QUEST_SEQUENZE: Dictionary = {
 	1: [
 		"q_caverna_tutorial",
@@ -1429,6 +1436,10 @@ func _show_ending() -> void:
 
 
 func _valuta_finale() -> Finale:
+	# Il finale segreto ha la precedenza assoluta quando la condizione nascosta è piena.
+	var segreto: Finale = _finale_segreto()
+	if segreto != null:
+		return segreto
 	var finali: Array[Finale] = _carica_finali()
 	if finali.is_empty():
 		return null
@@ -1444,6 +1455,22 @@ func _valuta_finale() -> Finale:
 	return _finale_fallback(finali)
 
 
+func _finale_segreto() -> Finale:
+	# Condizione nascosta: in un Nuovo Ciclo+ (Eone >= 1), aver accolto la Voce, e
+	# avere TUTTE e otto le stat al di sopra della soglia di maestria.
+	if Ledger.eone < FINALE_SEGRETO_EONE_MIN:
+		return null
+	if FINALE_SEGRETO_DECISIONE not in GameState.decisioni_chiave:
+		return null
+	for stat_name in GameState.STAT_NAMES:
+		if GameState.get_stat(stat_name) < FINALE_SEGRETO_STAT_MIN:
+			return null
+	var path: String = FINALI_DIR + FINALE_SEGRETO_ID + ".tres"
+	if not ResourceLoader.exists(path):
+		return null
+	return load(path) as Finale
+
+
 func _carica_finali() -> Array[Finale]:
 	var out: Array[Finale] = []
 	var dir: DirAccess = DirAccess.open(FINALI_DIR)
@@ -1454,7 +1481,7 @@ func _carica_finali() -> Array[Finale]:
 	while fname != "":
 		if not dir.current_is_dir() and fname.ends_with(".tres"):
 			var f: Finale = load(FINALI_DIR + fname) as Finale
-			if f != null:
+			if f != null and f.id != FINALE_SEGRETO_ID:   # il segreto non entra nello scoring
 				out.append(f)
 		fname = dir.get_next()
 	dir.list_dir_end()
@@ -2121,6 +2148,12 @@ func _debug_input(keycode: int) -> void:
 	match keycode:
 		KEY_R: _reset_run()
 		KEY_B: _avvia_assedio(GameState.era_corrente)   # prova L'Assedio al volo
+		KEY_0: Ledger.avanza_eone()                     # +1 Eone (prova NG+/finale segreto)
+		KEY_9:                                           # maestria istantanea (prova finale segreto)
+			for s in GameState.STAT_NAMES:
+				GameState.set_stat(s, 60)
+			if FINALE_SEGRETO_DECISIONE not in GameState.decisioni_chiave:
+				GameState.decisioni_chiave.append(FINALE_SEGRETO_DECISIONE)
 		KEY_1: GameState.modifica_stat("militare", 5)
 		KEY_2: GameState.modifica_stat("tesoro", 5)
 		KEY_3: GameState.modifica_stat("diplomazia", 5)

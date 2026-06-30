@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Finale" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/finale.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fine_ascensione"
+nome = "Il Cerchio Compiuto"
+testo = "Lo spirito aveva attraversato le ere non una volta, ma molte: ogni crollo, ogni rinascita, ogni volto amato e perduto, rivisti finché non ne conobbe il disegno. Quando la Voce tornò a chiamare, stavolta il popolo non fu accolto né respinto: riconobbe sé stesso in lei. La scintilla che ardeva sotto la pietra della prima caverna e la presenza senza nome erano la stessa cosa, noi, prima e dopo il tempo. Il cerchio non si spezzò: si compì. E in quel compimento non vi fu più né spirito né popolo, ma un'unica veglia luminosa sul mondo che avevamo, infine, meritato."
+condizioni_stat = {}
+decisioni_chiave_richieste = []
+decisioni_chiave_escludenti = []
+priorita = 0

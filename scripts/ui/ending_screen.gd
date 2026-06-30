@@ -13,6 +13,7 @@ const TONI: Dictionary = {
 	"fine_alleanza": Color(0.6, 0.9, 0.7),
 	"fine_industria": Color(0.8, 0.75, 0.6),
 	"fine_futura": Color(0.8, 0.6, 1.0),
+	"fine_ascensione": Color(1.0, 0.93, 0.74),
 }
 
 @onready var immagine: TextureRect = $Immagine
@@ -100,12 +101,15 @@ func _box_footer() -> void:
 func _badge_eone() -> void:
 	if not Ledger.in_eone():
 		return
+	# Sul finale segreto il cartiglio diventa il marchio "FINALE SEGRETO" (oro), così
+	# non si somma a un secondo badge: la condizione richiede comunque Eone >= 1.
+	var segreto: bool = finale != null and finale.id == "fine_ascensione"
 	var box: PanelContainer = PanelContainer.new()
 	box.name = "BadgeEone"
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
-	sb.bg_color = Color(0.07, 0.05, 0.09, 0.7)
-	sb.border_color = Color(0.72, 0.55, 0.95, 0.9)
+	sb.bg_color = Color(0.1, 0.08, 0.04, 0.74) if segreto else Color(0.07, 0.05, 0.09, 0.7)
+	sb.border_color = Color(1.0, 0.84, 0.45, 0.95) if segreto else Color(0.72, 0.55, 0.95, 0.9)
 	sb.set_border_width_all(1)
 	sb.set_corner_radius_all(8)
 	sb.content_margin_left = 18
@@ -125,10 +129,11 @@ func _badge_eone() -> void:
 	box.offset_top = 26.0
 	box.offset_bottom = 70.0
 	var lbl: Label = Label.new()
-	lbl.text = "✦ %s — %s" % [Ledger.eone_nome(), Ledger.mutatore_nome()]
+	lbl.text = ("✦ FINALE SEGRETO · %s ✦" % Ledger.eone_nome()) if segreto \
+		else ("✦ %s — %s" % [Ledger.eone_nome(), Ledger.mutatore_nome()])
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 18)
-	lbl.add_theme_color_override("font_color", Color(0.88, 0.8, 1.0))
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.62) if segreto else Color(0.88, 0.8, 1.0))
 	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 	lbl.add_theme_constant_override("outline_size", 4)
 	var cinzel: String = "res://Assets/fonts/Cinzel.ttf"
