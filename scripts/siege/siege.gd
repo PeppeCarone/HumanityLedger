@@ -1100,7 +1100,7 @@ func _on_enemy_morto(e: SiegeEnemy, bounty: int) -> void:
 func spawn_minion(pos: Vector2, corsia: int) -> void:
 	if not _attivo or _concluso or _enemies.size() > 40:
 		return
-	_spawn_enemy({"hp": 14, "vel": 96.0, "danno": 5, "bounty": 0, "corsia": corsia, "creatura": "minion"})
+	_spawn_enemy({"hp": 20, "vel": 100.0, "danno": 7, "bounty": 1, "corsia": corsia, "creatura": "minion"})
 	if not _enemies.is_empty():
 		var e: SiegeEnemy = _enemies[-1]
 		if is_instance_valid(e):
@@ -1585,7 +1585,7 @@ func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
 		if d0 != null and is_instance_valid(d0):
 			bersaglio = d0.global_position
 	var marker: Node = _telegrafo_disco(bersaglio, raggio)
-	var dmg: int = 12 + 4 * (era - 1)
+	var dmg: int = 20 + 6 * (era - 1)   # mini-boss caster: colpo che FA male (telegrafato, evitabile)
 	var t: Tween = create_tween()
 	t.tween_interval(0.7)
 	t.tween_callback(func() -> void:

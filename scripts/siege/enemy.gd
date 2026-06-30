@@ -136,18 +136,24 @@ func _tick_abilita_nemico(delta: float) -> void:
 	if evocatore:
 		_evoca_cd -= delta
 		if _evoca_cd <= 0.0:
-			_evoca_cd = EVOCA_CD
 			if mini_boss:
-				# Tell del mini-boss: lampo viola d'evocazione (la sua mini-meccanica si VEDE).
+				# RAFFICA: il mini-boss vomita 3 minion a ondata, e più spesso → vera pressione
+				# che sommerge le difese se non lo abbatti in fretta. Tell viola d'evocazione.
+				_evoca_cd = 3.4
 				modulate = Color(1.35, 0.8, 1.5)
 				var tw: Tween = create_tween()
 				tw.tween_property(self, "modulate", Color.WHITE, 0.5)
-			if arena.has_method("spawn_minion"):
-				arena.spawn_minion(global_position, corsia)
+				if arena.has_method("spawn_minion"):
+					for _i in range(3):
+						arena.spawn_minion(global_position, corsia)
+			else:
+				_evoca_cd = EVOCA_CD
+				if arena.has_method("spawn_minion"):
+					arena.spawn_minion(global_position, corsia)
 	if caster:
 		_bombarda_cd -= delta
 		if _bombarda_cd <= 0.0:
-			_bombarda_cd = BOMBARDA_CD
+			_bombarda_cd = 3.4 if mini_boss else BOMBARDA_CD
 			# Tell del bombardamento (lampo viola); l'arena gestisce telegrafo e impatto ad area.
 			modulate = Color(1.45, 0.7, 1.6)
 			var twb: Tween = create_tween()
