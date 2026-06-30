@@ -42,3 +42,6 @@ __pycache__/
 *.pyc
 tools/_out/
 tools/_out_recrop/
+
+# UID generato dell'autoload MCP (editor-only)
+scripts/autoload/mcp_interaction_server.gd.uid
