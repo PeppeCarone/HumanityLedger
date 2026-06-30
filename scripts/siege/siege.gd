@@ -185,7 +185,7 @@ var _vignetta_tween: Tween = null
 func configura(e: int) -> void:
 	era = e
 	_skin = SKIN.get(e, SKIN[1])
-	hp_villaggio_max = 70 + GameState.get_stat("costruzione") + int(GameState.popolazione / 4.0)
+	hp_villaggio_max = int(round((70 + GameState.get_stat("costruzione") + int(GameState.popolazione / 4.0)) * AudioManager.difficolta_villaggio()))
 	hp_villaggio = hp_villaggio_max
 	risorse = 8 + int(GameState.risorse / 4.0) + int(GameState.tesoro / 22.0) + int(GameState.get_stat("popolo") / 18.0)
 	_calcola_diplomazia()
@@ -938,7 +938,9 @@ const MINI_BOSS: Dictionary = {
 func _prepara_ondate() -> void:
 	_ondate.clear()
 	_ondata_idx = -1
-	var ef: float = 1.0 + 0.18 * float(era - 1)            # forza per era
+	# Difficoltà (preferenza): scala la minaccia piegandola in `ef`. Equilibrato = ×1.0 →
+	# il bilanciamento di riferimento (balance_sim) resta intatto.
+	var ef: float = (1.0 + 0.18 * float(era - 1)) * AudioManager.difficolta_minaccia()
 	var of: float = 1.0 + 0.12 * float(_ostili_civ.size()) # rinforzo dei nemici ostili
 	var extra: int = _ostili_civ.size()
 	var normali: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])   # 4 descrittori

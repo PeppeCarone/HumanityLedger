@@ -40,8 +40,8 @@ func _costruisci() -> void:
 	box.anchor_bottom = 0.5
 	box.offset_left = -360.0
 	box.offset_right = 360.0
-	box.offset_top = -270.0
-	box.offset_bottom = 270.0
+	box.offset_top = -318.0
+	box.offset_bottom = 318.0
 	dim.add_child(box)
 
 	var margine: MarginContainer = MarginContainer.new()
@@ -112,6 +112,31 @@ func _costruisci() -> void:
 		AudioManager.set_resolution(RES_PRESETS[idx]))
 	rrow.add_child(_res_btn)
 	vb.add_child(rrow)
+
+	vb.add_child(_separatore())
+
+	# Difficoltà (preferenza di gioco): incide su Assedio + HP villaggio.
+	var drow: HBoxContainer = HBoxContainer.new()
+	drow.add_theme_constant_override("separation", 12)
+	var dlbl: Label = _lbl("Difficoltà")
+	dlbl.custom_minimum_size = Vector2(120, 0)
+	drow.add_child(dlbl)
+	var dbtn: OptionButton = OptionButton.new()
+	for i in AudioManager.DIFFICOLTA_NOMI.size():
+		dbtn.add_item(AudioManager.DIFFICOLTA_NOMI[i], i)
+	dbtn.select(AudioManager.difficolta())
+	drow.add_child(dbtn)
+	vb.add_child(drow)
+	var ddesc: Label = _lbl(AudioManager.DIFFICOLTA_DESCR[AudioManager.difficolta()])
+	ddesc.add_theme_font_size_override("font_size", 14)
+	ddesc.add_theme_color_override("font_color", Color(0.78, 0.72, 0.6))
+	ddesc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ddesc.custom_minimum_size = Vector2(640, 34)
+	vb.add_child(ddesc)
+	dbtn.item_selected.connect(func(idx: int) -> void:
+		AudioManager.set_difficolta(idx)
+		ddesc.text = AudioManager.DIFFICOLTA_DESCR[idx]
+		AudioManager.play_sfx("ui_click"))
 
 	vb.add_child(_separatore())
 

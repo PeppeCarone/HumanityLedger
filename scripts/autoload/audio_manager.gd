@@ -192,6 +192,42 @@ func resolution() -> Vector2i:
 	return _win_size
 
 
+# --- Difficoltà (preferenza di gioco, persistita come volume/video) ---------
+# 0 = Spirito sereno (perdona) · 1 = Equilibrato (default, è il balance di riferimento
+# dei tool) · 2 = Implacabile (duro). Incide sulla minaccia dell'Assedio e sull'HP del
+# villaggio; l'Equilibrato lascia tutto a ×1.0 → non tocca il bilanciamento verificato.
+var _difficolta: int = 1
+const DIFFICOLTA_NOMI: Array[String] = ["Spirito sereno", "Equilibrato", "Implacabile"]
+const DIFFICOLTA_DESCR: Array[String] = [
+	"Nemici più deboli, villaggio più resistente. Per godersi la storia.",
+	"L'equilibrio pensato dagli autori. La sfida giusta.",
+	"Nemici più forti, villaggio più fragile. Per chi vuole sudare.",
+]
+
+
+func difficolta() -> int:
+	return _difficolta
+
+
+func difficolta_nome() -> String:
+	return DIFFICOLTA_NOMI[clampi(_difficolta, 0, 2)]
+
+
+func set_difficolta(d: int) -> void:
+	_difficolta = clampi(d, 0, 2)
+	_save_settings()
+
+
+# Fattore di minaccia dell'Assedio (scala HP/danno nemici + boss). Equilibrato = 1.0.
+func difficolta_minaccia() -> float:
+	return [0.82, 1.0, 1.26][clampi(_difficolta, 0, 2)]
+
+
+# Fattore HP del villaggio nell'Assedio (inverso: facile = più resistente). Equilibrato = 1.0.
+func difficolta_villaggio() -> float:
+	return [1.18, 1.0, 0.9][clampi(_difficolta, 0, 2)]
+
+
 # --- Persistenza ------------------------------------------------------------
 
 func _load_settings() -> void:
@@ -205,6 +241,7 @@ func _load_settings() -> void:
 	var w: int = int(cfg.get_value("video", "win_w", 0))
 	var h: int = int(cfg.get_value("video", "win_h", 0))
 	_win_size = Vector2i(w, h)
+	_difficolta = clampi(int(cfg.get_value("gameplay", "difficolta", 1)), 0, 2)
 
 
 func _save_settings() -> void:
@@ -216,4 +253,5 @@ func _save_settings() -> void:
 	cfg.set_value("video", "fullscreen", _fullscreen)
 	cfg.set_value("video", "win_w", _win_size.x)
 	cfg.set_value("video", "win_h", _win_size.y)
+	cfg.set_value("gameplay", "difficolta", _difficolta)
 	cfg.save(SETTINGS_PATH)
