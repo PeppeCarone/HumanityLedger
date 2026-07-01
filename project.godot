@@ -26,6 +26,7 @@ SaveSystem="*res://scripts/autoload/save_system.gd"
 AudioManager="*res://scripts/autoload/audio_manager.gd"
 UiStyle="*res://scripts/autoload/ui_style.gd"
 McpInteractionServer="*res://scripts/autoload/mcp_interaction_server.gd"
+PostFX="*res://scripts/autoload/post_fx.gd"
 
 [display]
 

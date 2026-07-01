@@ -31,6 +31,15 @@ func _shot(path: String, name: String, setup: Callable = Callable(), post: Calla
 
 
 func _run() -> void:
+	# AUDIT polish/post-fx: menu + schermata decisione (per vedere lo shader globale a schermo).
+	GameState.reset_run()
+	await _shot("res://scenes/main_menu.tscn", "audit_menu")
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 4)
+	GameState.scienza = 9
+	await _shot("res://scenes/main.tscn", "audit_decisione", Callable(), func(inst: Node) -> void:
+		inst._apri_decisione(), 1.0)
+
 	# 1) Pannello edificio: la riga "Assedio: ..." mostra il payoff difesa (Palizzata = muro).
 	GameState.reset_run()
 	GameState.set_flag("villaggio_n", 6)
