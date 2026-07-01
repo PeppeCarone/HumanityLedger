@@ -255,6 +255,7 @@ func _ready() -> void:
 	_schiera_alleati()
 	_prepara_ondate()
 	AudioManager.play_sfx("era_transition")
+	AudioManager.fade_to_id("assedio")   # feel: tema teso del boss fight
 	_attivo = true
 	# Onboarding: spiega l'evocazione alla prima partita (resta finché non si agisce).
 	if _info_label != null:
@@ -2156,6 +2157,8 @@ func _termina(esito: String) -> void:
 		return
 	_concluso = true
 	_attivo = false
+	# Feel: la battaglia finisce -> si torna al tema dell'era in dissolvenza.
+	AudioManager.fade_to_id("era%d" % GameState.era_corrente)
 	_mostra_esito(esito)
 
 

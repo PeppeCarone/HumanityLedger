@@ -18,6 +18,7 @@ const SFX_PATHS: Dictionary = {
 
 const MUSIC_PATHS: Dictionary = {
 	"era2": "res://Assets/audio/music/void_crown.mp3",
+	"assedio": "res://Assets/audio/music/void_crown.mp3",  # tema teso del boss fight
 }
 
 const MUSIC_VOLUME_DB: float = -8.0
@@ -31,6 +32,7 @@ var _sfx_cursor: int = 0
 var _cache: Dictionary = {}
 var _muted: bool = false
 var _current_music_path: String = ""
+var _music_fade: Tween = null   # transizione musicale morbida (feel dinamico)
 # Volumi lineari 0..1 (slider del Menu Opzioni); applicati come offset sui dB base.
 var _music_vol: float = 0.8
 var _sfx_vol: float = 0.85
@@ -105,6 +107,46 @@ func play_music(path: String) -> void:
 func stop_music() -> void:
 	_current_music_path = ""
 	_music_player.stop()
+
+
+# --- Transizione musicale morbida (feel dinamico) ---------------------------
+# Dissolve la traccia corrente e ne fa entrare un'altra (breve calo a -50 dB a
+# metà, poi risalita), senza lo stacco netto di play_music. Usata per l'Assedio.
+func fade_to_id(id: String, dur: float = 1.4) -> void:
+	fade_to(MUSIC_PATHS.get(id, MUSIC_DIR + id + ".ogg"), dur)
+
+
+func fade_to(path: String, dur: float = 1.4) -> void:
+	if path == _current_music_path and _music_player != null and _music_player.playing:
+		return
+	if _music_fade != null and _music_fade.is_valid():
+		_music_fade.kill()
+	if _muted or path.is_empty() or _music_player == null:
+		_swap_music(path)
+		return
+	var target: float = _vol_db(_music_vol, MUSIC_VOLUME_DB)
+	_music_fade = create_tween()
+	_music_fade.tween_property(_music_player, "volume_db", -50.0, dur * 0.45)
+	_music_fade.tween_callback(_swap_music.bind(path))
+	_music_fade.tween_property(_music_player, "volume_db", target, dur * 0.55)
+
+
+func _swap_music(path: String) -> void:
+	_current_music_path = path
+	if _muted or path.is_empty():
+		_music_player.stop()
+		return
+	if not ResourceLoader.exists(path):
+		return
+	var stream: AudioStream = load(path) as AudioStream
+	if stream == null:
+		return
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	elif stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = true
+	_music_player.stream = stream
+	_music_player.play()
 
 
 func set_muted(value: bool) -> void:
