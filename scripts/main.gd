@@ -153,6 +153,27 @@ const BUILD_BONUS: int = 3
 # Produzione base di Risorse per turno (anche con poche strutture si accumula).
 const PRODUZIONE_BASE: int = 2
 
+# --- Arsenale del boss (Docs/20): ogni edificio, oltre alla stat, ARMA l'Assedio.
+# Per (era, tipo) il contributo va a una categoria: "muro"=+HP villaggio, "monete"=+monete
+# iniziali, "truppe"=unità gratis all'avvio, "livello"=truppe di partenza più alte. Ogni era
+# ha tutte e 4 le categorie: specializzare il villaggio plasma la difesa che porti al boss.
+const EDIFICIO_ASSEDIO_ERA: Dictionary = {
+	1: {0: "truppe", 1: "truppe", 2: "livello", 3: "livello", 4: "monete", 5: "muro"},
+	2: {0: "truppe", 1: "monete", 2: "muro", 3: "livello", 4: "muro", 5: "livello"},
+}
+const ARS_HP_PER_LV: int = 14        # +HP villaggio per livello di edificio "muro"
+const ARS_MONETE_PER_LV: int = 5     # +monete iniziali per livello di edificio "monete"
+const ARS_TRUPPE_DIV: int = 3        # livelli-"truppe" totali per 1 unità gratis (2 edifici/era)
+const ARS_TRUPPE_MAX: int = 4        # tetto unità gratis
+const ARS_LIVELLO_DIV: int = 4       # livelli-"livello" totali per +1 al livello di partenza
+const ARS_LIVELLO_MAX: int = 2       # tetto: +1 livello di partenza (mai truppe già ascese)
+const ARS_KIND_LABEL: Dictionary = {
+	"muro": "rinforza le mura (+HP al villaggio)",
+	"monete": "riempie le casse (+monete iniziali)",
+	"truppe": "arruola milizia (truppe gratis all'avvio)",
+	"livello": "addestra le truppe (partono di livello più alto)",
+}
+
 const STAT_ICON_DIR: String = "res://Assets/art/stats/"
 # Vista villaggio: terreno-tabellone per era (stile board di strategia, D046).
 # Finche' il terreno non esiste si usa come fallback la scena dipinta.
@@ -1063,6 +1084,8 @@ func _avvia_prossima_quest() -> void:
 		elif GameState.era_corrente == 2 and GameState.has_flag("era2_completata"):
 			if not GameState.has_flag("era2_assedio_fatto"):
 				_avvia_assedio(2)
+			elif not GameState.has_flag("boss_finale_fatto"):
+				_avvia_boss_finale()
 			else:
 				_show_ending()
 		else:
@@ -1276,9 +1299,73 @@ func _mostra_mappa_mondo(da_era: int, a_era: int, titolo: String, sottotitolo: S
 
 # --- L'Assedio (boss fight TD di fine era) ----------------------------------
 
+# Arsenale del villaggio calcolato all'ingresso dell'Assedio, riusato dal riepilogo (card) e
+# dall'applicazione a SiegeArena.
+var _arsenale_pending: Dictionary = {}
+
+
+# Somma i contributi degli edifici (tipo+livello) nelle 4 categorie d'Assedio. Ritorna
+# {hp, monete, truppe, livello, scorte}. "scorte" (Risorse÷4) è GIÀ nella base monete di
+# SiegeArena.configura: qui serve solo a mostrarla nel riepilogo (non va ri-sommata).
+func _calcola_arsenale(era: int) -> Dictionary:
+	var hp: int = 0
+	var monete: int = 0
+	var somma_truppe: int = 0
+	var somma_livello: int = 0
+	if village != null:
+		for s in range(village.slot_count()):
+			var tipo: int = village.tipo_at(s)
+			if tipo < 0:
+				continue
+			var lv: int = GameState.livello_edificio(era, s)
+			match EDIFICIO_ASSEDIO_ERA.get(era, {}).get(tipo, ""):
+				"muro": hp += lv * ARS_HP_PER_LV
+				"monete": monete += lv * ARS_MONETE_PER_LV
+				"truppe": somma_truppe += lv
+				"livello": somma_livello += lv
+	return {
+		"hp": hp,
+		"monete": monete,
+		"truppe": mini(ARS_TRUPPE_MAX, int(somma_truppe / ARS_TRUPPE_DIV)),
+		"livello": clampi(1 + int(somma_livello / ARS_LIVELLO_DIV), 1, ARS_LIVELLO_MAX),
+		"scorte": int(GameState.risorse / 4.0),
+	}
+
+
+# Categoria d'Assedio di un edificio → frase breve per pannelli/tooltip (o "" se sconosciuta).
+func _assedio_effetto(era: int, tipo: int) -> String:
+	return ARS_KIND_LABEL.get(EDIFICIO_ASSEDIO_ERA.get(era, {}).get(tipo, ""), "")
+
+
+# Tooltip degli edifici del villaggio (hover): nome/livello, stat sviluppata, effetto d'Assedio
+# (arsenale) e prossimo livello. Reso col tema tooltip bronzo di UiStyle. Chiamato a ogni refresh.
+func _aggiorna_tooltip_edifici() -> void:
+	if village == null or not village.has_method("imposta_tooltip_edificio"):
+		return
+	var era: int = GameState.era_corrente
+	for s in range(village.slot_count()):
+		var tipo: int = village.tipo_at(s)
+		if tipo < 0:
+			continue
+		var nome: String = EDIFICIO_NOME_ERA.get(era, {}).get(tipo, "Edificio")
+		var stat: String = EDIFICIO_STAT_ERA.get(era, {}).get(tipo, "popolo")
+		var lv: int = GameState.livello_edificio(era, s)
+		var righe: Array[String] = ["%s — Livello %d" % [nome, lv]]
+		righe.append("Sviluppa: %s" % STAT_LABELS.get(stat, stat))
+		var ass: String = _assedio_effetto(era, tipo)
+		if ass != "":
+			righe.append("Assedio: %s" % ass)
+		if lv >= GameState.EDIFICIO_LIVELLO_MAX:
+			righe.append("Al massimo livello ✦")
+		else:
+			righe.append("→ Livello %d: +%d %s" % [lv + 1, int(UPGRADE_BONUS[lv + 1]), STAT_LABELS.get(stat, stat)])
+		village.imposta_tooltip_edificio(s, "\n".join(righe))
+
+
 func _avvia_assedio(era: int) -> void:
 	if siege_instance != null and is_instance_valid(siege_instance):
 		return
+	_arsenale_pending = _calcola_arsenale(era)
 	_set_decision_visible(false)
 	call_button.visible = false
 	arriving_portrait.visible = false
@@ -1323,6 +1410,7 @@ func _mostra_card_assedio(era: int) -> void:
 	t2.add_theme_constant_override("outline_size", 4)
 	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(t2)
+	vb.add_child(_riepilogo_arsenale_card())
 	add_child(card)
 	root.modulate.a = 0.0
 	AudioManager.play_sfx("stat_down")
@@ -1339,8 +1427,212 @@ func _istanzia_assedio(era: int) -> void:
 		return
 	siege_instance = SiegeArena.new()
 	siege_instance.configura(era)   # PRIMA di add_child: legge le stat della run
+	siege_instance.applica_arsenale(_arsenale_pending)   # bonus dal villaggio (edifici→difesa)
 	siege_instance.assedio_concluso.connect(_on_assedio_concluso.bind(era), CONNECT_ONE_SHOT)
 	add_child(siege_instance)
+
+
+# Riepilogo "Il tuo villaggio ti arma": pannello ornato con i bonus d'Assedio derivati dagli
+# edifici (arsenale). Mostrato nella card di transizione; se il villaggio è spoglio, invita a
+# costruire. Rende VISIBILE il legame villaggio→difesa (il cuore del punto 1).
+func _riepilogo_arsenale_card() -> Control:
+	var a: Dictionary = _arsenale_pending
+	var righe: Array[String] = []
+	if int(a.get("hp", 0)) > 0:
+		righe.append("Mura — +%d HP al villaggio" % int(a.get("hp", 0)))
+	var mon: int = int(a.get("monete", 0)) + int(a.get("scorte", 0))
+	if mon > 0:
+		righe.append("Casse e scorte — +%d monete iniziali" % mon)
+	var ntr: int = int(a.get("truppe", 0))
+	if ntr > 0:
+		righe.append("Milizia — %d %s gratis all'avvio" % [ntr, "truppa" if ntr == 1 else "truppe"])
+	if int(a.get("livello", 1)) > 1:
+		righe.append("Addestramento — truppe di partenza a Lv %d" % int(a.get("livello", 1)))
+	var box: PanelContainer = PanelContainer.new()
+	box.add_theme_stylebox_override("panel", UiStyle.panel_clean())
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.custom_minimum_size = Vector2(560, 0)
+	var mc: MarginContainer = MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 34)
+	mc.add_theme_constant_override("margin_right", 34)
+	mc.add_theme_constant_override("margin_top", 20)
+	mc.add_theme_constant_override("margin_bottom", 20)
+	box.add_child(mc)
+	var col: VBoxContainer = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 7)
+	mc.add_child(col)
+	var cap: Label = Label.new()
+	cap.text = "— Il tuo villaggio ti arma —" if not righe.is_empty() else "Il villaggio non è ancora pronto alla guerra"
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.add_theme_font_size_override("font_size", 18)
+	cap.add_theme_color_override("font_color", Color(0.95, 0.84, 0.5))
+	var cf: Font = _font_titoli()
+	if cf != null:
+		cap.add_theme_font_override("font", cf)
+	col.add_child(cap)
+	if righe.is_empty():
+		var h: Label = _lbl("Costruisci e potenzia gli edifici per arrivare più forte al boss.", 15, Color(0.82, 0.76, 0.62))
+		h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(h)
+	else:
+		for r in righe:
+			var l: Label = _lbl(r, 16, Color(0.74, 0.95, 0.72))
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			col.add_child(l)
+	return box
+
+
+# --- BOSS FINALE: "L'Ultimo Dio caduto" (Docs/20 §2) -----------------------
+# Duello puro dopo l'Assedio dell'Era 2, prima dell'epilogo: il mito che si rifiuta di morire
+# sbarra la strada verso il futuro. Vincerlo apre l'epilogo-soglia ("continua…"). Nessun
+# game-over (D024): anche perdere prosegue, ma senza il tono trionfale.
+func _avvia_boss_finale() -> void:
+	if siege_instance != null and is_instance_valid(siege_instance):
+		return
+	_arsenale_pending = _calcola_arsenale(2)
+	_set_decision_visible(false)
+	call_button.visible = false
+	arriving_portrait.visible = false
+	_mostra_card_finale()
+
+
+func _mostra_card_finale() -> void:
+	var card: CanvasLayer = CanvasLayer.new()
+	card.layer = 25
+	var root: Control = Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.add_child(root)
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.04, 0.01, 0.015, 0.95)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(dim)
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 16)
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(vb)
+	var t1: Label = Label.new()
+	t1.text = "L'ULTIMO DIO"
+	t1.add_theme_font_size_override("font_size", 66)
+	t1.add_theme_color_override("font_color", Color(0.93, 0.77, 0.4))
+	t1.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	t1.add_theme_constant_override("outline_size", 6)
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var tf: Font = _font_titoli()
+	if tf != null:
+		t1.add_theme_font_override("font", tf)
+	vb.add_child(t1)
+	# Key-art del Dio (se presente): centra la card sull'immagine del boss. Fallback-safe.
+	var key_path: String = "res://Assets/art/siege/finale/dio_keyart.png"
+	if ResourceLoader.exists(key_path):
+		var key: TextureRect = TextureRect.new()
+		key.texture = load(key_path)
+		key.custom_minimum_size = Vector2(0, 320)
+		key.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		key.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		vb.add_child(key)
+	var t2: Label = Label.new()
+	t2.text = "Il mito si rifiuta di morire. L'ultimo degli dèi antichi scende\na sbarrare la strada verso ciò che ancora non è stato forgiato.\nReggi le sue tre furie: difendi la soglia."
+	t2.add_theme_font_size_override("font_size", 22)
+	t2.add_theme_color_override("font_color", Color(0.85, 0.78, 0.64))
+	t2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	t2.add_theme_constant_override("outline_size", 4)
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(t2)
+	vb.add_child(_riepilogo_arsenale_card())
+	add_child(card)
+	root.modulate.a = 0.0
+	AudioManager.play_sfx("stat_down")
+	var t: Tween = create_tween()
+	t.tween_property(root, "modulate:a", 1.0, 0.6).set_trans(Tween.TRANS_SINE)
+	t.tween_interval(2.2)
+	t.tween_callback(_istanzia_finale)
+	t.tween_property(root, "modulate:a", 0.0, 0.7).set_trans(Tween.TRANS_SINE)
+	t.tween_callback(card.queue_free)
+
+
+func _istanzia_finale() -> void:
+	if siege_instance != null and is_instance_valid(siege_instance):
+		return
+	siege_instance = SiegeArena.new()
+	siege_instance.finale = true
+	siege_instance.configura(2)   # unità/atmosfera Era 2; boss e campo da siege/finale/
+	siege_instance.applica_arsenale(_arsenale_pending)
+	siege_instance.assedio_concluso.connect(_on_boss_finale_concluso, CONNECT_ONE_SHOT)
+	add_child(siege_instance)
+
+
+func _on_boss_finale_concluso(esito: String) -> void:
+	GameState.set_flag("boss_finale_fatto", true)
+	GameState.flag_narrativi["boss_finale_esito"] = esito
+	if siege_instance != null and is_instance_valid(siege_instance):
+		siege_instance.queue_free()
+	siege_instance = null
+	var vinto: bool = esito != "sopraffatto"
+	if vinto:
+		GameState.modifica_stat("legge", 4)   # varcata la soglia, la Legge del popolo si rinsalda
+	SaveSystem.save_run()
+	_mostra_epilogo_soglia(vinto)
+
+
+func _mostra_epilogo_soglia(vinto: bool) -> void:
+	var card: CanvasLayer = CanvasLayer.new()
+	card.layer = 26
+	var root: Control = Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.add_child(root)
+	var dim: ColorRect = ColorRect.new()
+	dim.color = Color(0.03, 0.02, 0.02, 0.9)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(dim)
+	# Key-art dell'epilogo "La Soglia" (se presente): il varco verso il futuro. Fallback-safe.
+	var soglia_path: String = "res://Assets/art/finali/soglia.png"
+	if ResourceLoader.exists(soglia_path):
+		var sfondo: TextureRect = TextureRect.new()
+		sfondo.texture = load(soglia_path)
+		sfondo.set_anchors_preset(Control.PRESET_FULL_RECT)
+		sfondo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sfondo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		sfondo.modulate = Color(1, 1, 1, 0.55)
+		root.add_child(sfondo)
+	var vb: VBoxContainer = VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 22)
+	vb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(vb)
+	var t1: Label = Label.new()
+	t1.text = "LA SOGLIA"
+	t1.add_theme_font_size_override("font_size", 60)
+	t1.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55) if vinto else Color(0.72, 0.62, 0.56))
+	t1.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	t1.add_theme_constant_override("outline_size", 5)
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var tf: Font = _font_titoli()
+	if tf != null:
+		t1.add_theme_font_override("font", tf)
+	vb.add_child(t1)
+	var t2: Label = Label.new()
+	if vinto:
+		t2.text = "L'ultimo dio è caduto. Davanti al popolo si apre un varco\nsu ciò che ancora non è stato forgiato.\n\nLa strada oltre non è ancora scritta — continua…"
+	else:
+		t2.text = "Il dio ti ha travolto, ma il popolo resiste e passa comunque.\nLa soglia resta avvolta nell'ombra: un giorno la varcherai.\n\nLa strada oltre non è ancora scritta — continua…"
+	t2.add_theme_font_size_override("font_size", 22)
+	t2.add_theme_color_override("font_color", Color(0.86, 0.8, 0.66))
+	t2.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	t2.add_theme_constant_override("outline_size", 4)
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(t2)
+	var cont: Button = _btn_modale("Continua…", null, true)
+	cont.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	cont.custom_minimum_size = Vector2(260, 0)
+	cont.pressed.connect(func() -> void:
+		card.queue_free()
+		_avvia_prossima_quest())
+	vb.add_child(cont)
+	add_child(card)
+	AudioManager.play_sfx("ledger_unlock" if vinto else "stat_down")
 
 
 func _on_assedio_concluso(esito: String, era: int) -> void:
@@ -2277,6 +2569,17 @@ func _apri_pannello_edificio(slot: int) -> void:
 	stat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(stat_lbl)
 
+	var ass: String = _assedio_effetto(era, tipo)
+	if ass != "":
+		var ass_lbl: Label = Label.new()
+		ass_lbl.text = "Assedio: %s" % ass
+		ass_lbl.add_theme_font_size_override("font_size", 15)
+		ass_lbl.add_theme_color_override("font_color", Color(0.86, 0.72, 0.5))
+		ass_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ass_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ass_lbl.custom_minimum_size = Vector2(420, 0)
+		vb.add_child(ass_lbl)
+
 	var sep: ColorRect = ColorRect.new()
 	sep.color = Color(0.5, 0.38, 0.22, 0.4)
 	sep.custom_minimum_size = Vector2(0, 1)
@@ -2627,6 +2930,7 @@ func _refresh_potenziabili() -> void:
 			slots.append(s)
 	village.segna_potenziabili(slots)
 	_aggiorna_produzione_label()
+	_aggiorna_tooltip_edifici()
 
 
 # Risorse prodotte a ogni decisione (turno): base + somma dei livelli edificio,
@@ -2855,6 +3159,9 @@ func _apri_pannello_costruzione(_slot: int) -> void:
 		var extra: String = "  ·  Risorse ×2" if eco else ""
 		var bt: Texture2D = _tex_edificio(era, int(tipo))
 		var b: Button = _btn_modale("%s   +%d %s%s" % [nome, BUILD_BONUS, STAT_LABELS.get(stat, stat), extra], bt, ok)
+		var ass_c: String = _assedio_effetto(era, int(tipo))
+		if ass_c != "":
+			b.tooltip_text = "%s — sviluppa %s\nAssedio: %s" % [nome, STAT_LABELS.get(stat, stat), ass_c]
 		var tipo_c: int = int(tipo)
 		var stat_c: String = stat
 		b.pressed.connect(func() -> void: _esegui_build(tipo_c, stat_c))

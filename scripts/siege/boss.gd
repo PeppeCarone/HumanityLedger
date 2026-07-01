@@ -79,6 +79,7 @@ var _fase: int = 1
 var _invulnerabile: bool = false
 var _berserk: bool = false           # dopo ~60s: avanza imbloccabile E incassa ×2.5 → conclude sempre
 var _spawn_x: float = 1800.0         # lato di spawn: il boss vi RITORNA a ogni cambio fase
+var duello_puro: bool = false        # duello finale (Docs/20 §2): impostato dall'arena, no add
 
 
 # Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).

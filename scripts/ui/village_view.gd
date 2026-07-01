@@ -151,6 +151,16 @@ func slot_count() -> int:
 	return _edifici_sprite.size()
 
 
+# Tooltip al passaggio del mouse sull'edificio: il testo (nome/livello/stat/effetto Assedio) lo
+# compone main.gd, che conosce la mappa arsenale. Resa col tema tooltip bronzo di UiStyle.
+func imposta_tooltip_edificio(slot: int, testo: String) -> void:
+	if slot < 0 or slot >= _edifici_sprite.size():
+		return
+	var tr: TextureRect = _edifici_sprite[slot]
+	if is_instance_valid(tr):
+		tr.tooltip_text = testo
+
+
 func slot_max() -> int:
 	return _slots().size()
 

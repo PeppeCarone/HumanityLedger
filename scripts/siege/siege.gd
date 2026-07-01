@@ -135,6 +135,13 @@ var era: int = 1
 var hp_villaggio_max: int = 100
 var hp_villaggio: int = 100
 var risorse: int = 8
+# Bonus di schieramento derivati dal villaggio ("arsenale": edifici→difesa).
+# {hp, monete, truppe, livello}. Calcolato da main.gd, applicato in applica_arsenale. Docs/20.
+var arsenale: Dictionary = {}
+# Modalità DUELLO FINALE (Docs/20 §2): niente ondate, solo "L'Ultimo Dio". Sprite/sfondo da
+# Assets/art/siege/finale/ (fallback all'era). Monete da un drip passivo (niente add da farmare).
+var finale: bool = false
+var _drip_t: float = 1.0
 
 var _skin: Dictionary = {}
 var _alleati_civ: Array[String] = []
@@ -191,6 +198,19 @@ func configura(e: int) -> void:
 	_calcola_diplomazia()
 
 
+# Chiamare DOPO configura e PRIMA di add_child: applica i bonus dell'arsenale del villaggio
+# (edifici→difesa). hp/monete si sommano alla base; "livello" alza le truppe di partenza;
+# "truppe" (gratis) si schierano in _schiera_alleati, già dentro _ready. Vedi Docs/20.
+func applica_arsenale(a: Dictionary) -> void:
+	arsenale = a
+	hp_villaggio_max += int(a.get("hp", 0))
+	hp_villaggio = hp_villaggio_max
+	risorse += int(a.get("monete", 0))
+	var lv0: int = clampi(int(a.get("livello", 1)), 1, LV_MAX)
+	for t in _livello.keys():
+		_livello[t] = maxi(int(_livello[t]), lv0)
+
+
 func _calcola_diplomazia() -> void:
 	_alleati_civ.clear()
 	_ostili_civ.clear()
@@ -215,6 +235,12 @@ func _carica_tex(path: String) -> Texture2D:
 
 # Sprite dell'era corrente: Assets/art/siege/era<N>/<nome>.png (null se assente).
 func _siege_tex(nome: String) -> Texture2D:
+	# Duello finale: prova prima Assets/art/siege/finale/<nome>.png; se assente ricade
+	# sull'era (così le unità del giocatore restano quelle dell'Era 2, solo boss/campo cambiano).
+	if finale:
+		var fp: String = SIEGE_DIR + "finale/%s.png" % nome
+		if ResourceLoader.exists(fp):
+			return _carica_tex(fp)
 	return _carica_tex(SIEGE_DIR + "era%d/%s.png" % [era, nome])
 
 
@@ -231,6 +257,11 @@ func _sprite_difensore(tipo: String, lv: int) -> Texture2D:
 
 # Sfondo campo: accetta campo.jpg o campo.png (null se assenti).
 func _siege_bg_tex() -> Texture2D:
+	if finale:
+		for ext in ["jpg", "png"]:
+			var fp: String = SIEGE_DIR + "finale/campo.%s" % ext
+			if ResourceLoader.exists(fp):
+				return _carica_tex(fp)
 	var j: String = SIEGE_DIR + "era%d/campo.jpg" % era
 	if ResourceLoader.exists(j):
 		return _carica_tex(j)
@@ -267,6 +298,13 @@ func _process(delta: float) -> void:
 	if not _attivo or _concluso:
 		return
 	_tempo += delta
+	# Duello finale: drip di monete (niente add da farmare) così puoi continuare a evocare.
+	if finale:
+		_drip_t -= delta
+		if _drip_t <= 0.0:
+			_drip_t = 1.0
+			risorse += 3
+			_aggiorna_risorse()
 	# Pausa di rischieramento tra le ondate: alla scadenza parte la successiva.
 	if _in_pausa:
 		if _tempo >= _pausa_fino:
@@ -939,6 +977,9 @@ const MINI_BOSS: Dictionary = {
 func _prepara_ondate() -> void:
 	_ondate.clear()
 	_ondata_idx = -1
+	if finale:
+		_prepara_finale()
+		return
 	# Difficoltà (preferenza): scala la minaccia piegandola in `ef`. Equilibrato = ×1.0 →
 	# il bilanciamento di riferimento (balance_sim) resta intatto. Il Nuovo Ciclo+ (Eone)
 	# vi si moltiplica sopra: +15% minaccia per Eone (cap ×2.0), Eone 0 = ×1.0 → niente effetto.
@@ -962,6 +1003,19 @@ func _prepara_ondate() -> void:
 	# Avvio: breve attesa, poi la prima ondata (col suo banner).
 	_in_pausa = true
 	_pausa_fino = _tempo + 1.4
+
+
+# Duello finale (Docs/20 §2): NIENTE ondate normali — solo "L'Ultimo Dio". HP alto perché ha 3
+# fasi (ognuna riempie la barra) ed è tarato per premiare l'arsenale del villaggio. Nessun add
+# da uccidere → le monete arrivano dal drip passivo in _process. La difficoltà/Eone lo scalano.
+func _prepara_finale() -> void:
+	var ef: float = AudioManager.difficolta_minaccia() * Ledger.ng_minaccia_mult()
+	var dio_hp: int = int(round(2400.0 * ef))
+	_ondate.append({"nome": "L'Ultimo Dio", "boss": true, "spawns": [
+		{"boss": true, "finale": true, "hp": dio_hp, "vel": 46.0, "bounty": 0, "danno": 70,
+			"corsia": 2, "nome": "L'Ultimo Dio", "gap": 0.0}]})
+	_in_pausa = true
+	_pausa_fino = _tempo + 1.8
 
 
 # Costruisce un'ondata "normale" da un descrittore: n nemici (mescola le creature/abilità).
@@ -1157,6 +1211,10 @@ func _spawn_boss(d: Dictionary) -> void:
 	b.nome_boss = str(d.get("nome", "Il Colosso"))
 	b.sprite = _siege_tex("boss")
 	b.imposta_era(era)   # sceglie il kit di abilità per archetipo (Colosso vs Drago)
+	if bool(d.get("finale", false)):
+		b.duello_puro = true          # duello puro: niente evoca-rinforzi (Docs/20 §2)
+		b.armatura = 30               # molto coriaceo: la battaglia dura, premia il DPS costante
+		b.danno_melee = 42            # sfonda i bloccatori → avanza e minaccia davvero il villaggio
 	# Tenuta: ~un terzo della barra HP → lo stagger è un BEAT ricorrente, non un evento unico.
 	b.stagger_max = float(b.hp_max) * 0.6
 	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 80.0
@@ -1600,8 +1658,8 @@ func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
 
 # Il boss chiama rinforzi (§4): n nemici leggeri dell'era entrano dal lato spawn.
 func evoca_rinforzi_boss(n: int) -> void:
-	if not _attivo or _concluso or _enemies.size() > 55:
-		return
+	if finale or not _attivo or _concluso or _enemies.size() > 55:
+		return   # duello finale: niente add — il Dio combatte da solo (Docs/20 §2)
 	var lista: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])[0]["cr"]
 	var hp_r: int = int(round(26.0 * (1.0 + 0.18 * float(era - 1))))
 	for i in range(n):
@@ -2082,6 +2140,12 @@ func _schiera_alleati() -> void:
 		d.colore = Color(0.55, 0.92, 0.6)
 		d.danno = maxi(5, d.danno - 1)
 		d.queue_redraw()
+	# Milizia del villaggio (arsenale): truppe gratis GIÀ schierate all'avvio, un mix di
+	# fronte/supporto. Sono unità del giocatore a tutti gli effetti (non "alleati verdi").
+	var ng: int = int(arsenale.get("truppe", 0))
+	var mix: Array[String] = ["bloccatore", "tiratore", "bloccatore", "sciamano", "tiratore", "totem"]
+	for j in range(ng):
+		_piazza(mix[j % mix.size()], false)
 
 
 # Usato dallo shoot harness/playtest per popolare lo schieramento senza click reali: evoca
