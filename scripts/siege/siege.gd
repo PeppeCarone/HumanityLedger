@@ -417,6 +417,7 @@ func _costruisci_scena() -> void:
 		vlbl.visible = false
 		var rimg: TextureRect = TextureRect.new()
 		rimg.texture = rocca
+		rimg.flip_h = (era == 1)   # la vedetta guarda il CAMPO (i nemici vengono da destra)
 		rimg.position = Vector2(0.0, ROAD_TOP - 40.0)
 		rimg.size = Vector2(VILLAGGIO_X + 30.0, ROAD_BOTTOM - ROAD_TOP + 80.0)
 		rimg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -1228,6 +1229,10 @@ func _spawn_boss(d: Dictionary) -> void:
 		b.duello_puro = true          # duello puro: niente evoca-rinforzi (Docs/20 §2)
 		b.armatura = 30               # molto coriaceo: la battaglia dura, premia il DPS costante
 		b.danno_melee = 42            # sfonda i bloccatori → avanza e minaccia davvero il villaggio
+		# Kit del Dio: Verdetto (zona telegrafata oro) / Monito / Lacrime di fuoco — a giudizio,
+		# non il fuoco-di-drago dell'Era 2. Le etichette dedicate sono in segnala_abilita_boss.
+		b._abilita = ["pestone", "ruggito", "pioggia"]
+	b.mostra_numeri = false           # i numeri del boss li mostra già lui (niente doppioni)
 	# Tenuta: ~un terzo della barra HP → lo stagger è un BEAT ricorrente, non un evento unico.
 	b.stagger_max = float(b.hp_max) * 0.6
 	b.stagger_gain = 1.0 + float(GameState.get_stat("spionaggio")) / 80.0
@@ -1831,6 +1836,8 @@ func ultimate_tiratore(pos: Vector2, danno: int) -> void:
 	var centro: Vector2 = pos + Vector2(230.0, -10.0)
 	danno_area_nemici(centro, 150.0, danno)
 	fx_anello(centro, 150.0, Color(1.0, 0.92, 0.6))
+	fx_vfx(centro, 330.0, "shockwave", true)
+	fx_callout(pos, "PIOGGIA DI LANCE")
 
 
 func ultimate_totem(pos: Vector2, danno: int) -> void:
@@ -1838,6 +1845,8 @@ func ultimate_totem(pos: Vector2, danno: int) -> void:
 	var centro: Vector2 = pos + Vector2(190.0, 0.0)
 	danno_area_nemici(centro, 145.0, danno)
 	fx_esplosione(centro, 145.0)
+	fx_vfx(centro, 330.0, "fire_burst", true)
+	fx_callout(pos, "ERUZIONE", Color(1.0, 0.62, 0.3))
 
 
 func ultimate_sciamano(pos: Vector2, raggio: float) -> void:
@@ -1846,6 +1855,8 @@ func ultimate_sciamano(pos: Vector2, raggio: float) -> void:
 		if is_instance_valid(e):
 			e.applica_slow(0.08, 2.2)
 	fx_anello(pos, raggio, Color(0.6, 0.92, 1.0))
+	fx_vfx(pos + Vector2(140.0, 0.0), raggio * 1.7, "frost_burst", true)
+	fx_callout(pos, "TEMPESTA DI GHIACCIO", Color(0.65, 0.92, 1.0))
 
 
 func ultimate_bloccatore(pos: Vector2) -> void:
@@ -1858,6 +1869,8 @@ func ultimate_bloccatore(pos: Vector2) -> void:
 			e.stordisci(1.4)
 	_scuoti()
 	fx_anello(pos + Vector2(120.0, 0.0), 180.0, Color(1.0, 0.85, 0.5))
+	fx_vfx(pos + Vector2(150.0, 0.0), 380.0, "onda_ruggito", true)
+	fx_callout(pos, "GRIDO DI GUERRA")
 
 
 # Brace (Totem Lv3): zona di fuoco a terra che brucia nel tempo (tick di danno per ~2s).
@@ -1911,16 +1924,26 @@ func segnala_abilita_boss(nome: String) -> void:
 		"soffio": "SOFFIO DI FUOCO — sgombra la corsia!",
 		"pioggia": "PIOGGIA DI FUOCO — disperdi le unità!",
 	}
+	# Il Dio non "pesta" né "ruggisce": stesse meccaniche, VOCE diversa (kit tematico).
+	if finale:
+		etich = {
+			"pestone": "VERDETTO — scansati!",
+			"ruggito": "MONITO — i difensori vacillano",
+			"carica": "AVANZATA DEL DIO — sfonda!",
+			"soffio": "ALITO ARDENTE — sgombra la corsia!",
+			"pioggia": "LACRIME DI FUOCO — disperdi le unità!",
+		}
 	_flash_info(etich.get(nome, nome))
 	if _vignetta_furia != null and is_instance_valid(_vignetta_furia):
 		_pulsa_vignetta_furia()   # le abilità in furia ravvivano la vignetta rossa
 
 
 func lancia_proiettile(da: Vector2, bersaglio: SiegeEnemy, danno: int, aoe_raggio: float = 0.0,
-		pierce: int = 0, brace: bool = false) -> void:
+		pierce: int = 0, brace: bool = false, crit: bool = false) -> void:
 	var p: SiegeProjectile = SiegeProjectile.new()
 	p.bersaglio = bersaglio
 	p.danno = danno
+	p.crit = crit
 	p.aoe_raggio = aoe_raggio
 	p.pierce = pierce
 	p.brace = brace
@@ -2031,6 +2054,16 @@ func fx_vfx(pos: Vector2, dim: float, nome: String, dir_destra: bool = false) ->
 	t.tween_callback(s.queue_free)
 
 
+# FX del boss con VARIANTE per archetipo (fallback-safe): prova fx/<base>_<suff>.png, altrimenti
+# fx/<base>.png. Suffissi: colosso / drago / dio — ogni boss può avere la SUA arte d'abilità
+# (l'utente genera i PNG dai prompt in Docs/20; finché mancano si usa la base condivisa).
+func fx_vfx_boss(pos: Vector2, dim: float, base: String, suff: String, dir_destra: bool = false) -> void:
+	if suff != "" and _fx_tex(base + "_" + suff) != null:
+		fx_vfx(pos, dim, base + "_" + suff, dir_destra)
+	else:
+		fx_vfx(pos, dim, base, dir_destra)
+
+
 # Macchia di fuoco a terra (Brace del Totem): resta accesa ~2s e svanisce.
 func fx_brace(pos: Vector2) -> void:
 	if _world == null or not is_instance_valid(_world):
@@ -2072,6 +2105,53 @@ func fx_numero_danno(pos: Vector2, n: int, crit: bool) -> void:
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t.tween_property(lbl, "modulate:a", 0.0, 0.7).set_ease(Tween.EASE_IN)
 	t.chain().tween_callback(lbl.queue_free)
+
+
+# "+N" verde di cura: il passivo Roccia (rigenerazione) si VEDE.
+func fx_numero_cura(pos: Vector2, n: int) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var lbl: Label = Label.new()
+	lbl.text = "+%d" % n
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(0.55, 0.95, 0.55))
+	lbl.add_theme_color_override("font_outline_color", Color(0.03, 0.1, 0.03, 0.95))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.z_index = 60
+	_world.add_child(lbl)
+	lbl.position = pos + Vector2(randf_range(-14.0, 14.0), -64.0)
+	var t: Tween = create_tween()
+	t.set_parallel()
+	t.tween_property(lbl, "position:y", lbl.position.y - 36.0, 0.8) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(lbl, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
+	t.chain().tween_callback(lbl.queue_free)
+
+
+# Callout dell'ULTIMATE di un'unità ascesa: il nome dell'abilità fluttua sopra chi la lancia
+# (prima le ultimate scattavano "in silenzio" e il giocatore non le notava mai).
+func fx_callout(pos: Vector2, testo: String, col: Color = Color(1.0, 0.88, 0.5)) -> void:
+	if _world == null or not is_instance_valid(_world):
+		return
+	var lbl: Label = Label.new()
+	lbl.text = testo
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_outline_color", Color(0.08, 0.03, 0.02, 0.95))
+	lbl.add_theme_constant_override("outline_size", 5)
+	lbl.z_index = 70
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_world.add_child(lbl)
+	lbl.position = pos + Vector2(-70.0, -98.0)
+	lbl.scale = Vector2(0.7, 0.7)
+	var t: Tween = create_tween()
+	t.tween_property(lbl, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(lbl, "position:y", lbl.position.y - 30.0, 0.9) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_interval(0.35)
+	t.tween_property(lbl, "modulate:a", 0.0, 0.45)
+	t.tween_callback(lbl.queue_free)
 
 
 # Evoca un'unità: compare al CANCELLO del villaggio (con un pop) e poi cammina fino al suo

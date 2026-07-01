@@ -60,6 +60,8 @@ var _bombarda_cd: float = 2.2
 var _standoff_t: float = 0.0
 var _cura_cd: float = 2.0
 var _last_num: float = -1.0         # throttle dei numeri di danno fluttuanti (juice)
+var _num_accum: int = 0             # danno accumulato sotto throttle (flush al prossimo numero/morte)
+var mostra_numeri: bool = true      # il BOSS mostra i numeri da sé (evita i doppioni)
 
 
 func _process(delta: float) -> void:
@@ -168,7 +170,7 @@ func _tick_abilita_nemico(delta: float) -> void:
 				arena.cura_nemici_area(global_position, 170.0, maxi(3, int(float(hp_max) * 0.05)))
 
 
-func subisci_danno(d: int) -> void:
+func subisci_danno(d: int, crit: bool = false) -> void:
 	if not _vivo:
 		return
 	# Armatura: assorbe danno piatto (almeno 1 passa sempre). Il golem incassa i colpi.
@@ -186,10 +188,15 @@ func subisci_danno(d: int) -> void:
 			var ts: Tween = create_tween()
 			ts.tween_property(self, "modulate", Color.WHITE, 0.16)
 			return
-	# Numero di danno fluttuante (juice), con throttle per non intasare lo schermo.
-	if _t - _last_num >= 0.28 and arena != null and arena.has_method("fx_numero_danno"):
-		arena.fx_numero_danno(global_position, dmg, false)
-		_last_num = _t
+	# Numero di danno (juice): ACCUMULA sotto throttle — nessun colpo "sparisce" più (prima i
+	# colpi ravvicinati venivano scartati e il danno sembrava non registrato). I critici della
+	# Mira (Lv5) passano SUBITO e in oro: il passivo si VEDE.
+	if mostra_numeri:
+		_num_accum += dmg
+		if (crit or _t - _last_num >= 0.28) and arena != null and arena.has_method("fx_numero_danno"):
+			arena.fx_numero_danno(global_position, _num_accum, crit)
+			_num_accum = 0
+			_last_num = _t
 	hp -= dmg
 	if hp <= 0:
 		# Risurrezione (scheletro): una volta sola si rialza a metà HP invece di morire.
@@ -199,6 +206,10 @@ func subisci_danno(d: int) -> void:
 			_fx_risorge()
 			queue_redraw()
 			return
+		# Flush del danno accumulato: anche il colpo mortale si LEGGE a schermo.
+		if mostra_numeri and _num_accum > 0 and arena != null and arena.has_method("fx_numero_danno"):
+			arena.fx_numero_danno(global_position, _num_accum, false)
+			_num_accum = 0
 		_vivo = false
 		morto.emit(bounty)
 		queue_free()

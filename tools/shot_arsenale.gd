@@ -144,3 +144,33 @@ func _run() -> void:
 	ar.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+	# 9) LV5: ultimate VISIBILI (callout col nome + FX dedicato) — cast forzato dei 4 tipi.
+	GameState.reset_run()
+	GameState.militare = 50
+	GameState.costruzione = 50
+	GameState.scienza = 50
+	GameState.spionaggio = 40
+	var ar2: SiegeArena = SiegeArena.new()
+	ar2.configura(1)
+	get_tree().root.add_child(ar2)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var unita: Array = []
+	for t2 in ["tiratore", "bloccatore", "sciamano", "totem"]:
+		ar2._livello[t2] = 5
+		unita.append(ar2._piazza(t2, false))
+	for i in range(5):
+		ar2.spawn_enemy_test("orso", i, 860.0 + 50.0 * float(i))
+	await get_tree().create_timer(0.7).timeout   # raggiungono il posto in formazione
+	for u in unita:
+		if u != null and is_instance_valid(u):
+			u._cast_ultimate()
+	await get_tree().create_timer(0.30).timeout
+	var uimg: Image = get_viewport().get_texture().get_image()
+	uimg.convert(Image.FORMAT_RGB8)
+	uimg.save_png(OUT + "lv5_ultimate.png")
+	print("SHOT lv5_ultimate ", uimg.get_size())
+	ar2.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame

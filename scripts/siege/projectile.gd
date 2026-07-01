@@ -14,6 +14,7 @@ var sprite: Texture2D = null        # se presente (Assets/art/siege/fx/proiettil
 var colore: Color = Color(1.0, 0.86, 0.5)
 var pierce: int = 0                 # Freccia perforante (Tiratore Lv3): colpisce N nemici extra in fila
 var brace: bool = false            # Brace (Totem Lv3): lascia fuoco a terra all'impatto
+var crit: bool = false             # Mira (Tiratore Lv5): il numero appare subito, in oro
 
 
 func _process(delta: float) -> void:
@@ -30,7 +31,7 @@ func _process(delta: float) -> void:
 
 
 func _impatto() -> void:
-	bersaglio.subisci_danno(danno)
+	bersaglio.subisci_danno(danno, crit)
 	# Freccia perforante: trafigge anche i nemici vicini in fila (Tiratore Lv3).
 	if pierce > 0 and arena != null:
 		var colpiti: int = 0

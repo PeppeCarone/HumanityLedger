@@ -218,7 +218,7 @@ func _arriva() -> void:
 
 
 # Override: il danno riempie la tenuta; durante la finestra VULNERABILE il boss incassa ×n.
-func subisci_danno(d: int) -> void:
+func subisci_danno(d: int, crit: bool = false) -> void:
 	# INVULNERABILE durante l'intermezzo di cambio fase e l'entrata → niente one-shot.
 	if _invulnerabile or _stato == "trasforma" or _stato == "entrata":
 		return
@@ -240,7 +240,7 @@ func subisci_danno(d: int) -> void:
 		_notifica_stagger()
 		_cambia_fase()
 		return
-	super.subisci_danno(dmg)
+	super.subisci_danno(dmg, crit)
 
 
 func _entra_stagger() -> void:
@@ -357,7 +357,10 @@ func _esegui_abilita() -> void:
 		"pestone":
 			if arena != null:
 				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 18 if _in_furia else 14)
-				arena.fx_vfx(_tele_pos, RAGGIO_PESTONE * 2.4, "impatto_terra", true)
+				if duello_puro and arena.has_method("fx_giudizio"):
+					arena.fx_giudizio(_tele_pos, 520.0)   # VERDETTO del Dio: colonna di luce, non polvere
+				else:
+					arena.fx_vfx_boss(_tele_pos, RAGGIO_PESTONE * 2.4, "impatto_terra", _fx_suffisso(), true)
 				arena.fx_esplosione(_tele_pos, RAGGIO_PESTONE)
 				arena.scuoti_forte()
 				arena.hitstop(0.06, 0.2)
@@ -370,7 +373,8 @@ func _esegui_abilita() -> void:
 				arena.stordisci_difensori(dur)
 				var cen: Vector2 = global_position + Vector2(-260.0, 0.0)
 				arena.danno_area_difensori(cen, 320.0, 12 if _in_furia else 9)
-				arena.fx_vfx(global_position + Vector2(-120.0, 0.0), 640.0, "onda_ruggito", false)
+				# Allineata al CENTRO del danno (-260): prima l'onda appariva spostata dal cerchio.
+				arena.fx_vfx_boss(global_position + Vector2(-260.0, 0.0), 640.0, "onda_ruggito", _fx_suffisso(), false)
 				arena.scuoti_forte()
 				arena.hitstop(0.05, 0.2)
 			AudioManager.play_sfx("stat_down")
@@ -388,7 +392,8 @@ func _esegui_abilita() -> void:
 				for off in [160.0, 340.0, 520.0, 700.0, 880.0, 1060.0]:
 					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
 					arena.danno_area_difensori(p, 110.0, dmg)
-				arena.fx_vfx(global_position + Vector2(-560.0, 0.0), 1180.0, "fiammata_drago", true)
+				# Centro della banda di danno (offset 160..1060 → -610): fiamma e colpi allineati.
+				arena.fx_vfx(global_position + Vector2(-610.0, 0.0), 1180.0, "fiammata_drago", true)
 				arena.scuoti_forte()
 				arena.hitstop(0.05, 0.2)
 			AudioManager.play_sfx("stat_down")
@@ -400,12 +405,22 @@ func _esegui_abilita() -> void:
 				var dmg2: int = 14 if _in_furia else 11
 				for p in _pioggia_pts:
 					arena.danno_area_difensori(p, 110.0, dmg2)
-					arena.fx_vfx(p, 230.0, "fire_burst", true)
+					if duello_puro and arena.has_method("fx_giudizio"):
+						arena.fx_giudizio(p, 400.0)   # LACRIME DI FUOCO: lame di luce del Dio
+					else:
+						arena.fx_vfx_boss(p, 230.0, "fire_burst", _fx_suffisso(), true)
 				arena.scuoti_forte()
 			_pioggia_pts.clear()
 			_stato = "marcia"
 			_abil_t = _cooldown_abilita()
 	abilita_usata.emit(_abil_corrente)
+
+
+# Suffisso dell'arte per-archetipo (fx/<base>_<suff>.png, fallback alla base condivisa).
+func _fx_suffisso() -> String:
+	if duello_puro:
+		return "dio"
+	return "drago" if era_boss >= 2 else "colosso"
 
 
 # Sceglie n punti d'impatto per la Pioggia: prima sui difensori, poi punti casuali sul
@@ -453,10 +468,14 @@ func _draw() -> void:
 	if _stato == "telegrafo" and _abil_corrente == "pestone":
 		var local: Vector2 = _tele_pos - global_position
 		var a: float = 0.40 + 0.28 * sin(_bt * 18.0)
-		draw_circle(local, RAGGIO_PESTONE, Color(0.95, 0.22, 0.16, a))
-		draw_arc(local, RAGGIO_PESTONE, 0.0, TAU, 48, Color(1.0, 0.5, 0.35, 1.0), 5.0)
+		# Palette del telegrafo: rosso bestiale; ORO divino nel duello finale.
+		var c_fill: Color = Color(1.0, 0.82, 0.35, a) if duello_puro else Color(0.95, 0.22, 0.16, a)
+		var c_ring: Color = Color(1.0, 0.9, 0.55, 1.0) if duello_puro else Color(1.0, 0.5, 0.35, 1.0)
+		var c_mir: Color = Color(1.0, 0.85, 0.55, 0.85) if duello_puro else Color(1.0, 0.7, 0.4, 0.85)
+		draw_circle(local, RAGGIO_PESTONE, c_fill)
+		draw_arc(local, RAGGIO_PESTONE, 0.0, TAU, 48, c_ring, 5.0)
 		# Mirino interno: rende inequivocabile il punto d'impatto.
-		draw_arc(local, RAGGIO_PESTONE * 0.5, 0.0, TAU, 32, Color(1.0, 0.7, 0.4, 0.85), 3.0)
+		draw_arc(local, RAGGIO_PESTONE * 0.5, 0.0, TAU, 32, c_mir, 3.0)
 	# Onda del Ruggito.
 	if _stato == "telegrafo" and _abil_corrente == "ruggito":
 		draw_arc(Vector2.ZERO, _ruggito_r, 0.0, TAU, 48, Color(0.95, 0.85, 0.5, 0.7), 4.0)

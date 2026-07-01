@@ -42,9 +42,10 @@ const ULT_CD: float = 8.0            # cooldown delle ultimate (Lv5), auto-cast 
 var _cooldown: float = 0.0
 var _vita_t: float = 0.0
 var _stun_fino: float = -1.0
-var _ult_cd: float = 4.0             # primo cast dopo ~4s
+var _ult_cd: float = randf_range(3.0, 6.5)   # primo cast SCAGLIONATO (niente callout sovrapposti)
 var _calore_cd: float = 0.0          # tick del passivo Calore (Totem Lv5)
 var _regen_acc: float = 0.0          # accumulo del passivo Roccia (Bloccatore Lv5)
+var _regen_show: float = 0.0         # cura accumulata da MOSTRARE (+N verde: il passivo si vede)
 var _idle_tw: Tween = null           # tween dell'idle-bob (va fermato durante la camminata)
 var _move_tw: Tween = null           # tween della camminata verso il posto in formazione
 
@@ -102,11 +103,13 @@ func _process(delta: float) -> void:
 			if b != null:
 				var dmg: int = danno
 				# Mira (Tiratore Lv5): danno critico sui nemici già feriti (< 50% HP).
-				if ruolo == "ranged" and livello >= 5 and float(b.hp) < 0.5 * float(maxi(b.hp_max, 1)):
+				var crit: bool = ruolo == "ranged" and livello >= 5 \
+					and float(b.hp) < 0.5 * float(maxi(b.hp_max, 1))
+				if crit:
 					dmg = int(round(float(dmg) * 1.6))
 				var pierce: int = 2 if (ruolo == "ranged" and livello >= 3) else 0   # Freccia perforante
 				var brace: bool = (ruolo == "aoe" and livello >= 3)                   # Brace
-				arena.lancia_proiettile(global_position, b, dmg, aoe_raggio, pierce, brace)
+				arena.lancia_proiettile(global_position, b, dmg, aoe_raggio, pierce, brace, crit)
 				_cooldown = cadenza
 				_recoil()
 		"blocco":
@@ -134,6 +137,11 @@ func _tick_abilita(delta: float) -> void:
 			_regen_acc -= float(add)
 			hp = mini(hp_max, hp + add)
 			queue_redraw()
+			# Roccia VISIBILE: ogni tot la rigenerazione mostra il suo "+N" verde.
+			_regen_show += float(add)
+			if _regen_show >= 14.0 and arena != null and arena.has_method("fx_numero_cura"):
+				arena.fx_numero_cura(global_position, int(_regen_show))
+				_regen_show = 0.0
 	# Calore (Totem Lv5): danno continuo ai nemici nell'area attorno al totem.
 	if ruolo == "aoe" and livello >= 5:
 		_calore_cd -= delta
