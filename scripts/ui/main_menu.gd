@@ -4,6 +4,10 @@ const GAME_SCENE: String = "res://scenes/main.tscn"
 const LEDGER_SCENE: PackedScene = preload("res://scenes/ledger_screen.tscn")
 const OPTIONS_SCENE: PackedScene = preload("res://scenes/ui/options_menu.tscn")
 const BG_PATH: String = "res://Assets/art/ui/main_menu_bg.png"
+const INTRO_SCENE: String = "res://scenes/intro_cinematica.tscn"
+# L'intro cinematica gioca una sola volta per avvio del processo (non a ogni
+# ritorno al menu da pausa/opzioni).
+static var _intro_vista: bool = false
 
 @onready var background: TextureRect = $Background
 @onready var nuova_btn: Button = $Buttons/NuovaPartita
@@ -53,6 +57,18 @@ func _ready() -> void:
 	continua_btn.disabled = not ha_save
 	if not ha_save:
 		continua_btn.tooltip_text = "Nessuna partita salvata."
+	# Primo avvio del processo: cold open cinematico sopra il menu; poi il menu si
+	# rivela. Ritorni successivi (pausa/opzioni) saltano direttamente al menu.
+	if not _intro_vista and ResourceLoader.exists(INTRO_SCENE):
+		_intro_vista = true
+		var intro: CanvasLayer = load(INTRO_SCENE).instantiate()
+		intro.finita.connect(_dopo_intro)
+		add_child(intro)
+	else:
+		_dopo_intro()
+
+
+func _dopo_intro() -> void:
 	nuova_btn.grab_focus()
 	_anima_ingresso()
 	AudioManager.play_music_id("menu")

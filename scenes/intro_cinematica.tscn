@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cintrocinem001"]
+
+[ext_resource type="Script" path="res://scripts/ui/intro_cinematica.gd" id="1"]
+
+[node name="IntroCinematica" type="CanvasLayer"]
+script = ExtResource("1")
