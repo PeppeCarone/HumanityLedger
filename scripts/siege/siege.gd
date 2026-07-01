@@ -919,6 +919,9 @@ func _ristat_difensore(d: SiegeDefender, tipo: String) -> void:
 			d.aoe_raggio = float(s["aoe"])
 	d.livello = lv
 	d.sprite = _sprite_difensore(tipo, lv)   # swap a/da "ascesa" al cambio livello
+	# Aura perenne (Sciamano Lv5): il passivo si VEDE — aura di gelo ai piedi (VFX dedicato).
+	if tipo == "sciamano" and lv >= 5 and d.has_method("attiva_aura_gelo"):
+		d.attiva_aura_gelo(_fx_tex("aura_gelo"))
 	d.queue_redraw()
 
 
@@ -1175,6 +1178,8 @@ func spawn_minion(pos: Vector2, corsia: int) -> void:
 		var e: SiegeEnemy = _enemies[-1]
 		if is_instance_valid(e):
 			e.global_position = pos + Vector2(randf_range(18.0, 56.0), randf_range(-28.0, 28.0))
+			# Portale d'evocazione (VFX dedicato): il minion ESCE da qualcosa, non appare dal nulla.
+			fx_vfx(e.global_position, 150.0, "portale_evoca", true)
 			e.scale = Vector2(0.4, 0.4)
 			var t: Tween = create_tween()
 			t.tween_property(e, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -2208,6 +2213,9 @@ func _crea_unita(tipo: String) -> SiegeDefender:
 		d.slow_durata = 0.7
 	elif tipo == "totem":
 		d.aoe_raggio = float(s["aoe"])
+	# Aura perenne (Sciamano Lv5) visibile fin dall'evocazione.
+	if tipo == "sciamano" and lv >= 5:
+		d.attiva_aura_gelo(_fx_tex("aura_gelo"))
 	return d
 
 

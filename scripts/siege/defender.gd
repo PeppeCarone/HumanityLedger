@@ -54,6 +54,29 @@ func _ready() -> void:
 	hp = hp_max
 
 
+# Aura perenne (Sciamano Lv5): aura di gelo pulsante ai piedi — il passivo si VEDE.
+# VFX dedicato (fx/aura_gelo.png) in blend ADD, dietro il corpo. Idempotente.
+func attiva_aura_gelo(tex: Texture2D) -> void:
+	if tex == null or get_node_or_null("AuraGelo") != null:
+		return
+	var s: Sprite2D = Sprite2D.new()
+	s.name = "AuraGelo"
+	s.texture = tex
+	var sc: float = 150.0 / float(maxi(tex.get_width(), 1))
+	s.scale = Vector2(sc, sc)
+	s.show_behind_parent = true
+	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	s.material = mat
+	s.modulate = Color(0.7, 0.9, 1.0, 0.42)
+	s.position = Vector2(0.0, 4.0)
+	add_child(s)
+	var t: Tween = create_tween()
+	t.set_loops()
+	t.tween_property(s, "modulate:a", 0.22, 1.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	t.tween_property(s, "modulate:a", 0.42, 1.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
 # Idle-bob: il difensore "respira" oscillando di poco in verticale. Random per
 # desincronizzare; non tocca scale (usata dal recoil). Riavviabile (rifà la base sull'attuale y).
 func avvia_idle() -> void:
