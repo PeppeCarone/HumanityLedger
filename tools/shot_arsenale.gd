@@ -23,6 +23,7 @@ func _shot(path: String, name: String, setup: Callable = Callable(), post: Calla
 		post.call(inst)
 	await get_tree().create_timer(attesa).timeout
 	var img: Image = get_viewport().get_texture().get_image()
+	img.convert(Image.FORMAT_RGB8)
 	img.save_png(OUT + name + ".png")
 	print("SHOT ", name, " ", img.get_size())
 	inst.queue_free()
@@ -39,6 +40,17 @@ func _run() -> void:
 	GameState.scienza = 9
 	await _shot("res://scenes/main.tscn", "audit_decisione", Callable(), func(inst: Node) -> void:
 		inst._apri_decisione(), 1.0)
+	# Menu PROPRIO (2ยฐ load: l'intro s'รจ giร  vista -> static la salta).
+	GameState.reset_run()
+	await _shot("res://scenes/main_menu.tscn", "audit_menu2", Callable(), Callable(), 1.3)
+	# Vista villaggio gestionale (overview: elenco edifici + produzione).
+	GameState.reset_run()
+	GameState.set_flag("villaggio_n", 5)
+	GameState.costruzione = 60
+	GameState.risorse = 40
+	GameState.edifici_livelli = {"1_0": 3, "1_2": 2, "1_4": 2}
+	await _shot("res://scenes/main.tscn", "audit_village", Callable(), func(inst: Node) -> void:
+		inst._apri_pannello_villaggio(), 0.9)
 
 	# 1) Pannello edificio: la riga "Assedio: ..." mostra il payoff difesa (Palizzata = muro).
 	GameState.reset_run()

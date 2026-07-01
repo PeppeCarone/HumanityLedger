@@ -20,6 +20,7 @@ func _shot(path: String, name: String, setup: Callable = Callable(), post: Calla
 		post.call(inst)
 	await get_tree().create_timer(attesa).timeout
 	var img: Image = get_viewport().get_texture().get_image()
+	img.convert(Image.FORMAT_RGB8)
 	img.save_png(OUT + name + ".png")
 	print("SHOT ", name, " ", img.get_size())
 	inst.queue_free()
@@ -147,6 +148,7 @@ func _run() -> void:
 	get_tree().root.add_child(wm)
 	await get_tree().create_timer(5.5).timeout
 	var wimg: Image = get_viewport().get_texture().get_image()
+	wimg.convert(Image.FORMAT_RGB8)
 	wimg.save_png(OUT + "shot_worldmap.png")
 	print("SHOT shot_worldmap ", wimg.get_size())
 	wm.queue_free()
@@ -178,6 +180,7 @@ func _run() -> void:
 	siege.spawn_enemy_test("orso", 2, 1320.0)
 	await get_tree().create_timer(3.0).timeout
 	var simg: Image = get_viewport().get_texture().get_image()
+	simg.convert(Image.FORMAT_RGB8)
 	simg.save_png(OUT + "shot_assedio.png")
 	print("SHOT shot_assedio ", simg.get_size())
 	siege.queue_free()
@@ -197,6 +200,7 @@ func _run() -> void:
 	siegea.schiera_unita_test(8, "totem")
 	await get_tree().create_timer(2.0).timeout
 	var aimg: Image = get_viewport().get_texture().get_image()
+	aimg.convert(Image.FORMAT_RGB8)
 	aimg.save_png(OUT + "shot_assedio_ascesa.png")
 	print("SHOT shot_assedio_ascesa ", aimg.get_size())
 	siegea.queue_free()
@@ -218,6 +222,7 @@ func _run() -> void:
 	siegeb.spawn_boss_test(true)
 	await get_tree().create_timer(0.65).timeout
 	var bimg: Image = get_viewport().get_texture().get_image()
+	bimg.convert(Image.FORMAT_RGB8)
 	bimg.save_png(OUT + "shot_assedio_boss.png")
 	print("SHOT shot_assedio_boss ", bimg.get_size())
 	siegeb.queue_free()
@@ -242,6 +247,7 @@ func _run() -> void:
 		sieget.intermezzo_fase(sieget._boss, 2)   # nemici spariscono + cinematica "FASE II"
 	await get_tree().create_timer(0.9, true, false, true).timeout   # letterbox dentro + title visibile
 	var timg: Image = get_viewport().get_texture().get_image()
+	timg.convert(Image.FORMAT_RGB8)
 	timg.save_png(OUT + "shot_assedio_trasforma.png")
 	print("SHOT shot_assedio_trasforma ", timg.get_size())
 	sieget.queue_free()
@@ -266,6 +272,7 @@ func _run() -> void:
 	siege2.spawn_boss_test(true)   # forza un'abilità: cattura il telegrafo del Drago (soffio/pioggia)
 	await get_tree().create_timer(0.95).timeout
 	var b2: Image = get_viewport().get_texture().get_image()
+	b2.convert(Image.FORMAT_RGB8)
 	b2.save_png(OUT + "shot_assedio_era2.png")
 	print("SHOT shot_assedio_era2 ", b2.get_size())
 	siege2.queue_free()
@@ -279,6 +286,7 @@ func _run() -> void:
 	siegee._mostra_esito("trionfo")
 	await get_tree().create_timer(0.5).timeout
 	var eimg: Image = get_viewport().get_texture().get_image()
+	eimg.convert(Image.FORMAT_RGB8)
 	eimg.save_png(OUT + "shot_assedio_esito.png")
 	print("SHOT shot_assedio_esito ", eimg.get_size())
 	siegee.queue_free()

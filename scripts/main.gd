@@ -2671,20 +2671,30 @@ func _apri_pannello_villaggio() -> void:
 	box.anchor_right = 0.5
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = -300.0
-	box.offset_right = 300.0
-	box.offset_top = -250.0
-	box.offset_bottom = 250.0
+	box.offset_left = -330.0
+	box.offset_right = 330.0
+	box.offset_top = -285.0
+	box.offset_bottom = 285.0
 	edificio_panel.add_child(box)
 
+	# Margini generosi DENTRO la cornice ornata (gli angoli 9-slice sono ~84px): il testo
+	# non deve mai toccare i fregi — era il difetto "amatoriale" segnalato dall'utente.
+	var mc: MarginContainer = MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 52)
+	mc.add_theme_constant_override("margin_right", 52)
+	mc.add_theme_constant_override("margin_top", 42)
+	mc.add_theme_constant_override("margin_bottom", 34)
+	box.add_child(mc)
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 8)
-	box.add_child(vb)
+	mc.add_child(vb)
 
 	vb.add_child(_lbl_titolo("Il Villaggio"))
 	var prod: int = _produzione_per_turno()
-	vb.add_child(_lbl("Risorse %d    ·    Produzione +%d/turno    ·    Popolazione %d" % [
-		GameState.risorse, prod, GameState.popolazione], 15, Color(0.86, 0.80, 0.64)))
+	var info_l: Label = _lbl("Risorse %d    ·    Produzione +%d/turno    ·    Popolazione %d" % [
+		GameState.risorse, prod, GameState.popolazione], 15, Color(0.86, 0.80, 0.64))
+	info_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(info_l)
 	vb.add_child(_separatore_panel())
 
 	if village.slot_count() == 0:
@@ -2706,11 +2716,15 @@ func _apri_pannello_villaggio() -> void:
 	var liberi: int = village.slot_max() - village.slot_count()
 	if liberi > 0:
 		vb.add_child(_separatore_panel())
-		vb.add_child(_lbl("%d lotto/i libero/i — tocca il segno + a terra per costruire." % liberi,
-			14, Color(0.74, 0.68, 0.56)))
+		var hint: Label = _lbl("%d lotto/i libero/i — tocca il segno + a terra per costruire." % liberi,
+			14, Color(0.74, 0.68, 0.56))
+		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vb.add_child(hint)
 
 	var chiudi: Button = Button.new()
 	chiudi.text = "Chiudi"
+	chiudi.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	chiudi.custom_minimum_size = Vector2(190, 0)
 	chiudi.pressed.connect(_chiudi_pannello_edificio)
 	vb.add_child(chiudi)
 
@@ -2728,8 +2742,19 @@ func _riga_edificio(era: int, slot: int) -> Control:
 	var eco: bool = bool(EDIFICIO_ECONOMICO.get(era, {}).get(tipo, false))
 	var contributo: int = lv * (2 if eco else 1)
 
+	# Riga pulita e piatta: il chip 9-slice (2:1) stirato in orizzontale diventava una
+	# "barra scura" — proprio l'artefatto che faceva sembrare la lista non finita.
 	var riga: PanelContainer = PanelContainer.new()
-	riga.add_theme_stylebox_override("panel", UiStyle.chip_stylebox())
+	var rsb: StyleBoxFlat = StyleBoxFlat.new()
+	rsb.bg_color = Color(0.115, 0.085, 0.06, 0.85)
+	rsb.border_color = Color(0.45, 0.34, 0.2, 0.55)
+	rsb.set_border_width_all(1)
+	rsb.set_corner_radius_all(6)
+	rsb.content_margin_left = 12.0
+	rsb.content_margin_right = 12.0
+	rsb.content_margin_top = 8.0
+	rsb.content_margin_bottom = 8.0
+	riga.add_theme_stylebox_override("panel", rsb)
 	var hb: HBoxContainer = HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 10)
 	riga.add_child(hb)
@@ -2763,10 +2788,13 @@ func _riga_edificio(era: int, slot: int) -> Control:
 
 	if lv >= GameState.EDIFICIO_LIVELLO_MAX:
 		var maxl: Label = Label.new()
-		maxl.text = "Max"
-		maxl.add_theme_font_size_override("font_size", 15)
-		maxl.add_theme_color_override("font_color", Color(0.7, 0.66, 0.55))
+		maxl.text = "Al massimo ✦"
+		maxl.add_theme_font_size_override("font_size", 14)
+		maxl.add_theme_color_override("font_color", Color(0.88, 0.76, 0.48))
 		maxl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		# Stessa larghezza del pulsante Migliora: la colonna destra resta allineata.
+		maxl.custom_minimum_size = Vector2(150, 0)
+		maxl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hb.add_child(maxl)
 	else:
 		var nx: int = lv + 1
@@ -2775,8 +2803,9 @@ func _riga_edificio(era: int, slot: int) -> Control:
 		var bonus: int = int(UPGRADE_BONUS[nx])
 		var ok: bool = GameState.risorse >= costo and GameState.get_stat("costruzione") >= gate
 		var b: Button = Button.new()
-		b.text = "Migliora (%d)" % costo
+		b.text = "Migliora · %d" % costo
 		b.disabled = not ok
+		b.custom_minimum_size = Vector2(150, 40)
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.tooltip_text = "Livello %d → %d:  +%d %s\nCosto %d Risorse · Costruzione ≥ %d (hai %d)" % [
 			lv, nx, bonus, STAT_LABELS.get(stat, stat), costo, gate, GameState.get_stat("costruzione")]

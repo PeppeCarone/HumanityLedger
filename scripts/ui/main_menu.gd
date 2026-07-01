@@ -45,6 +45,9 @@ func _ready() -> void:
 	# Pulsante Opzioni (deliverable d'esame): inserito prima di "Esci", tema globale.
 	opzioni_btn = Button.new()
 	opzioni_btn.text = "Opzioni"
+	# Identico ai fratelli (stessa altezza e corpo testo): niente pulsante "fuori scala".
+	opzioni_btn.custom_minimum_size = Vector2(0, 66)
+	opzioni_btn.add_theme_font_size_override("font_size", esci_btn.get_theme_font_size("font_size"))
 	$Buttons.add_child(opzioni_btn)
 	$Buttons.move_child(opzioni_btn, esci_btn.get_index())
 	opzioni_btn.pressed.connect(_on_opzioni)
