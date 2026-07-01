@@ -380,7 +380,7 @@ func _costruisci_scena() -> void:
 	# La strada: UNA banda larga. Con lo sfondo dipinto è solo un velo scuro (l'arte traspare);
 	# senza sfondo è piena, così la pista resta leggibile sul fondo nero.
 	var terra: ColorRect = ColorRect.new()
-	terra.color = Color(0.10, 0.07, 0.05, 0.30) if bg_tex != null else Color(0.16, 0.12, 0.09, 0.95)
+	terra.color = Color(0.08, 0.06, 0.05, 0.16) if bg_tex != null else Color(0.16, 0.12, 0.09, 0.95)
 	terra.position = Vector2(VILLAGGIO_X, ROAD_TOP)
 	terra.size = Vector2(SPAWN_X - VILLAGGIO_X + 40.0, ROAD_BOTTOM - ROAD_TOP)
 	terra.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -496,33 +496,35 @@ func _avvia_ambient() -> void:
 # che indicano il verso d'avanzata, lato spawn, e il villaggio fortificato a sinistra.
 func _crea_decoro() -> void:
 	var ha_campo: bool = _siege_bg_tex() != null
-	# Col campo dipinto i bordi si fanno bronzo (definiscono la pista senza coprirla).
-	var bordo: Color = Color(0.55, 0.42, 0.26, 0.5) if ha_campo else Color(0.3, 0.22, 0.14, 0.7)
-	var chev: Color = Color(0.42, 0.32, 0.2, 0.2)
-	# Bordo superiore e inferiore della strada.
-	for y in [ROAD_TOP, ROAD_BOTTOM]:
-		var linea: ColorRect = ColorRect.new()
-		linea.color = bordo
-		linea.position = Vector2(VILLAGGIO_X - 16.0, y - 1.0)
-		linea.size = Vector2(SPAWN_X - VILLAGGIO_X + 56.0, 2.0)
-		linea.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_ui.add_child(linea)
-	# Chevron su alcune file lungo la banda: verso d'avanzata dei nemici (→ villaggio).
-	var righe_chev: int = 4
-	for r in range(righe_chev):
-		var ty: float = lerpf(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0, float(r) / float(righe_chev - 1))
-		var x: float = SPAWN_X - 80.0
-		while x > VILLAGGIO_X + 150.0:
-			_ui.add_child(_chevron(x, ty, chev))
-			x -= 140.0
+	# Con l'arena DIPINTA la pista è già definita dall'arte: niente righe/bordi "UI" a coprirla.
+	# Sul fondo nero (nessuna arena) servono i bordi bronzo + il lato-spawn per leggere la corsia.
+	if not ha_campo:
+		var bordo: Color = Color(0.3, 0.22, 0.14, 0.7)
+		for y in [ROAD_TOP, ROAD_BOTTOM]:
+			var linea: ColorRect = ColorRect.new()
+			linea.color = bordo
+			linea.position = Vector2(VILLAGGIO_X - 16.0, y - 1.0)
+			linea.size = Vector2(SPAWN_X - VILLAGGIO_X + 56.0, 2.0)
+			linea.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_ui.add_child(linea)
+		var spawn: ColorRect = ColorRect.new()
+		spawn.color = Color(0.6, 0.28, 0.24, 0.4)
+		spawn.position = Vector2(SPAWN_X + 8.0, ROAD_TOP)
+		spawn.size = Vector2(5.0, ROAD_BOTTOM - ROAD_TOP)
+		spawn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ui.add_child(spawn)
 
-	# Lato spawn (destra): da dove entrano i nemici.
-	var spawn: ColorRect = ColorRect.new()
-	spawn.color = Color(0.6, 0.28, 0.24, 0.4)
-	spawn.position = Vector2(SPAWN_X + 8.0, ROAD_TOP)
-	spawn.size = Vector2(5.0, ROAD_BOTTOM - ROAD_TOP)
-	spawn.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(spawn)
+	# Chevron (verso d'avanzata dei nemici): utili con più file (ere). Nel DUELLO finale si
+	# tolgono per un colpo d'occhio cinematografico e pulito.
+	if not finale:
+		var chev: Color = Color(0.42, 0.32, 0.2, 0.18)
+		var righe_chev: int = 4
+		for r in range(righe_chev):
+			var ty: float = lerpf(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0, float(r) / float(righe_chev - 1))
+			var x: float = SPAWN_X - 80.0
+			while x > VILLAGGIO_X + 150.0:
+				_ui.add_child(_chevron(x, ty, chev))
+				x -= 140.0
 
 	# Villaggio fortificato a codice solo se non c'è lo sprite roccaforte.
 	if _siege_tex("roccaforte") == null:
@@ -630,21 +632,32 @@ func _crea_hud() -> void:
 	track.add_child(_hp_fill)
 	_decora_barra(track)
 
-	# Risorse + ondata (in alto a destra).
+	# Risorse + ondata (in alto a destra), in una cornice SPECULARE a quella del villaggio (a sx).
+	var cornice_r: PanelContainer = PanelContainer.new()
+	var sbr: StyleBoxFlat = StyleBoxFlat.new()
+	sbr.bg_color = Color(0.1, 0.08, 0.06, 0.9)
+	sbr.border_color = Color(0.6, 0.44, 0.25)
+	sbr.set_border_width_all(2)
+	sbr.set_corner_radius_all(6)
+	sbr.set_content_margin_all(8)
+	cornice_r.add_theme_stylebox_override("panel", sbr)
+	cornice_r.position = Vector2(1560.0, 92.0)
+	cornice_r.size = Vector2(320.0, 60.0)
+	cornice_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(cornice_r)
+	var vbr: VBoxContainer = VBoxContainer.new()
+	vbr.add_theme_constant_override("separation", 2)
+	cornice_r.add_child(vbr)
 	_risorse_label = Label.new()
 	_risorse_label.add_theme_font_size_override("font_size", 22)
 	_risorse_label.add_theme_color_override("font_color", Color(0.97, 0.86, 0.5))
-	_risorse_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-	_risorse_label.add_theme_constant_override("outline_size", 4)
-	_risorse_label.position = Vector2(1480.0, 96.0)
 	_risorse_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(_risorse_label)
+	vbr.add_child(_risorse_label)
 	_ondata_label = Label.new()
-	_ondata_label.add_theme_font_size_override("font_size", 16)
+	_ondata_label.add_theme_font_size_override("font_size", 15)
 	_ondata_label.add_theme_color_override("font_color", Color(0.82, 0.76, 0.6))
-	_ondata_label.position = Vector2(1480.0, 132.0)
 	_ondata_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(_ondata_label)
+	vbr.add_child(_ondata_label)
 
 	# Suggerimento + messaggi transitori.
 	_info_label = Label.new()

@@ -1523,15 +1523,6 @@ func _mostra_card_finale() -> void:
 	if tf != null:
 		t1.add_theme_font_override("font", tf)
 	vb.add_child(t1)
-	# Key-art del Dio (se presente): centra la card sull'immagine del boss. Fallback-safe.
-	var key_path: String = "res://Assets/art/siege/finale/dio_keyart.png"
-	if ResourceLoader.exists(key_path):
-		var key: TextureRect = TextureRect.new()
-		key.texture = load(key_path)
-		key.custom_minimum_size = Vector2(0, 320)
-		key.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		key.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		vb.add_child(key)
 	var t2: Label = Label.new()
 	t2.text = "Il mito si rifiuta di morire. L'ultimo degli dèi antichi scende\na sbarrare la strada verso ciò che ancora non è stato forgiato.\nReggi le sue tre furie: difendi la soglia."
 	t2.add_theme_font_size_override("font_size", 22)
