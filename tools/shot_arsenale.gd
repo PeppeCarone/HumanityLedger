@@ -123,3 +123,24 @@ func _run() -> void:
 	GameState.era_corrente = 2
 	await _shot("res://scenes/main.tscn", "finale_epilogo", Callable(), func(inst: Node) -> void:
 		inst._mostra_epilogo_soglia(true), 1.2)
+
+	# 8) GIUDIZIO DIVINO: arena finale diretta + ultimate castata a mano → cattura sull'impatto.
+	GameState.reset_run()
+	GameState.era_corrente = 2
+	var ar: SiegeArena = SiegeArena.new()
+	ar.finale = true
+	ar.configura(2)
+	get_tree().root.add_child(ar)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for i in range(6):
+		ar.schiera_unita_test(0, ["bloccatore", "tiratore", "totem"][i % 3])
+	ar.boss_ultimate(2, 30)   # coroutine: telegrafo ~1.3s poi le colonne di luce
+	await get_tree().create_timer(1.52).timeout
+	var gimg: Image = get_viewport().get_texture().get_image()
+	gimg.convert(Image.FORMAT_RGB8)
+	gimg.save_png(OUT + "finale_giudizio.png")
+	print("SHOT finale_giudizio ", gimg.get_size())
+	ar.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame

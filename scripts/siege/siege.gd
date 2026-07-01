@@ -1283,6 +1283,9 @@ func _on_boss_morto(b: SiegeEnemy) -> void:
 func _finisher_boss(b: SiegeEnemy) -> void:
 	var pos: Vector2 = b.global_position if is_instance_valid(b) else Vector2(900.0, 520.0)
 	hitstop(0.13, 0.04)   # colpo decisivo: l'uccisione del boss "pesa"
+	# Duello finale: il Giudizio cala sul Dio stesso — la colonna di luce ne segna la fine.
+	if finale:
+		fx_giudizio(Vector2(pos.x, clampf(pos.y + 60.0, ROAD_TOP + 100.0, ROAD_BOTTOM)), 760.0)
 	_morte_poof(pos, Color(1.0, 0.85, 0.5))
 	_morte_poof(pos, Color(1.0, 0.6, 0.3))
 	fx_esplosione(pos, 120.0)
@@ -1563,14 +1566,18 @@ func _cinema_titolo(titolo: String, sotto: String, col: Color) -> void:
 #   Colosso (Era 1): FRANA — onde sismiche davanti a sé (2 grandi zone verso il villaggio).
 #   Drago (Era 2): TEMPESTA DI FUOCO — 4 zone sparse sul campo.
 func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, ROAD_MID)) -> void:
+	# Nel duello finale l'ultimate è il GIUDIZIO DIVINO: colonne di luce che calano dal cielo
+	# (telegrafo ORO, non rosso — è un dio, non una bestia). Stessa logica a zone evitabili.
 	var nome: String = "TEMPESTA DI FUOCO" if era_b >= 2 else "FRANA ROVINOSA"
+	if finale:
+		nome = "GIUDIZIO DIVINO"
 	_flash_info("ULTIMATE — %s!  sparpaglia le difese!" % nome)
 	AudioManager.play_sfx("stat_down")
 	_scuoti()
 	# Zone di pericolo (telegrafate).
 	var zone: Array[Vector2] = []
-	var raggio: float = 175.0 if era_b >= 2 else 240.0
-	var n_zone: int = 4 if era_b >= 2 else 3
+	var raggio: float = 165.0 if finale else (175.0 if era_b >= 2 else 240.0)
+	var n_zone: int = 4 if (finale or era_b >= 2) else 3
 	# Mira ai DIFENSORI (l'ultimate DEVE colpire, non cadere a vuoto).
 	var difs: Array = difensori_in_area(Vector2(VILLAGGIO_X + 600.0, ROAD_MID), 2200.0)
 	difs.shuffle()
@@ -1582,22 +1589,29 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	while zone.size() < n_zone:
 		zone.append(Vector2(randf_range(VILLAGGIO_X + 120.0, VILLAGGIO_X + 720.0),
 			randf_range(ROAD_TOP + 60.0, ROAD_BOTTOM - 60.0)))
-	# Telegrafo: dischi rossi pulsanti per ~1s.
+	# Telegrafo: dischi pulsanti per ~1s (oro divino nel duello, rossi altrove).
 	var marker: Array[Node] = []
 	for z in zone:
-		marker.append(_telegrafo_disco(z, raggio))
+		marker.append(_telegrafo_disco(z, raggio, Color(1.0, 0.85, 0.4) if finale else Color(0.95, 0.2, 0.15)))
 	await get_tree().create_timer(1.3).timeout
 	# Impatto: danno SOLO nelle zone (lo Scudo di pelli del Bloccatore Lv3 lo mitiga).
 	hitstop(0.09, 0.05)   # l'ultimate "atterra" con peso
 	for z in zone:
 		danno_area_difensori(z, raggio, potenza)
-		fx_vfx(z, raggio * 2.2, "fire_burst" if era_b >= 2 else "impatto_terra", true)
-		fx_esplosione(z, raggio)
+		if finale:
+			fx_giudizio(z)
+			fx_esplosione(z, raggio * 0.8)
+		else:
+			fx_vfx(z, raggio * 2.2, "fire_burst" if era_b >= 2 else "impatto_terra", true)
+			fx_esplosione(z, raggio)
 	for m in marker:
 		if is_instance_valid(m):
 			m.queue_free()
 	var flash: ColorRect = ColorRect.new()
-	flash.color = Color(1.0, 0.5, 0.2, 0.0) if era_b >= 2 else Color(0.85, 0.62, 0.32, 0.0)
+	if finale:
+		flash.color = Color(1.0, 0.9, 0.55, 0.0)
+	else:
+		flash.color = Color(1.0, 0.5, 0.2, 0.0) if era_b >= 2 else Color(0.85, 0.62, 0.32, 0.0)
 	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(flash)
@@ -1608,12 +1622,40 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	scuoti_forte()
 
 
-# Disco rosso pulsante che telegrafa una zona dell'ultimate. Ritorna il nodo (da liberare).
-func _telegrafo_disco(pos: Vector2, raggio: float) -> Node:
+# Colonna di luce divina che CALA dal cielo sul punto d'impatto (asset fx/giudizio_divino.png,
+# blend ADD). Usata dall'ultimate del duello finale e dal colpo di grazia sul Dio.
+func fx_giudizio(pos: Vector2, alt: float = 640.0) -> void:
+	var tex: Texture2D = _fx_tex("giudizio_divino")
+	if tex == null:
+		fx_esplosione(pos, 130.0)
+		return
+	var s: Sprite2D = Sprite2D.new()
+	s.texture = tex
+	s.centered = false
+	var sc: float = alt / float(tex.get_height())
+	var w: float = float(tex.get_width()) * sc
+	var mat: CanvasItemMaterial = CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	s.material = mat
+	s.modulate = Color(1.0, 0.95, 0.72, 0.0)
+	s.scale = Vector2(sc, sc * 0.18)   # parte "corta" in alto → cala a terra
+	_world.add_child(s)
+	s.global_position = Vector2(pos.x - w * 0.5, pos.y - alt)
+	var t: Tween = create_tween()
+	t.set_parallel()
+	t.tween_property(s, "modulate:a", 0.95, 0.09)
+	t.tween_property(s, "scale:y", sc, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.chain().tween_interval(0.24)
+	t.chain().tween_property(s, "modulate:a", 0.0, 0.55).set_trans(Tween.TRANS_SINE)
+	t.chain().tween_callback(s.queue_free)
+
+
+# Disco pulsante che telegrafa una zona dell'ultimate (rosso; oro nel duello). Ritorna il nodo.
+func _telegrafo_disco(pos: Vector2, raggio: float, col: Color = Color(0.95, 0.2, 0.15)) -> Node:
 	var s: Sprite2D = Sprite2D.new()
 	s.texture = _disc_texture()
 	s.centered = true
-	s.modulate = Color(0.95, 0.2, 0.15, 0.0)
+	s.modulate = Color(col.r, col.g, col.b, 0.0)
 	var base: float = raggio * 2.0 / 64.0
 	s.scale = Vector2(base, base)
 	_world.add_child(s)
