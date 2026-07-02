@@ -2528,16 +2528,24 @@ func _apri_pannello_edificio(slot: int) -> void:
 	box.anchor_right = 0.5
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = -235.0
-	box.offset_right = 235.0
-	box.offset_top = -205.0
-	box.offset_bottom = 205.0
+	box.offset_left = -272.0
+	box.offset_right = 272.0
+	box.offset_top = -250.0
+	box.offset_bottom = 250.0
 	edificio_panel.add_child(box)
 
+	# Margini DENTRO la cornice ornata (angoli 9-slice ~84px): titolo e testo non toccano
+	# mai i fregi, e il contenuto non può traboccare fuori dal pannello.
+	var mc: MarginContainer = MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 46)
+	mc.add_theme_constant_override("margin_right", 46)
+	mc.add_theme_constant_override("margin_top", 48)
+	mc.add_theme_constant_override("margin_bottom", 28)
+	box.add_child(mc)
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 12)
-	box.add_child(vb)
+	vb.add_theme_constant_override("separation", 11)
+	mc.add_child(vb)
 
 	var titolo: Label = Label.new()
 	var tfont: Font = _font_titoli()
@@ -2604,12 +2612,17 @@ func _apri_pannello_edificio(slot: int) -> void:
 		# pannello costruzione; "Chiudi" resta secondaria a tema → gerarchia chiara.
 		var migliora_btn: Button = _btn_modale("Migliora", null, ok_risorse and ok_gate)
 		migliora_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# Larghezza contenuta: la CTA resta DENTRO la cornice (prima sbordava sui fregi).
+		migliora_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		migliora_btn.custom_minimum_size = Vector2(280, 0)
 		migliora_btn.pressed.connect(func() -> void:
 			_esegui_upgrade(era, slot, stat, costo, bonus))
 		vb.add_child(migliora_btn)
 
 	var chiudi: Button = Button.new()
 	chiudi.text = "Chiudi"
+	chiudi.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	chiudi.custom_minimum_size = Vector2(170, 0)
 	chiudi.pressed.connect(_chiudi_pannello_edificio)
 	vb.add_child(chiudi)
 
@@ -3228,15 +3241,22 @@ func _nuovo_pannello_modale() -> VBoxContainer:
 	box.anchor_right = 0.5
 	box.anchor_top = 0.5
 	box.anchor_bottom = 0.5
-	box.offset_left = -265.0
-	box.offset_right = 265.0
-	box.offset_top = -275.0
-	box.offset_bottom = 275.0
+	box.offset_left = -290.0
+	box.offset_right = 290.0
+	box.offset_top = -292.0
+	box.offset_bottom = 292.0
 	edificio_panel.add_child(box)
+	# Stessi margini interni degli altri modali: il contenuto non tocca mai i fregi.
+	var mc: MarginContainer = MarginContainer.new()
+	mc.add_theme_constant_override("margin_left", 46)
+	mc.add_theme_constant_override("margin_right", 46)
+	mc.add_theme_constant_override("margin_top", 48)
+	mc.add_theme_constant_override("margin_bottom", 28)
+	box.add_child(mc)
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_theme_constant_override("separation", 9)
-	box.add_child(vb)
+	mc.add_child(vb)
 	return vb
 
 

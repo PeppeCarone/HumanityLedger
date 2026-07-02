@@ -171,21 +171,30 @@ func _tick_abilita(delta: float) -> void:
 		if _calore_cd <= 0.0:
 			_calore_cd = 0.5
 			arena.danno_area_nemici(global_position, maxf(60.0, aoe_raggio * 0.55), maxi(2, int(round(float(danno) * 0.22))))
-	# Ultimate (Lv5): a cadenza, se c'è un nemico abbastanza vicino (niente sprechi a vuoto).
+	# Ultimate (Lv5): a cadenza, se c'è un nemico in gittata (niente sprechi a vuoto).
+	# Le unità A TIRO (ranged/aoe) hanno gittata d'ultimate DOPPIA e mirano al nemico
+	# più vicino a loro (prima colpivano un punto fisso davanti → spesso "a vuoto").
 	if livello >= 5:
 		_ult_cd -= delta
-		if _ult_cd <= 0.0 and arena.bersaglio_per(global_position, 900.0) != null:
-			_ult_cd = ULT_CD
-			_cast_ultimate()
+		if _ult_cd <= 0.0:
+			var gittata: float = raggio_tiro * 2.0 if (ruolo == "ranged" or ruolo == "aoe") else 900.0
+			var b_ult: SiegeEnemy = arena.bersaglio_per(global_position, gittata)
+			if b_ult != null:
+				_ult_cd = ULT_CD
+				_cast_ultimate(b_ult)
 
 
-# Lancia l'ultimate del tipo (forma finale dell'ascensione, Docs/14 §3).
-func _cast_ultimate() -> void:
+# Lancia l'ultimate del tipo (forma finale dell'ascensione, Docs/14 §3). Le unità a tiro
+# CENTRANO l'ultimate sul nemico più vicino (bersaglio), le altre su di sé.
+func _cast_ultimate(bersaglio: SiegeEnemy = null) -> void:
+	var mira: Vector2 = global_position + Vector2(230.0, -10.0)
+	if bersaglio != null and is_instance_valid(bersaglio):
+		mira = bersaglio.global_position
 	match tipo:
 		"tiratore":
-			arena.ultimate_tiratore(global_position, int(round(float(danno) * 1.4)))
+			arena.ultimate_tiratore(global_position, mira, int(round(float(danno) * 1.4)))
 		"totem":
-			arena.ultimate_totem(global_position, int(round(float(danno) * 1.3)))
+			arena.ultimate_totem(global_position, mira, int(round(float(danno) * 1.3)))
 		"sciamano":
 			arena.ultimate_sciamano(global_position, raggio_tiro * 1.1)
 		"bloccatore":

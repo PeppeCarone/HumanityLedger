@@ -1836,21 +1836,19 @@ func danno_area_nemici(pos: Vector2, raggio: float, danno: int) -> int:
 
 # --- Ultimate delle unità ASCESE (Lv5), auto-cast periodico (Docs/14 §3) -----
 
-func ultimate_tiratore(pos: Vector2, danno: int) -> void:
-	# Pioggia di lance: raffica ad area davanti al tiratore.
-	var centro: Vector2 = pos + Vector2(230.0, -10.0)
-	danno_area_nemici(centro, 150.0, danno)
-	fx_anello(centro, 150.0, Color(1.0, 0.92, 0.6))
-	fx_vfx(centro, 330.0, "shockwave", true)
+func ultimate_tiratore(pos: Vector2, mira: Vector2, danno: int) -> void:
+	# Pioggia di lance: raffica ad area SUL nemico più vicino (gittata doppia, mira vera).
+	danno_area_nemici(mira, 150.0, danno)
+	fx_anello(mira, 150.0, Color(1.0, 0.92, 0.6))
+	fx_vfx(mira, 330.0, "shockwave", true)
 	fx_callout(pos, "PIOGGIA DI LANCE")
 
 
-func ultimate_totem(pos: Vector2, danno: int) -> void:
-	# Eruzione: colonna di fuoco ad area.
-	var centro: Vector2 = pos + Vector2(190.0, 0.0)
-	danno_area_nemici(centro, 145.0, danno)
-	fx_esplosione(centro, 145.0)
-	fx_vfx(centro, 330.0, "fire_burst", true)
+func ultimate_totem(pos: Vector2, mira: Vector2, danno: int) -> void:
+	# Eruzione: colonna di fuoco SUL nemico più vicino (gittata doppia, mira vera).
+	danno_area_nemici(mira, 145.0, danno)
+	fx_esplosione(mira, 145.0)
+	fx_vfx(mira, 330.0, "fire_burst", true)
 	fx_callout(pos, "ERUZIONE", Color(1.0, 0.62, 0.3))
 
 
