@@ -21,12 +21,17 @@ func carica_quest() -> void:
 	dir.list_dir_begin()
 	var name: String = dir.get_next()
 	while name != "":
-		if not dir.current_is_dir() and name.ends_with(".tres"):
-			var res: Resource = load("res://data/quests/" + name)
-			if res != null:
-				tutte_le_quest.append(res)
+		if not dir.current_is_dir():
+			# Nei build ESPORTATI i .tres compaiono come .tres.remap: senza questo trim il
+			# gioco impacchettato non caricava NESSUNA quest (restava "In attesa").
+			var f: String = name.trim_suffix(".remap")
+			if f.ends_with(".tres"):
+				var res: Resource = load("res://data/quests/" + f)
+				if res != null:
+					tutte_le_quest.append(res)
 		name = dir.get_next()
 	dir.list_dir_end()
+	print("QuestManager: %d quest caricate" % tutte_le_quest.size())
 
 
 func quest_per_id(id: String) -> Resource:

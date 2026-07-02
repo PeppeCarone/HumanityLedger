@@ -247,7 +247,7 @@ func _setup_contatori() -> void:
 		dir.list_dir_begin()
 		var fname: String = dir.get_next()
 		while fname != "":
-			if not dir.current_is_dir() and fname.ends_with(".tres"):
+			if not dir.current_is_dir() and fname.trim_suffix(".remap").ends_with(".tres"):
 				tot_artefatti += 1
 			fname = dir.get_next()
 		dir.list_dir_end()
@@ -300,10 +300,13 @@ func _populate_artefatti() -> void:
 	dir.list_dir_begin()
 	var fname: String = dir.get_next()
 	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var artefatto: Artefatto = load(ARTEFATTI_DIR + fname) as Artefatto
-			if artefatto != null:
-				artefatti_list.add_child(_build_artefatto_card(artefatto))
+		if not dir.current_is_dir():
+			# Export-safe: nel PCK i .tres sono elencati come .tres.remap.
+			var f: String = fname.trim_suffix(".remap")
+			if f.ends_with(".tres"):
+				var artefatto: Artefatto = load(ARTEFATTI_DIR + f) as Artefatto
+				if artefatto != null:
+					artefatti_list.add_child(_build_artefatto_card(artefatto))
 		fname = dir.get_next()
 	dir.list_dir_end()
 

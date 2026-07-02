@@ -787,10 +787,13 @@ func _load_personaggi() -> void:
 	dir.list_dir_begin()
 	var fname: String = dir.get_next()
 	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var res: Resource = load(CHARACTERS_DIR + fname)
-			if res != null and res.get("id") != null and res.id != "":
-				personaggi_db[res.id] = res
+		if not dir.current_is_dir():
+			# Export-safe: nel PCK i .tres sono elencati come .tres.remap.
+			var f: String = fname.trim_suffix(".remap")
+			if f.ends_with(".tres"):
+				var res: Resource = load(CHARACTERS_DIR + f)
+				if res != null and res.get("id") != null and res.id != "":
+					personaggi_db[res.id] = res
 		fname = dir.get_next()
 	dir.list_dir_end()
 
@@ -1762,10 +1765,13 @@ func _carica_finali() -> Array[Finale]:
 	dir.list_dir_begin()
 	var fname: String = dir.get_next()
 	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".tres"):
-			var f: Finale = load(FINALI_DIR + fname) as Finale
-			if f != null and f.id != FINALE_SEGRETO_ID:   # il segreto non entra nello scoring
-				out.append(f)
+		if not dir.current_is_dir():
+			# Export-safe: nel PCK i .tres sono elencati come .tres.remap.
+			var nome_f: String = fname.trim_suffix(".remap")
+			if nome_f.ends_with(".tres"):
+				var f: Finale = load(FINALI_DIR + nome_f) as Finale
+				if f != null and f.id != FINALE_SEGRETO_ID:   # il segreto non entra nello scoring
+					out.append(f)
 		fname = dir.get_next()
 	dir.list_dir_end()
 	return out

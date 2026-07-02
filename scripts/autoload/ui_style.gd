@@ -60,6 +60,14 @@ func _ready() -> void:
 
 	get_tree().root.theme = theme
 
+	# Cursore CUSTOM a tema (freccia oro): registrarlo esplicitamente risolve anche i casi
+	# in cui il cursore di default non è visibile nel build esportato (driver/fullscreen).
+	var cur: Texture2D = ui_texture("cursor")
+	if cur != null:
+		Input.set_custom_mouse_cursor(cur, Input.CURSOR_ARROW, Vector2(3, 2))
+		Input.set_custom_mouse_cursor(cur, Input.CURSOR_POINTING_HAND, Vector2(3, 2))
+		Input.set_custom_mouse_cursor(cur, Input.CURSOR_DRAG, Vector2(3, 2))
+
 
 # --- API pubblica (usata da main.gd, village_view.gd, siege.gd, ...) ---------
 
