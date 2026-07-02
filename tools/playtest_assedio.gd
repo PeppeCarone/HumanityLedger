@@ -15,6 +15,10 @@ var _frenesia: bool = false
 
 
 func _ready() -> void:
+	# QA isolata dallo STATO UTENTE persistente (NG+/difficoltà): solo in memoria, i file
+	# in user:// non vengono toccati. Senza questo, un Eone attivo falsa i numeri.
+	Ledger.eone = 0
+	AudioManager._difficolta = 1
 	GameState.reset_run()
 	# BUILD MEDIO-FORTE (giocatore bravo): dovrebbe vincere con QUALCHE danno (tensione).
 	GameState.militare = 55

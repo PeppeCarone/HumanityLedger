@@ -22,6 +22,9 @@ const ROTAZIONE := ["bloccatore", "tiratore", "bloccatore", "totem", "tiratore",
 
 
 func _ready() -> void:
+	# QA isolata dallo STATO UTENTE persistente (NG+/difficoltà): solo in memoria.
+	Ledger.eone = 0
+	AudioManager._difficolta = 1
 	Engine.time_scale = 8.0
 	print("===== DUELLO FINALE — L'ULTIMO DIO =====")
 	await _run(BUILDS[2], ARSENALI[2])   # FORTE + arsenale PIENO  (giocatore investito)

@@ -322,12 +322,12 @@ func _completa_cambio_fase() -> void:
 	#   FASE III "Il Crepuscolo": torna mobile, più GRANDE e viva, e impara le LAME.
 	if duello_puro and _fase == 2:
 		gigante = true
-		raggio *= 1.35
+		raggio *= 1.75                       # TORREGGIA: colosso a schermo pieno (idea utente)
 		hp_max = int(round(float(hp_max) * 1.5))
 		hp = hp_max
 		armatura += 14
 		velocita = 0.0
-		position.x = _spawn_x
+		position.x = _spawn_x - 120.0        # tutto in scena, in piedi sulla rupe
 	elif duello_puro and _fase == 3:
 		gigante = false
 		velocita = _vel_base * 1.15 if _vel_base > 0.0 else 52.0
@@ -543,9 +543,14 @@ func _draw() -> void:
 	if _trasformato:
 		var pa: float = 0.28 + 0.16 * sin(_bt * 5.0)
 		if duello_puro:
-			var rr: float = r * (1.3 + (0.12 * sin(_bt * 3.2) if _fase >= 3 else 0.0))
-			draw_circle(Vector2.ZERO, rr, Color(0.95, 0.72, 0.25, pa * 0.9))
-			draw_arc(Vector2.ZERO, rr * 1.06, 0.0, TAU, 44, Color(1.0, 0.88, 0.5, 0.75), 3.0)
+			# Bagliore MORBIDO dietro il busto (cerchi concentrici a dissolvenza), non un
+			# disco piatto ai piedi: il dio è avvolto dalla luce, non in piedi su un piatto.
+			var centro: Vector2 = Vector2(0.0, -r * 0.85)
+			var puls: float = 1.0 + (0.10 * sin(_bt * 3.2) if _fase >= 3 else 0.05 * sin(_bt * 2.2))
+			for i in range(5):
+				var fr: float = lerpf(0.5, 1.3, float(i) / 4.0) * puls
+				draw_circle(centro, r * fr, Color(1.0, 0.8, 0.35, pa * 0.09))
+			draw_arc(centro, r * 1.34 * puls, 0.0, TAU, 48, Color(1.0, 0.88, 0.5, 0.4), 2.5)
 		else:
 			draw_circle(Vector2.ZERO, r * 1.28, Color(0.85, 0.12, 0.1, pa))
 			draw_arc(Vector2.ZERO, r * 1.34, 0.0, TAU, 44, Color(1.0, 0.4, 0.2, 0.7), 3.0)

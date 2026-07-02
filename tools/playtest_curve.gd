@@ -17,6 +17,9 @@ const ROTAZIONE := ["bloccatore", "bloccatore", "tiratore", "bloccatore", "totem
 
 
 func _ready() -> void:
+	# QA isolata dallo STATO UTENTE persistente (NG+/difficoltà): solo in memoria.
+	Ledger.eone = 0
+	AudioManager._difficolta = 1
 	Engine.time_scale = 8.0
 	for era in [1, 2]:
 		print("===== ERA %d =====" % era)

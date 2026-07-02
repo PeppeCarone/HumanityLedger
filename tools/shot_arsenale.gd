@@ -8,6 +8,9 @@ const OUT := "res://tools/_preview/"
 
 
 func _ready() -> void:
+	# Screenshot con numeri di RIFERIMENTO: neutralizza NG+/difficoltà dell'utente (in memoria).
+	Ledger.eone = 0
+	AudioManager._difficolta = 1
 	await _run()
 	get_tree().quit()
 
@@ -197,6 +200,14 @@ func _run() -> void:
 	g2.convert(Image.FORMAT_RGB8)
 	g2.save_png(OUT + "finale_fase2.png")
 	print("SHOT finale_fase2 ", g2.get_size())
+	# FASE III: forza il secondo cambio (nuova arte + più grande + aura pulsante).
+	if ar3._boss != null and is_instance_valid(ar3._boss):
+		ar3._boss._cambia_fase()
+	await get_tree().create_timer(3.0).timeout
+	var g3: Image = get_viewport().get_texture().get_image()
+	g3.convert(Image.FORMAT_RGB8)
+	g3.save_png(OUT + "finale_fase3.png")
+	print("SHOT finale_fase3 ", g3.get_size())
 	ar3.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
