@@ -978,28 +978,30 @@ const CREATURE_PROFILI: Dictionary = {
 # Ondate "normali" per era: w1, w2, w4, w5 (la w3 è il MINI-BOSS, la w6 il BOSS). Ogni
 # descrittore: nome, n nemici, stat base, gap, e le creature mescolate (con le loro abilità).
 const ONDATE_NORMALI: Dictionary = {
+	# Ribilanciato (utente): le ondate devono FARE PAURA — più nemici, più mordente, più fitte.
 	1: [
-		{"nome": "Il branco si avvicina", "n": 7,  "hp": 24, "vel": 77.0, "danno": 10, "bounty": 2, "gap": 0.66, "cr": ["iena", "cinghiale"]},
-		{"nome": "La mandria carica",     "n": 10, "hp": 33, "vel": 87.0, "danno": 11, "bounty": 2, "gap": 0.52, "cr": ["cinghiale", "iena", "bruto"]},
-		{"nome": "Pelli, ossa e canti",   "n": 10, "hp": 46, "vel": 75.0, "danno": 13, "bounty": 3, "gap": 0.60, "cr": ["bruto", "guaritore", "cinghiale"]},
-		{"nome": "Le grandi bestie",      "n": 11, "hp": 62, "vel": 67.0, "danno": 16, "bounty": 3, "gap": 0.64, "cr": ["orso", "stregone", "cinghiale"]},
+		{"nome": "Il branco si avvicina", "n": 7,  "hp": 24, "vel": 77.0, "danno": 12, "bounty": 2, "gap": 0.62, "cr": ["iena", "cinghiale"]},
+		{"nome": "La mandria carica",     "n": 10, "hp": 33, "vel": 87.0, "danno": 13, "bounty": 2, "gap": 0.50, "cr": ["cinghiale", "iena", "bruto"]},
+		{"nome": "Pelli, ossa e canti",   "n": 10, "hp": 46, "vel": 75.0, "danno": 15, "bounty": 3, "gap": 0.58, "cr": ["bruto", "guaritore", "cinghiale"]},
+		{"nome": "Le grandi bestie",      "n": 11, "hp": 62, "vel": 67.0, "danno": 18, "bounty": 3, "gap": 0.60, "cr": ["orso", "stregone", "cinghiale"]},
 	],
 	2: [
-		{"nome": "I predoni all'orizzonte", "n": 7,  "hp": 28, "vel": 82.0, "danno": 11, "bounty": 2, "gap": 0.66, "cr": ["predone", "scheletro"]},
-		{"nome": "Acciaio e razzia",        "n": 10, "hp": 38, "vel": 90.0, "danno": 12, "bounty": 2, "gap": 0.52, "cr": ["predone", "scudiero", "scheletro"]},
-		{"nome": "I riti oscuri",           "n": 10, "hp": 50, "vel": 76.0, "danno": 14, "bounty": 3, "gap": 0.60, "cr": ["scudiero", "sciamano_oscuro", "scheletro"]},
-		{"nome": "I colossi di pietra",     "n": 11, "hp": 72, "vel": 62.0, "danno": 18, "bounty": 3, "gap": 0.64, "cr": ["golem", "negromante", "minotauro"]},
+		{"nome": "I predoni all'orizzonte", "n": 7,  "hp": 28, "vel": 82.0, "danno": 13, "bounty": 2, "gap": 0.62, "cr": ["predone", "scheletro"]},
+		{"nome": "Acciaio e razzia",        "n": 10, "hp": 38, "vel": 90.0, "danno": 14, "bounty": 2, "gap": 0.50, "cr": ["predone", "scudiero", "scheletro"]},
+		{"nome": "I riti oscuri",           "n": 10, "hp": 50, "vel": 76.0, "danno": 16, "bounty": 3, "gap": 0.58, "cr": ["scudiero", "sciamano_oscuro", "scheletro"]},
+		{"nome": "I colossi di pietra",     "n": 11, "hp": 72, "vel": 62.0, "danno": 20, "bounty": 3, "gap": 0.60, "cr": ["golem", "negromante", "minotauro"]},
 	],
 }
 
 # Mini-boss dell'ondata 3 (creatura intermedia, mini-meccanica = EVOCA minion). Sprite
 # opzionale enemy_<creatura>.png; fallback al cerchione placeholder.
 const MINI_BOSS: Dictionary = {
-	1: {"nome": "Lo Stregone della Tribù", "creatura": "stregone_capo", "hp": 280, "vel": 40.0,
-		"danno": 16, "bounty": 10, "raggio": 44.0, "armatura": 2, "scudo": 70,
+	# Ribilanciato (utente): il mini-boss deve MORDERE — più danno e passo, non solo vita.
+	1: {"nome": "Lo Stregone della Tribù", "creatura": "stregone_capo", "hp": 280, "vel": 42.0,
+		"danno": 20, "bounty": 10, "raggio": 44.0, "armatura": 2, "scudo": 70,
 		"colore": Color(0.62, 0.4, 0.85), "scorta": ["iena", "cinghiale"]},
-	2: {"nome": "Il Tessitore d'Ossa", "creatura": "tessitore", "hp": 340, "vel": 38.0,
-		"danno": 18, "bounty": 11, "raggio": 46.0, "armatura": 3, "scudo": 95,
+	2: {"nome": "Il Tessitore d'Ossa", "creatura": "tessitore", "hp": 340, "vel": 40.0,
+		"danno": 22, "bounty": 11, "raggio": 46.0, "armatura": 3, "scudo": 95,
 		"colore": Color(0.6, 0.55, 0.72), "scorta": ["scheletro", "predone"]},
 }
 
@@ -1187,7 +1189,7 @@ func _on_enemy_morto(e: SiegeEnemy, bounty: int) -> void:
 func spawn_minion(pos: Vector2, corsia: int) -> void:
 	if not _attivo or _concluso or _enemies.size() > 40:
 		return
-	_spawn_enemy({"hp": 20, "vel": 100.0, "danno": 7, "bounty": 1, "corsia": corsia, "creatura": "minion"})
+	_spawn_enemy({"hp": 22, "vel": 106.0, "danno": 11, "bounty": 1, "corsia": corsia, "creatura": "minion"})
 	if not _enemies.is_empty():
 		var e: SiegeEnemy = _enemies[-1]
 		if is_instance_valid(e):
@@ -1618,10 +1620,11 @@ func boss_ultimate(era_b: int, potenza: int, origin: Vector2 = Vector2(900.0, RO
 	for z in zone:
 		marker.append(_telegrafo_disco(z, raggio, Color(1.0, 0.85, 0.4) if finale else Color(0.95, 0.2, 0.15)))
 	await get_tree().create_timer(1.3).timeout
-	# Impatto: danno SOLO nelle zone (lo Scudo di pelli del Bloccatore Lv3 lo mitiga).
+	# Impatto: danno PERCENTUALE della vita massima, SOLO nelle zone — devastante ma mai
+	# one-shot (ribilanciamento utente); lo Scudo di pelli del Bloccatore Lv3 lo mitiga.
 	hitstop(0.09, 0.05)   # l'ultimate "atterra" con peso
 	for z in zone:
-		danno_area_difensori(z, raggio, potenza)
+		danno_percent_difensori(z, raggio, potenza)
 		if finale:
 			fx_giudizio(z)
 			fx_esplosione(z, raggio * 0.8)
@@ -1739,7 +1742,7 @@ func intermezzo_fase(boss: SiegeBoss, fase: int) -> void:
 func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
 	if not _attivo or _concluso:
 		return
-	var raggio: float = 100.0
+	var raggio: float = 110.0
 	var bersaglio: Vector2 = Vector2(VILLAGGIO_X + randf_range(120.0, 320.0),
 		_corsia_y(randi() % N_FILE_SPAWN))
 	var lista: Array = difensori_in_area(origine, 1400.0)
@@ -1748,9 +1751,9 @@ func mini_boss_bombarda(origine: Vector2, _col: Color = Color.WHITE) -> void:
 		if d0 != null and is_instance_valid(d0):
 			bersaglio = d0.global_position
 	var marker: Node = _telegrafo_disco(bersaglio, raggio)
-	var dmg: int = 20 + 6 * (era - 1)   # mini-boss caster: colpo che FA male (telegrafato, evitabile)
+	var dmg: int = 22 + 7 * (era - 1)   # mini-boss caster: colpo che FA male (telegrafato, evitabile)
 	var t: Tween = create_tween()
-	t.tween_interval(0.7)
+	t.tween_interval(0.62)
 	t.tween_callback(func() -> void:
 		if is_instance_valid(marker):
 			marker.queue_free()
@@ -1764,9 +1767,9 @@ func evoca_rinforzi_boss(n: int) -> void:
 	if finale or not _attivo or _concluso or _enemies.size() > 55:
 		return   # duello finale: niente add — il Dio combatte da solo (Docs/20 §2)
 	var lista: Array = ONDATE_NORMALI.get(era, ONDATE_NORMALI[1])[0]["cr"]
-	var hp_r: int = int(round(26.0 * (1.0 + 0.18 * float(era - 1))))
+	var hp_r: int = int(round(28.0 * (1.0 + 0.18 * float(era - 1))))
 	for i in range(n):
-		_spawn_enemy({"hp": hp_r, "vel": 84.0, "danno": 8, "bounty": 1,
+		_spawn_enemy({"hp": hp_r, "vel": 84.0, "danno": 10, "bounty": 1,
 			"corsia": i % N_FILE_SPAWN, "creatura": str(lista[i % lista.size()])})
 	AudioManager.play_sfx("drag_hover")
 
@@ -1851,6 +1854,17 @@ func danno_area_difensori(pos: Vector2, raggio: float, danno: int) -> void:
 			# Scudo di pelli (Bloccatore Lv3 vicino): -40% danno ad area subìto.
 			var dmg: int = int(round(float(danno) * 0.6)) if _scudo_attivo(d.global_position) else danno
 			d.colpisci(dmg)
+
+
+# Danno PERCENTUALE della vita massima (ultimate dei boss): toglie perc% a chi è nella zona.
+# Mai letale da piena vita → punisce, non cancella; lo Scudo di pelli mitiga (-40%).
+func danno_percent_difensori(pos: Vector2, raggio: float, perc: int) -> void:
+	for d in difensori_in_area(pos, raggio):
+		if is_instance_valid(d):
+			var frac: float = clampf(float(perc) / 100.0, 0.0, 0.95)
+			if _scudo_attivo(d.global_position):
+				frac *= 0.6
+			d.colpisci(maxi(5, int(round(float(maxi(d.hp_max, 1)) * frac))))
 
 
 # C'è un Bloccatore di Lv3+ entro 130px da `pos`? (Scudo di pelli: mitiga il danno ad area.)

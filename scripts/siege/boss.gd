@@ -69,7 +69,7 @@ var _ult_usata: int = 0
 var _evoca_t: float = 6.0
 const TRASF_DUR: float = 1.4        # durata dell'animazione di trasformazione (tempo locale)
 const EVOCA_BOSS_CD: float = 11.0   # ogni quanto il boss chiama rinforzi (meno add = boss focalizzabile)
-const ULT_POT_BASE: int = 90        # ULTIMATE: one-shotta i difensori (le abilità normali no)
+const ULT_PERC_BASE: int = 72       # ULTIMATE: toglie ~72% della vita MASSIMA (mai one-shot)
 
 # Sistema a FASI (idea utente): il boss attraversa FASI fasi, ognuna con la SUA barra HP piena.
 # Svuotata una fase (non l'ultima) NON muore: intermezzo cinematografico (INVULNERABILE, i nemici
@@ -342,10 +342,12 @@ func _completa_cambio_fase() -> void:
 # Scatena l'ultimate del boss (devastazione a tutto campo, gestita dall'arena per archetipo).
 # Potenza CALANTE a ogni uso: non si può vincere per ripetizione.
 func _cast_ultimate() -> void:
-	var pot: int = int(round(float(ULT_POT_BASE) * pow(0.92, float(_ult_usata))))
+	# Percentuale di vita massima tolta (ribilanciamento utente: NIENTE one-shot — chi viene
+	# colpito sopravvive col fiato corto). Decade lieve a ogni uso (anti-ripetizione).
+	var perc: int = maxi(52, int(round(float(ULT_PERC_BASE) * pow(0.94, float(_ult_usata)))))
 	_ult_usata += 1
 	if arena != null and arena.has_method("boss_ultimate"):
-		arena.boss_ultimate(era_boss, maxi(48, pot), global_position)
+		arena.boss_ultimate(era_boss, perc, global_position)
 
 
 # Cadenza dell'ultimate: cresce a ogni uso (anti-ripetizione).
@@ -412,7 +414,7 @@ func _esegui_abilita() -> void:
 	match _abil_corrente:
 		"pestone":
 			if arena != null:
-				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 18 if _in_furia else 14)
+				arena.danno_area_difensori(_tele_pos, RAGGIO_PESTONE, 24 if _in_furia else 19)
 				if duello_puro and arena.has_method("fx_giudizio"):
 					arena.fx_giudizio(_tele_pos, 520.0)   # VERDETTO del Dio: colonna di luce, non polvere
 				else:
@@ -428,7 +430,7 @@ func _esegui_abilita() -> void:
 			if arena != null:
 				arena.stordisci_difensori(dur)
 				var cen: Vector2 = global_position + Vector2(-260.0, 0.0)
-				arena.danno_area_difensori(cen, 320.0, 12 if _in_furia else 9)
+				arena.danno_area_difensori(cen, 320.0, 16 if _in_furia else 12)
 				# Allineata al CENTRO del danno (-260): prima l'onda appariva spostata dal cerchio.
 				arena.fx_vfx_boss(global_position + Vector2(-260.0, 0.0), 640.0, "onda_ruggito", _fx_suffisso(), false)
 				arena.scuoti_forte()
@@ -444,7 +446,7 @@ func _esegui_abilita() -> void:
 			# Lingua di fuoco lungo la corsia: colpisce i difensori in una banda davanti
 			# al Drago (a distanza, senza doverli raggiungere — il contrario del Colosso).
 			if arena != null:
-				var dmg: int = 16 if _in_furia else 12
+				var dmg: int = 20 if _in_furia else 16
 				for off in [160.0, 340.0, 520.0, 700.0, 880.0, 1060.0]:
 					var p: Vector2 = Vector2(global_position.x - off, global_position.y)
 					arena.danno_area_difensori(p, 110.0, dmg)
@@ -463,7 +465,7 @@ func _esegui_abilita() -> void:
 					m.queue_free()
 			_crep_marker.clear()
 			if arena != null:
-				var dmgc: int = 17 if _frenesia else 13
+				var dmgc: int = 21 if _frenesia else 17
 				for y in _crep_bande:
 					var x: float = 240.0
 					while x < 950.0:
@@ -481,7 +483,7 @@ func _esegui_abilita() -> void:
 		"pioggia":
 			# Pioggia di fuoco: piu' impatti sparsi sul campo (area denial diffuso).
 			if arena != null:
-				var dmg2: int = 14 if _in_furia else 11
+				var dmg2: int = 18 if _in_furia else 14
 				for p in _pioggia_pts:
 					arena.danno_area_difensori(p, 110.0, dmg2)
 					if duello_puro and arena.has_method("fx_giudizio"):

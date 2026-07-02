@@ -39,11 +39,11 @@ const ATK_CADENZA: float = 0.75
 const CARICA_CD: float = 3.2        # ogni quanto il caricatore scatta
 const CARICA_DUR: float = 0.7       # durata dello scatto (lo scatto sfonda la linea)
 const CARICA_MULT: float = 2.7      # moltiplicatore velocità durante lo scatto
-const EVOCA_CD: float = 4.5         # ogni quanto l'evocatore chiama un minion
-const BOMBARDA_CD: float = 4.5      # cadenza del bombardamento del mini-boss caster
+const EVOCA_CD: float = 4.3         # ogni quanto l'evocatore chiama un minion
+const BOMBARDA_CD: float = 4.2      # cadenza del bombardamento del mini-boss caster
 const STANDOFF: float = 280.0       # distanza dal villaggio a cui il caster si ferma a bombardare
 const STANDOFF_HOLD: float = 7.0    # max tempo allo standoff: poi avanza (niente stallo battaglia)
-const CURA_CD: float = 2.4          # ogni quanto il risanatore cura i vicini
+const CURA_CD: float = 2.3          # ogni quanto il risanatore cura i vicini
 
 var _vivo: bool = true
 var _t: float = 0.0
