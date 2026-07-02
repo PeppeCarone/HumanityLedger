@@ -1660,6 +1660,30 @@ func fx_giudizio(pos: Vector2, alt: float = 640.0) -> void:
 	t.chain().tween_callback(s.queue_free)
 
 
+# FASCIA orizzontale telegrafata (LAME DEL CREPUSCOLO, fase 3 del duello): banda dorata
+# pulsante su tutta la larghezza del campo. Ritorna il nodo (da liberare all'impatto).
+func telegrafo_banda(y: float, mezza: float = 55.0) -> Node:
+	var r: ColorRect = ColorRect.new()
+	r.color = Color(1.0, 0.85, 0.4, 0.0)
+	r.position = Vector2(VILLAGGIO_X, y - mezza)
+	r.size = Vector2(SPAWN_X - VILLAGGIO_X, mezza * 2.0)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_world.add_child(r)
+	var t: Tween = create_tween()
+	t.set_loops(12)
+	t.tween_property(r, "color:a", 0.20, 0.18)
+	t.tween_property(r, "color:a", 0.08, 0.18)
+	return r
+
+
+# FASE II del duello: il Dio-Idolo GIGANTE e immobile si può sempre colpire (le unità
+# ignorano la gittata contro di lui). Null fuori dal duello o nelle altre fasi.
+func boss_gigante_bersaglio() -> SiegeEnemy:
+	if _boss != null and is_instance_valid(_boss) and _boss.vivo() and _boss.get("gigante") == true:
+		return _boss
+	return null
+
+
 # Disco pulsante che telegrafa una zona dell'ultimate (rosso; oro nel duello). Ritorna il nodo.
 func _telegrafo_disco(pos: Vector2, raggio: float, col: Color = Color(0.95, 0.2, 0.15)) -> Node:
 	var s: Sprite2D = Sprite2D.new()
@@ -1935,6 +1959,7 @@ func segnala_abilita_boss(nome: String) -> void:
 			"carica": "AVANZATA DEL DIO — sfonda!",
 			"soffio": "ALITO ARDENTE — sgombra la corsia!",
 			"pioggia": "LACRIME DI FUOCO — disperdi le unità!",
+			"crepuscolo": "LAME DEL CREPUSCOLO — cambia fila!",
 		}
 	_flash_info(etich.get(nome, nome))
 	if _vignetta_furia != null and is_instance_valid(_vignetta_furia):

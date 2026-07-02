@@ -123,6 +123,9 @@ func _process(delta: float) -> void:
 	match ruolo:
 		"ranged", "aoe":
 			var b: SiegeEnemy = arena.bersaglio_per(global_position, raggio_tiro)
+			# FASE II del duello: l'Idolo GIGANTE e immobile si colpisce anche fuori gittata.
+			if b == null and arena.has_method("boss_gigante_bersaglio"):
+				b = arena.boss_gigante_bersaglio()
 			if b != null:
 				var dmg: int = danno
 				# Mira (Tiratore Lv5): danno critico sui nemici già feriti (< 50% HP).
@@ -141,6 +144,14 @@ func _process(delta: float) -> void:
 				e.subisci_danno(danno)
 				_cooldown = cadenza
 				_recoil()
+			elif arena.has_method("boss_gigante_bersaglio"):
+				# FASE II del duello: nessuno da bloccare (l'Idolo è immobile a destra) —
+				# i guerrieri SCAGLIANO le lance contro il colosso, invece di stare a guardare.
+				var big: SiegeEnemy = arena.boss_gigante_bersaglio()
+				if big != null:
+					arena.lancia_proiettile(global_position, big, maxi(3, int(round(float(danno) * 0.7))))
+					_cooldown = cadenza * 1.25
+					_recoil()
 		"slow":
 			var lista: Array = arena.nemici_in_area(global_position, raggio_tiro)
 			if not lista.is_empty():
@@ -179,6 +190,8 @@ func _tick_abilita(delta: float) -> void:
 		if _ult_cd <= 0.0:
 			var gittata: float = raggio_tiro * 2.0 if (ruolo == "ranged" or ruolo == "aoe") else 900.0
 			var b_ult: SiegeEnemy = arena.bersaglio_per(global_position, gittata)
+			if b_ult == null and arena.has_method("boss_gigante_bersaglio"):
+				b_ult = arena.boss_gigante_bersaglio()   # fase II: l'Idolo si ultima da ovunque
 			if b_ult != null:
 				_ult_cd = ULT_CD
 				_cast_ultimate(b_ult)

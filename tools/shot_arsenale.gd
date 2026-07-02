@@ -174,3 +174,29 @@ func _run() -> void:
 	ar2.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+	# 10) DUELLO FASE II — L'Idolo GIGANTE e immobile a destra, l'armata lo bersaglia da ovunque.
+	GameState.reset_run()
+	GameState.era_corrente = 2
+	GameState.militare = 55
+	GameState.costruzione = 50
+	GameState.scienza = 50
+	var ar3: SiegeArena = SiegeArena.new()
+	ar3.finale = true
+	ar3.configura(2)
+	get_tree().root.add_child(ar3)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for t3 in ["tiratore", "bloccatore", "totem", "sciamano", "tiratore"]:
+		ar3.schiera_unita_test(0, t3)
+	await get_tree().create_timer(2.7).timeout   # pausa 1.8 + spawn: il Dio è in campo
+	if ar3._boss != null and is_instance_valid(ar3._boss):
+		ar3._boss._cambia_fase()                  # forza la FASE II
+	await get_tree().create_timer(2.8).timeout   # trasformazione + Idolo eretto a destra
+	var g2: Image = get_viewport().get_texture().get_image()
+	g2.convert(Image.FORMAT_RGB8)
+	g2.save_png(OUT + "finale_fase2.png")
+	print("SHOT finale_fase2 ", g2.get_size())
+	ar3.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame

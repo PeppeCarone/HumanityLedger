@@ -80,6 +80,12 @@ var _invulnerabile: bool = false
 var _berserk: bool = false           # dopo ~60s: avanza imbloccabile E incassa ×2.5 → conclude sempre
 var _spawn_x: float = 1800.0         # lato di spawn: il boss vi RITORNA a ogni cambio fase
 var duello_puro: bool = false        # duello finale (Docs/20 §2): impostato dall'arena, no add
+# DUELLO — FASE II "L'Idolo si erge": GIGANTE e IMMOBILE a destra; tutta l'armata lo può
+# colpire (gittata ignorata, vedi defender/siege), ma ha più vita e più armatura.
+var gigante: bool = false
+var _vel_base: float = 0.0           # velocità di marcia originale (fase 2 la azzera, la 3 la rende)
+var _crep_bande: Array[float] = []   # LAME DEL CREPUSCOLO (fase 3): fasce Y telegrafate
+var _crep_marker: Array[Node] = []
 
 
 # Sceglie il kit e la messa a punto in base all'era (chiamato dall'arena prima di add_child).
@@ -113,9 +119,13 @@ func _process(delta: float) -> void:
 		_stagger = maxf(0.0, _stagger - STAGGER_DECAY * delta)
 		_notifica_stagger()
 
-	# Respiro: il bestione si solleva e si abbassa di poco (più marcato in furia).
+	# Respiro: il bestione si solleva e si abbassa di poco (più marcato in furia; nella
+	# fase 3 del duello la forma cosmica ONDEGGIA — molto più viva).
 	if not _staggerato:
-		var resp: float = sin(_bt * 2.1) * (0.04 if _in_furia else 0.025)
+		var amp: float = 0.04 if _in_furia else 0.025
+		if duello_puro and _fase >= 3:
+			amp = 0.085
+		var resp: float = sin(_bt * 2.1) * amp
 		scale = Vector2(1.0 - resp * 0.5, 1.0 + resp)
 
 	# Le fasi NON scattano più su soglia HP: scattano quando la barra della fase si SVUOTA
@@ -127,6 +137,8 @@ func _process(delta: float) -> void:
 			if _bt >= 1.3:
 				_stato = "marcia"
 				_abil_t = _cooldown_abilita()
+				if _vel_base == 0.0:
+					_vel_base = velocita   # memorizzata per la fase 3 (la 2 azzera la marcia)
 			queue_redraw()
 			return
 		"stagger":
@@ -202,7 +214,9 @@ func _process(delta: float) -> void:
 				return
 			# Marcia: normalmente fermata dai bloccatori. In FRENESIA (fase 3) il boss IGNORA i
 			# bloccatori e avanza dritto → niente stallo, climax "fermalo prima che arrivi al villaggio".
-			if _frenesia:
+			if gigante:
+				pass   # L'Idolo eretto (fase II del duello): IMMOBILE, bombarda da lontano
+			elif _frenesia:
 				position.x -= velocita * delta
 				if position.x <= villaggio_x:
 					_arriva()
@@ -302,6 +316,24 @@ func _completa_cambio_fase() -> void:
 	# Ondata di rinforzi SUBITO all'inizio della nuova fase.
 	if arena != null and arena.has_method("evoca_rinforzi_boss"):
 		arena.evoca_rinforzi_boss(4 + _fase * 3)
+	# DUELLO — le fasi del Dio hanno FORME diverse (idea utente):
+	#   FASE II "L'Idolo si erge": GIGANTE e IMMOBILE a destra; più vita e armatura
+	#   (sta fermo sotto il fuoco di tutta l'armata, non deve fondersi); bombarda da lontano.
+	#   FASE III "Il Crepuscolo": torna mobile, più GRANDE e viva, e impara le LAME.
+	if duello_puro and _fase == 2:
+		gigante = true
+		raggio *= 1.35
+		hp_max = int(round(float(hp_max) * 1.5))
+		hp = hp_max
+		armatura += 14
+		velocita = 0.0
+		position.x = _spawn_x
+	elif duello_puro and _fase == 3:
+		gigante = false
+		velocita = _vel_base * 1.15 if _vel_base > 0.0 else 52.0
+		raggio *= 1.15
+		if not _abilita.has("crepuscolo"):
+			_abilita.append("crepuscolo")
 	_stato = "marcia"
 	_abil_t = 0.8                                  # casta quasi subito nella fase nuova
 	_ult_t = 1.8
@@ -342,6 +374,30 @@ func _inizia_telegrafo() -> void:
 		"pioggia":
 			_pioggia_pts = _scegli_punti_pioggia(3)
 			dur = 1.0
+		"crepuscolo":
+			# LAME DEL CREPUSCOLO (fase 3 del duello): due fasce orizzontali telegrafate
+			# che spazzano il campo — si scampa CAMBIANDO fila.
+			_crep_bande.clear()
+			for m in _crep_marker:
+				if is_instance_valid(m):
+					m.queue_free()
+			_crep_marker.clear()
+			var ys: Array[float] = []
+			if arena != null and arena.has_method("difensori_in_area"):
+				var difs: Array = arena.difensori_in_area(Vector2(700.0, 570.0), 2200.0)
+				difs.shuffle()
+				for d in difs:
+					if d != null and is_instance_valid(d):
+						ys.append(d.global_position.y)
+					if ys.size() >= 2:
+						break
+			while ys.size() < 2:
+				ys.append(randf_range(380.0, 790.0))
+			for y in ys:
+				_crep_bande.append(y)
+				if arena != null and arena.has_method("telegrafo_banda"):
+					_crep_marker.append(arena.telegrafo_banda(y, 55.0))
+			dur = 1.15
 	_tele_dur = dur
 	_tele_fino = _bt + dur
 	if arena != null and arena.has_method("segnala_abilita_boss"):
@@ -396,6 +452,29 @@ func _esegui_abilita() -> void:
 				arena.fx_vfx(global_position + Vector2(-610.0, 0.0), 1180.0, "fiammata_drago", true)
 				arena.scuoti_forte()
 				arena.hitstop(0.05, 0.2)
+			AudioManager.play_sfx("stat_down")
+			_stato = "marcia"
+			_abil_t = _cooldown_abilita()
+		"crepuscolo":
+			# Le LAME calano sulle fasce telegrafate: pilastri di luce lungo la fila,
+			# danno a chi non ha cambiato riga.
+			for m in _crep_marker:
+				if is_instance_valid(m):
+					m.queue_free()
+			_crep_marker.clear()
+			if arena != null:
+				var dmgc: int = 17 if _frenesia else 13
+				for y in _crep_bande:
+					var x: float = 240.0
+					while x < 950.0:
+						arena.danno_area_difensori(Vector2(x, y), 92.0, dmgc)
+						x += 190.0
+					if arena.has_method("fx_giudizio"):
+						for fx_x in [330.0, 610.0, 880.0]:
+							arena.fx_giudizio(Vector2(fx_x, y), 430.0)
+				arena.scuoti_forte()
+				arena.hitstop(0.06, 0.2)
+			_crep_bande.clear()
 			AudioManager.play_sfx("stat_down")
 			_stato = "marcia"
 			_abil_t = _cooldown_abilita()
@@ -459,11 +538,17 @@ func _difensore_vicino() -> Vector2:
 
 func _draw() -> void:
 	var r: float = raggio
-	# Forma trasformata (F4): alone cremisi pulsante dietro il boss (più minaccioso).
+	# Forma trasformata (F4): alone pulsante dietro il boss (più minaccioso). Nel duello
+	# l'aura è DORATA (divina), e nella fase 3 respira più ampia (forma cosmica viva).
 	if _trasformato:
 		var pa: float = 0.28 + 0.16 * sin(_bt * 5.0)
-		draw_circle(Vector2.ZERO, r * 1.28, Color(0.85, 0.12, 0.1, pa))
-		draw_arc(Vector2.ZERO, r * 1.34, 0.0, TAU, 44, Color(1.0, 0.4, 0.2, 0.7), 3.0)
+		if duello_puro:
+			var rr: float = r * (1.3 + (0.12 * sin(_bt * 3.2) if _fase >= 3 else 0.0))
+			draw_circle(Vector2.ZERO, rr, Color(0.95, 0.72, 0.25, pa * 0.9))
+			draw_arc(Vector2.ZERO, rr * 1.06, 0.0, TAU, 44, Color(1.0, 0.88, 0.5, 0.75), 3.0)
+		else:
+			draw_circle(Vector2.ZERO, r * 1.28, Color(0.85, 0.12, 0.1, pa))
+			draw_arc(Vector2.ZERO, r * 1.34, 0.0, TAU, 44, Color(1.0, 0.4, 0.2, 0.7), 3.0)
 	# Telegrafo a terra del Pestone (cerchio rosso pulsante nell'area bersaglio).
 	if _stato == "telegrafo" and _abil_corrente == "pestone":
 		var local: Vector2 = _tele_pos - global_position
