@@ -196,6 +196,20 @@ func configura(e: int) -> void:
 	hp_villaggio = hp_villaggio_max
 	risorse = 8 + int(GameState.risorse / 4.0) + int(GameState.tesoro / 22.0) + int(GameState.get_stat("popolo") / 18.0)
 	_calcola_diplomazia()
+	# PREWARM delle texture del fight (smoothness): senza, il load avviene NEL frame dello
+	# spawn (boss/nemico/FX che compare a metà battaglia) → micro-scatto percepibile.
+	for nome in ["boss", "boss_fase2", "boss_fase3", "enemy", "roccaforte", "orda_orizzonte", "parapetto"]:
+		_siege_tex(nome)
+	for cr in CREATURE_PROFILI.keys():
+		_siege_tex("enemy_" + str(cr))
+	for tipo in ROSTER.keys():
+		_sprite_difensore(tipo, 1)
+		_sprite_difensore(tipo, ASCESA_LV)
+	for fxn in ["proiettile", "proiettile_aoe", "shockwave", "fire_burst", "frost_burst",
+			"onda_ruggito", "impatto_terra", "fiammata_drago", "aura_gelo", "portale_evoca",
+			"giudizio_divino", "onda_ruggito_dio", "impatto_terra_colosso", "onda_ruggito_colosso",
+			"fire_burst_drago"]:
+		_fx_tex(fxn)
 
 
 # Chiamare DOPO configura e PRIMA di add_child: applica i bonus dell'arsenale del villaggio
@@ -2540,7 +2554,10 @@ func _aggiorna_risorse() -> void:
 func _aggiorna_ondata_label() -> void:
 	if _ondata_label != null:
 		var n: int = clampi(_ondata_idx + 1, 0, _ondate.size())
-		_ondata_label.text = "Ondata %d / %d  ·  in campo: %d" % [n, _ondate.size(), _enemies.size()]
+		var txt: String = "Ondata %d / %d  ·  in campo: %d" % [n, _ondate.size(), _enemies.size()]
+		# Chiamata ogni frame dal loop: riscrivi SOLO se cambia (niente re-layout inutile).
+		if _ondata_label.text != txt:
+			_ondata_label.text = txt
 
 
 # Banner d'ondata (telegrafia): cartiglio bronzo (§8i) se presente, altrimenti label nuda.

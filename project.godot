@@ -14,6 +14,7 @@ config/name="HumanityLedger"
 config/description="Simulazione politica mitico-narrativa attraverso le ere"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+config/icon="res://icon.png"
 
 [autoload]
 
