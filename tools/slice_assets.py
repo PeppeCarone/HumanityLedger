@@ -87,16 +87,21 @@ def slice_events():
     out = "Assets/art/eventi"
     os.makedirs(out, exist_ok=True)
     src = Image.open(os.path.join(SHEETS, "scenari_catastrofi.png")).convert("RGB")
-    cw, ch = 256, 279
-    inset = (16, 44, 16, 44)  # l, t, r, b -> drops top+bottom baked labels
+    # I pannelli NON stanno su una griglia regolare (la vecchia griglia 256x279 prendeva
+    # una striscia di mappa a lato e le didascalie inglesi): bordi misurati sul foglio,
+    # poi via le fasce delle didascalie (sopra e sotto) e gli angoli arrotondati.
+    colonne = [(46, 258), (285, 498), (525, 737), (765, 977)]
+    righe = [(30, 265), (292, 522)]
+    inset = (6, 34, 6, 31)  # l, t, r, b
     names = [
         ["famine", "plague", "rebellion", "assassination"],
         ["summit", "scienza", "conflitto_religioso", "crisi_economica"],
     ]
-    for r in range(2):
-        for c in range(4):
-            x0, y0 = c * cw, r * ch
-            cell = src.crop((x0 + inset[0], y0 + inset[1], x0 + cw - inset[2], y0 + ch - inset[3]))
+    for r, (y0, y1) in enumerate(righe):
+        for c, (x0, x1) in enumerate(colonne):
+            cell = src.crop((x0 + inset[0], y0 + inset[1], x1 - inset[2], y1 - inset[3]))
+            # 2x Lanczos: a schermo l'illustrazione è larga 250px, così non si sgrana.
+            cell = cell.resize((cell.width * 2, cell.height * 2), Image.LANCZOS)
             cell.save(os.path.join(out, names[r][c] + ".png"))
     print("event illustrations -> Assets/art/eventi/ (8)")
 

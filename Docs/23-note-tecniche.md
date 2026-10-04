@@ -15,7 +15,7 @@ scripts/
 data/              contenuti .tres (decisioni, quest, strategie, personaggi, finali…)
 Assets/art|audio   arte e musica (cablaggio fallback-safe: PNG assente → placeholder)
 tools/             QA: validate_scenes, playtest_curve/assedio/finale, shoot/shot_arsenale
-Docs/              design log (01–20), GDD (21), manuale (22), queste note (23)
+Docs/              design log (01–20), GDD (21), manuale (22), queste note (23), 24 integrità visiva
 ```
 
 ## Scelte architetturali
@@ -29,6 +29,10 @@ Docs/              design log (01–20), GDD (21), manuale (22), queste note (23
 - **Fallback-safe art pipeline**: ogni texture passa da helper con cache
   (`_siege_tex/_fx_tex/UiStyle.icona`); PNG mancante → resa procedurale coerente. Gli asset
   si "cablano da soli" per convenzione di nome (es. `fx/<base>_<boss>.png`).
+- **Arte dipinta del UI kit**: cornici, barre, cartigli e pulsanti si disegnano sul bbox
+  opaco misurato del PNG, in fasce (capi a proporzioni vere, fasce lisce elastiche):
+  `CorniceDipinta` / `StyleBoxDipinto`, misure in `UiStyle`. Gli stili di pulsanti e tooltip
+  sono anche nel tema di default, perché i `CanvasLayer` non ereditano `root.theme` (D048).
 - **Post-FX**: CanvasLayer autoload con shader screen-space (vignette, grade, grana,
   aberrazione) sopra ogni scena; parametri regolabili a runtime.
 - **Fluidità**: prewarm delle texture del fight in `configura()` (niente load nel frame di
@@ -41,7 +45,9 @@ Docs/              design log (01–20), GDD (21), manuale (22), queste note (23
   (NG+/difficoltà azzerati in memoria).
 - `playtest_finale` — il duello su 4 combinazioni build×arsenale: sempre vittoria con
   tensione (villaggio 40–65%).
-- `shot_arsenale` / `shoot` — harness di screenshot per la verifica visiva di ogni schermata.
+- `shot_arsenale` / `shoot` / `shot_ui` — harness di screenshot per la verifica visiva di ogni
+  schermata (`shot_ui`: UI kit dipinto nei suoi stati reali). Senza schermo:
+  `xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/<harness>.tscn`.
 
 ## Build
 1. Godot 4.6.1 + export templates 4.6.1.

@@ -3024,19 +3024,44 @@ func _check_traguardi_villaggio() -> void:
 
 
 func _toast_traguardo(titolo: String, premio: String) -> void:
-	var p: PanelContainer = PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _stile_pannello())
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.anchor_left = 0.5
-	p.anchor_right = 0.5
-	p.offset_left = -300.0
-	p.offset_right = 300.0
-	p.offset_top = 92.0
-	p.offset_bottom = 172.0
 	var vb: VBoxContainer = VBoxContainer.new()
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
-	vb.add_theme_constant_override("separation", 4)
-	p.add_child(vb)
+	vb.add_theme_constant_override("separation", 2)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Cartiglio del UI kit (§8i) a proporzioni vere, testo dentro la targa. Prima la cornice
+	# ornata dei modali, compressa in 80px, schiacciava i fregi e il testo ci finiva sopra.
+	var cart_path: String = "res://Assets/art/ui/cartouche.png"
+	var cart: CorniceDipinta = UiStyle.cornice_dipinta(cart_path)
+	var p: Control
+	if cart != null:
+		const ALTO: float = 128.0
+		const LARGO: float = 800.0
+		p = Control.new()
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.anchor_left = 0.5
+		p.anchor_right = 0.5
+		p.offset_left = -LARGO * 0.5
+		p.offset_right = LARGO * 0.5
+		p.offset_top = 84.0
+		p.offset_bottom = 84.0 + ALTO
+		cart.size = Vector2(LARGO, ALTO)
+		p.add_child(cart)
+		var r: Rect2 = cart.mappa_rect(UiStyle.interno_dipinto(cart_path))
+		vb.position = r.position
+		vb.size = r.size
+		p.add_child(vb)
+	else:
+		var pc: PanelContainer = PanelContainer.new()
+		pc.add_theme_stylebox_override("panel", UiStyle.panel_clean())
+		pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pc.anchor_left = 0.5
+		pc.anchor_right = 0.5
+		pc.offset_left = -300.0
+		pc.offset_right = 300.0
+		pc.offset_top = 92.0
+		pc.offset_bottom = 172.0
+		pc.add_child(vb)
+		p = pc
 	var t1: Label = Label.new()
 	t1.text = "Traguardo:  %s" % titolo
 	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

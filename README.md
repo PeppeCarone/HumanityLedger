@@ -79,6 +79,7 @@ Architettura **data-driven**: la logica vive negli script, i contenuti (testi, n
 - `balance_sim.py` — verifica (senza Godot) che i 6 finali siano raggiungibili e il bilanciamento regga. `python tools/balance_sim.py`
 - `asset_audit.py` — controlla riferimenti agli asset rotti, illustrazioni mancanti e asset orfani. `python tools/asset_audit.py`
 - `shoot.gd` — cattura screenshot di tutte le schermate in `tools/_preview/` (eseguire con contesto di rendering, non `--headless`).
+- `shot_ui.gd` — scatti mirati del UI kit dipinto nei suoi stati reali (banner, boss ferito, modali, decisioni con illustrazione). Su Linux senza schermo: `xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/shot_ui.tscn`.
 
 ## Documentazione
 
@@ -103,6 +104,9 @@ Tutta la documentazione di design vive in `Docs/`:
 | [`14-relazione.md`](Docs/14-relazione.md) | **Relazione di progetto (consegna d'esame)** |
 | [`15-video-demo.md`](Docs/15-video-demo.md) | Script del video demo |
 | [`16-piano-sessione.md`](Docs/16-piano-sessione.md) | Piano di sviluppo sessione 2026-06-22 (Assedio vivo) |
+| [`19-piano-master.md`](Docs/19-piano-master.md) | Piano master: stato del gioco e cosa resta |
+| [`21-GDD.md`](Docs/21-GDD.md) · [`22-manuale-di-gioco.md`](Docs/22-manuale-di-gioco.md) · [`23-note-tecniche.md`](Docs/23-note-tecniche.md) | Documentazione di consegna |
+| [`24-integrita-visiva.md`](Docs/24-integrita-visiva.md) | Pass di integrità visiva del UI kit e degli asset (2026-10-04) |
 
 C'è anche un pitch in PowerPoint: `Docs/HumanityLedger_Pitch.pptx`.
 

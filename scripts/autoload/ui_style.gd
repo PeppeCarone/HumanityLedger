@@ -26,12 +26,56 @@ const COL_BORDO_HOVER: Color = Color(0.93, 0.72, 0.38)
 const UI_DIR: String = "res://Assets/art/ui/"
 const ICON_DIR: String = "res://Assets/art/icons/"
 const VIGNETTE_SHADER: String = "res://Assets/shaders/vignette.gdshader"
-# Margini 9-slice (angoli) e padding contenuto, calibrati sui frame §P8 reali:
-# panel.png ha angoli ornati ~84px; button_*.png capi ornati ~60×22.
-const PANEL_PATCH: int = 84
-const PANEL_CONTENT: int = 30
-const BUTTON_PATCH: int = 18
-const BUTTON_CONTENT: int = 12
+# Cornice dei modali (panel.png §8a), misurata sul file reale: l'arte occupa il bbox
+# 424×422 dentro una tela 500×500 (38-40px di padding trasparente). Con la regione la
+# cornice visibile coincide col pannello; gli angoli (128px) tengono intera la filigrana;
+# il contenuto parte oltre il bordo (≈44px) con un po' d'aria.
+const PANEL_REGIONE: Rect2 = Rect2(38, 40, 424, 422)
+const PANEL_PATCH: int = 128
+const PANEL_CONTENT_LATI: int = 54
+const PANEL_CONTENT_SOPRA: int = 50
+const PANEL_CONTENT_SOTTO: int = 44
+# Pulsanti a capsula (button_*.png §8b): bbox opaco di ciascuno stato (le tele hanno padding
+# diversi!) e larghezza sorgente dei capi ornati. Il disabled non usa il suo PNG (ha una
+# scacchiera di "finta trasparenza" stampata dentro): è il normal spento.
+const BOTTONI_DIPINTI: Dictionary = {
+	"normal": {"file": "button_normal", "regione": Rect2(71, 10, 367, 69)},
+	"hover": {"file": "button_hover", "regione": Rect2(35, 7, 369, 70)},
+	"pressed": {"file": "button_pressed", "regione": Rect2(69, 11, 369, 69)},
+	"focus": {"file": "button_focus", "regione": Rect2(35, 7, 369, 70)},
+	"disabled": {"file": "button_normal", "regione": Rect2(71, 10, 367, 69),
+		"modulazione": Color(0.66, 0.62, 0.58, 0.78)},
+}
+const BOTTONE_CAPO: float = 80.0
+# Tooltip (tooltip.png): bbox opaco, angoli 26px.
+const TOOLTIP_REGIONE: Rect2 = Rect2(29, 123, 441, 253)
+
+# Arti "su tela" disegnate in fasce (CorniceDipinta): bbox opaco del PNG, fasce
+# [x0, x1, elastica] e, se c'è, il canale di riempimento e l'area interna per il testo.
+# Tutto in px della regione, misurati sui file reali (i generatori lasciano ampio padding
+# trasparente: senza `regione` il 9-slice schiacciava l'ornamento in una riga).
+const SPEC_DIPINTE: Dictionary = {
+	"res://Assets/art/siege/ui/boss_bar.png": {
+		"regione": Rect2(102, 136, 1079, 248),
+		"fasce": [[0, 240, false], [240, 853, true], [853, 1079, false]],
+		"canale": Rect2(196, 98, 694, 68),
+	},
+	"res://Assets/art/siege/ui/wave_banner.png": {
+		"regione": Rect2(50, 0, 925, 458),
+		"fasce": [[0, 190, false], [190, 735, true], [735, 925, false]],
+		"interno": Rect2(107, 145, 713, 210),
+	},
+	"res://Assets/art/ui/cartouche.png": {
+		"regione": Rect2(10, 7, 1004, 191),
+		"fasce": [[0, 320, false], [320, 350, true], [350, 610, false], [610, 670, true], [670, 1004, false]],
+		"interno": Rect2(309, 52, 376, 86),
+	},
+	"res://Assets/art/ui/bar_frame.png": {
+		"regione": Rect2(20, 25, 635, 98),
+		"fasce": [[0, 100, false], [100, 532, true], [532, 635, false]],
+		"canale": Rect2(95, 22, 446, 54),
+	},
+}
 
 var _tex_cache: Dictionary = {}
 
@@ -59,6 +103,17 @@ func _ready() -> void:
 	theme.set_color("font_color", "TooltipLabel", Color(0.92, 0.86, 0.72))
 
 	get_tree().root.theme = theme
+	# Un CanvasLayer interrompe l'eredità del tema dalla finestra: pausa, opzioni, modali,
+	# Assedio e Ledger vedevano i grigi di default (con il contorno bianco di focus). Lo stile
+	# di pulsanti e tooltip va quindi anche nel tema di default dell'engine, che vale per ogni
+	# Control. Solo quelli: font e corpo di default restano come sono sotto i CanvasLayer.
+	var globale: Theme = Theme.new()
+	for tipo in ["Button", "TooltipPanel", "TooltipLabel"]:
+		for stile in theme.get_stylebox_list(tipo):
+			globale.set_stylebox(stile, tipo, theme.get_stylebox(stile, tipo))
+		for col in theme.get_color_list(tipo):
+			globale.set_color(col, tipo, theme.get_color(col, tipo))
+	ThemeDB.get_default_theme().merge_with(globale)
 
 	# Cursore CUSTOM a tema (freccia oro): registrarlo esplicitamente risolve anche i casi
 	# in cui il cursore di default non è visibile nel build esportato (driver/fullscreen).
@@ -76,7 +131,11 @@ func _ready() -> void:
 func panel_stylebox() -> StyleBox:
 	var tex: Texture2D = ui_texture("panel")
 	if tex != null:
-		return _sb_texture(tex, PANEL_PATCH, PANEL_CONTENT)
+		var sb: StyleBoxTexture = _sb_texture(tex, PANEL_PATCH, PANEL_CONTENT_LATI)
+		sb.region_rect = PANEL_REGIONE
+		sb.content_margin_top = PANEL_CONTENT_SOPRA
+		sb.content_margin_bottom = PANEL_CONTENT_SOTTO
+		return sb
 	return _panel_flat_fallback()
 
 
@@ -157,6 +216,38 @@ func icona(categoria: String, nome: String) -> Texture2D:
 	return _carica(ICON_DIR + categoria + "/" + nome + ".png")
 
 
+# Pulsante ornato BASSO (es. "Potenzia" sulle carte dell'Assedio): stesse capsule del tema
+# con margini interni ridotti, così il pulsante resta compatto e non sfora il contenitore.
+func stile_bottone_compatto(b: Button) -> void:
+	for stato in BOTTONI_DIPINTI.keys():
+		var sb: StyleBox = b.get_theme_stylebox(stato, "Button").duplicate()
+		sb.content_margin_left = 22
+		sb.content_margin_right = 22
+		sb.content_margin_top = 3
+		sb.content_margin_bottom = 3
+		b.add_theme_stylebox_override(stato, sb)
+
+
+# Arte dipinta del kit pronta da disegnare in fasce (vedi CorniceDipinta / SPEC_DIPINTE).
+# null se il PNG manca o non ha specifiche: il chiamante tiene la sua resa di fallback.
+func cornice_dipinta(path: String) -> CorniceDipinta:
+	var spec: Dictionary = SPEC_DIPINTE.get(path, {})
+	var tex: Texture2D = _carica(path)
+	if spec.is_empty() or tex == null:
+		return null
+	var c: CorniceDipinta = CorniceDipinta.new()
+	c.texture = tex
+	c.regione = spec["regione"]
+	c.fasce = spec["fasce"]
+	c.canale = spec.get("canale", Rect2())
+	return c
+
+
+# Area interna (cartiglio/pergamena) di un'arte dipinta, in px della regione; vuota se assente.
+func interno_dipinto(path: String) -> Rect2:
+	return SPEC_DIPINTE.get(path, {}).get("interno", Rect2())
+
+
 # True se esiste un medaglione-cornice per incorniciare le icone in modo coerente.
 func ha_medaglione() -> bool:
 	return ui_texture("medallion") != null
@@ -233,17 +324,18 @@ func _sb_texture(tex: Texture2D, patch: int, content: int) -> StyleBoxTexture:
 
 
 func _button_sb(stato: String, bg: Color, bordo: Color) -> StyleBox:
-	var tex: Texture2D = ui_texture("button_" + stato)
+	var spec: Dictionary = BOTTONI_DIPINTI.get(stato, {})
+	var tex: Texture2D = ui_texture(str(spec.get("file", ""))) if not spec.is_empty() else null
 	if tex != null:
-		# Capi ornati larghi ma bordo alto/basso sottile: margini 9-slice asimmetrici.
-		var sb: StyleBoxTexture = StyleBoxTexture.new()
+		# Capsula ornata: i capi si scalano con l'altezza del pulsante (StyleBoxDipinto).
+		var sb: StyleBoxDipinto = StyleBoxDipinto.new()
 		sb.texture = tex
-		sb.texture_margin_left = 60
-		sb.texture_margin_right = 60
-		sb.texture_margin_top = 22
-		sb.texture_margin_bottom = 22
-		sb.content_margin_left = 28
-		sb.content_margin_right = 28
+		sb.regione = spec["regione"]
+		sb.capo_sx = BOTTONE_CAPO
+		sb.capo_dx = BOTTONE_CAPO
+		sb.modulazione = spec.get("modulazione", Color.WHITE)
+		sb.content_margin_left = 44
+		sb.content_margin_right = 44
 		sb.content_margin_top = 10
 		sb.content_margin_bottom = 10
 		return sb
@@ -253,7 +345,11 @@ func _button_sb(stato: String, bg: Color, bordo: Color) -> StyleBox:
 func _tooltip_sb() -> StyleBox:
 	var tex: Texture2D = ui_texture("tooltip")
 	if tex != null:
-		return _sb_texture(tex, 16, 8)
+		var sb: StyleBoxTexture = _sb_texture(tex, 26, 16)
+		sb.region_rect = TOOLTIP_REGIONE
+		sb.content_margin_top = 12
+		sb.content_margin_bottom = 12
+		return sb
 	var tip: StyleBoxFlat = _btn_sb(Color(0.08, 0.06, 0.05, 0.96), COL_BORDO)
 	tip.set_content_margin_all(8)
 	return tip

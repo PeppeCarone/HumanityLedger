@@ -477,9 +477,20 @@ Decisioni emerse durante l'implementazione, dopo che il gioco era già completo 
 
 ---
 
+### D048 — Arte dipinta del kit disegnata a fasce sul bbox reale, non in 9-slice
+
+- **Data**: 2026-10-04
+- **Status**: attiva (rivede D043 per gli asset del UI kit §P8)
+- **Decisione**: le texture ornate generate (barra del boss, banner d'ondata, cartiglio, cornice barra, pulsanti a capsula) si disegnano solo sul loro bbox opaco misurato, in fasce orizzontali: capi e stemmi scalano con l'altezza, solo le fasce lisce si allungano (`CorniceDipinta`, `StyleBoxDipinto`, misure in `UiStyle.SPEC_DIPINTE`/`BOTTONI_DIPINTI`). Pannelli e tooltip restano `StyleBoxTexture` ma con `region_rect` sul bbox e margini misurati. Gli stili di pulsanti e tooltip vanno anche nel tema di default dell'engine, perché i `CanvasLayer` non ereditano `root.theme`.
+- **Motivazione**: la prima verifica renderizzata in ambiente pulito ha mostrato che il 9-slice "a occhio" su tele con 40-130px di padding trasparente schiacciava gli ornamenti in righe sottili, faceva debordare i testi e sovrapponeva titoli e pulsanti alla filigrana; pausa, opzioni, modali e Assedio mostravano pulsanti grigi di sistema. Erano i difetti più visibili del gioco e nessun controllo automatico li vedeva.
+- **Implicazioni**: ogni nuovo asset dipinto va misurato (bbox, capi, canale/area interna) e registrato in `UiStyle`; resta fallback-safe (senza PNG torna la resa a colori). Harness `tools/shot_ui.gd` per verificare gli stati in cui l'arte compare. Dettaglio in `Docs/24-integrita-visiva.md`.
+- **Alternative considerate**: ritagliare a mano i PNG al bbox e tenere il 9-slice (i capi grandi si deformano comunque in verticale), rigenerare gli asset su tele strette (costo di generazione, stessi problemi al prossimo asset), tornare agli StyleBoxFlat (si perde l'arte già prodotta).
+
+---
+
 ## Decisioni future (template vuoto)
 
-Aggiungere qui sotto man mano. ID prossimo libero: **D048**.
+Aggiungere qui sotto man mano. ID prossimo libero: **D049**.
 
 ```
 ### D036 — ...

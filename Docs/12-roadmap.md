@@ -289,5 +289,16 @@ l'Assedio è solido su 2 ere. Non necessario per l'MVP/esame.
   → `is_instance_valid` in `main.gd`. QA verde (validate 0 failure, balance 6/6 + Assedio invariato,
   audit pulito, 26 shot ok); vignetta FURIA verificata a schermo. Dettaglio in `Docs/16` §6.
 
+- **2026-10-04** — **Pass di integrità visiva (post-consegna).** Primo audit renderizzato in
+  ambiente pulito (Godot 4.6.1 + Xvfb): l'arte dipinta del UI kit era stirata dal 9-slice su
+  tele con padding (barra del boss ridotta a una riga, banner d'ondata schiacciato col testo
+  fuori, cornici dei modali sopra i titoli, cartiglio del Traguardo compresso) e i pulsanti
+  sotto i CanvasLayer (pausa, opzioni, modali, Assedio) erano grigi di sistema. Nuovi
+  `CorniceDipinta` + `StyleBoxDipinto` con misure reali in `UiStyle` (D048), tema propagato
+  ai CanvasLayer. Asset: 8 illustrazioni Era 2 senza didascalie inglesi (re-slice misurato),
+  ritratti di Murr/Lyssa/Lena e icona `pergamena` ripuliti (`tools/fix_ritratti.py`), tooltip
+  senza nastrino. `asset_audit.py` senza falsi allarmi; nuovo harness `tools/shot_ui.gd`.
+  QA verde, combattimento invariato. Dettaglio in `Docs/24`, piano aggiornato in `Docs/19`.
+
 *File vivo: spuntare man mano. Doc di dettaglio: `09` (juice/audit AAA), `10` (UI/villaggio),
 `11` (Assedio), `16` (piano di sessione 2026-06-22).*

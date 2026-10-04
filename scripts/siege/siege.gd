@@ -173,6 +173,7 @@ var _concluso: bool = false
 var _in_hitstop: bool = false   # juice: evita hit-stop sovrapposti (time_scale resterebbe basso)
 
 var _hp_fill: ColorRect = null
+var _hp_barra: CorniceDipinta = null   # con bar_frame.png: cornice dipinta + canale HP
 var _hp_label: Label = null
 var _risorse_label: Label = null
 var _info_label: Label = null
@@ -180,7 +181,7 @@ var _ondata_label: Label = null
 var _diplo_label: Label = null
 var _boss_box: Control = null
 var _boss_fill: ColorRect = null
-var _boss_maschera: ColorRect = null   # con boss_bar.png: copre da destra gli HP persi
+var _boss_barra: CorniceDipinta = null   # con boss_bar.png: arte dipinta + maschera HP persi
 var _boss_label: Label = null
 var _boss_stagger_fill: ColorRect = null   # barra di TENUTA (stagger) sotto gli HP
 var _vignetta_furia: ColorRect = null   # bordi rossi mentre il boss è in furia (A2)
@@ -285,11 +286,6 @@ func _siege_bg_tex() -> Texture2D:
 # Effetto/proiettile condiviso: Assets/art/siege/fx/<nome>.png.
 func _fx_tex(nome: String) -> Texture2D:
 	return _carica_tex(SIEGE_DIR + "fx/%s.png" % nome)
-
-
-# Cornice UI dell'Assedio condivisa: Assets/art/siege/ui/<nome>.png (boss_bar, wave_banner).
-func _siege_ui_tex(nome: String) -> Texture2D:
-	return _carica_tex(SIEGE_DIR + "ui/%s.png" % nome)
 
 
 func _ready() -> void:
@@ -635,17 +631,26 @@ func _crea_hud() -> void:
 	_hp_label.add_theme_font_size_override("font_size", 17)
 	_hp_label.add_theme_color_override("font_color", Color(0.9, 0.85, 0.72))
 	vb.add_child(_hp_label)
-	var track: ColorRect = ColorRect.new()
-	track.color = Color(0.2, 0.12, 0.12, 0.9)
-	track.custom_minimum_size = Vector2(330.0, 18.0)
-	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(track)
-	_hp_fill = ColorRect.new()
-	_hp_fill.color = Color(0.8, 0.32, 0.3)
-	_hp_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track.add_child(_hp_fill)
-	_decora_barra(track)
+	# Barra con la cornice bronzo del UI kit (§8h) a proporzioni vere: il riempimento
+	# scorre nel canale cavo della cornice. Fallback: traccia + riempimento a colori.
+	var barra_hp: CorniceDipinta = UiStyle.cornice_dipinta("res://Assets/art/ui/bar_frame.png")
+	if barra_hp != null:
+		barra_hp.custom_minimum_size = Vector2(336.0, 34.0)
+		barra_hp.colore_traccia = Color(0.15, 0.08, 0.07, 0.95)
+		barra_hp.colore_riempimento = Color(0.46, 0.70, 0.40)
+		vb.add_child(barra_hp)
+		_hp_barra = barra_hp
+	else:
+		var track: ColorRect = ColorRect.new()
+		track.color = Color(0.2, 0.12, 0.12, 0.9)
+		track.custom_minimum_size = Vector2(330.0, 18.0)
+		track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(track)
+		_hp_fill = ColorRect.new()
+		_hp_fill.color = Color(0.8, 0.32, 0.3)
+		_hp_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		_hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		track.add_child(_hp_fill)
 
 	# Risorse + ondata (in alto a destra), in una cornice SPECULARE a quella del villaggio (a sx).
 	var cornice_r: PanelContainer = PanelContainer.new()
@@ -763,6 +768,7 @@ func _crea_barra_unita() -> void:
 		var up: Button = Button.new()
 		up.focus_mode = Control.FOCUS_NONE
 		up.add_theme_font_size_override("font_size", 13)
+		UiStyle.stile_bottone_compatto(up)
 		up.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		up.tooltip_text = "Potenzia tutto il tipo (sale di livello: stat, abilità a Lv3, ascensione a Lv5)"
 		up.pressed.connect(func() -> void: _potenzia(t))
@@ -1295,7 +1301,7 @@ func _on_boss_morto(b: SiegeEnemy) -> void:
 		t.tween_property(_boss_box, "modulate:a", 0.0, 0.5)
 		t.tween_callback(_boss_box.queue_free)
 		_boss_box = null
-		_boss_maschera = null
+		_boss_barra = null
 		_boss_fill = null
 	scuoti_forte()
 	AudioManager.play_sfx("ledger_unlock")
@@ -1330,6 +1336,12 @@ func _finisher_boss(b: SiegeEnemy) -> void:
 func _crea_barra_boss(nome: String) -> void:
 	if _boss_box != null and is_instance_valid(_boss_box):
 		_boss_box.queue_free()
+	_boss_fill = null
+	_boss_barra = null
+	var barra: CorniceDipinta = UiStyle.cornice_dipinta(SIEGE_DIR + "ui/boss_bar.png")
+	if barra != null:
+		_crea_barra_boss_dipinta(nome, barra)
+		return
 	var box: PanelContainer = PanelContainer.new()
 	var sb: StyleBoxFlat = StyleBoxFlat.new()
 	sb.bg_color = Color(0.1, 0.06, 0.06, 0.92)
@@ -1361,49 +1373,13 @@ func _crea_barra_boss(nome: String) -> void:
 	track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(track)
-	_boss_fill = null
-	_boss_maschera = null
-	var bar_tex: Texture2D = _siege_ui_tex("boss_bar")
-	if bar_tex != null:
-		# Arte dedicata §P7 7k: il canale rosso è dipinto; una maschera scura nel canale
-		# copre gli HP persi (da destra), lasciando visibili i capi ornati.
-		track.color = Color(0, 0, 0, 0)
-		var np: NinePatchRect = NinePatchRect.new()
-		np.texture = bar_tex
-		np.patch_margin_left = 72
-		np.patch_margin_right = 72
-		np.patch_margin_top = 20
-		np.patch_margin_bottom = 20
-		np.set_anchors_preset(Control.PRESET_FULL_RECT)
-		np.offset_left = -10.0
-		np.offset_right = 10.0
-		np.offset_top = -14.0
-		np.offset_bottom = 14.0
-		np.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		track.add_child(np)
-		var canale: Control = Control.new()
-		canale.set_anchors_preset(Control.PRESET_FULL_RECT)
-		canale.offset_left = 66.0
-		canale.offset_right = -66.0
-		canale.offset_top = 3.0
-		canale.offset_bottom = -3.0
-		canale.clip_contents = true
-		canale.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		track.add_child(canale)
-		_boss_maschera = ColorRect.new()
-		_boss_maschera.color = Color(0.05, 0.025, 0.03, 0.92)
-		_boss_maschera.set_anchors_preset(Control.PRESET_FULL_RECT)
-		_boss_maschera.anchor_left = 1.0   # pieno = nessuna copertura
-		_boss_maschera.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		canale.add_child(_boss_maschera)
-	else:
-		_boss_fill = ColorRect.new()
-		_boss_fill.color = Color(0.85, 0.28, 0.24)
-		_boss_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-		_boss_fill.anchor_right = 1.0
-		_boss_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		track.add_child(_boss_fill)
-		_decora_barra(track)
+	_boss_fill = ColorRect.new()
+	_boss_fill.color = Color(0.85, 0.28, 0.24)
+	_boss_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	_boss_fill.anchor_right = 1.0
+	_boss_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.add_child(_boss_fill)
+	_decora_barra(track)
 	# Barra di TENUTA (stagger) sotto gli HP: i colpi la riempiono; piena → VULNERABILE.
 	var st_track: ColorRect = ColorRect.new()
 	st_track.color = Color(0.08, 0.12, 0.16, 0.9)
@@ -1411,20 +1387,69 @@ func _crea_barra_boss(nome: String) -> void:
 	st_track.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	st_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vb.add_child(st_track)
-	_boss_stagger_fill = ColorRect.new()
-	_boss_stagger_fill.color = Color(0.5, 0.85, 1.0)
-	_boss_stagger_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	_boss_stagger_fill.anchor_right = 0.0
-	_boss_stagger_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	st_track.add_child(_boss_stagger_fill)
+	_boss_stagger_fill = _riempimento_tenuta(st_track)
+
+
+# Barra del boss con l'arte dedicata (§P7 7k) disegnata a proporzioni vere: nome sopra, la
+# barra ornata (il canale rosso è dipinto: una maschera scura copre gli HP persi da destra)
+# e la tenuta come filo sotto il canale. Niente box di fondo: l'ornamento è già la cornice.
+func _crea_barra_boss_dipinta(nome: String, barra: CorniceDipinta) -> void:
+	const LARGHEZZA: float = 900.0
+	const ALTEZZA_BARRA: float = 62.0
+	const Y_BARRA: float = 26.0
+	var box: Control = Control.new()
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.offset_left = -LARGHEZZA * 0.5
+	box.offset_right = LARGHEZZA * 0.5
+	box.offset_top = 84.0
+	box.offset_bottom = 84.0 + Y_BARRA + ALTEZZA_BARRA + 14.0
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(box)
+	_boss_box = box
+	_boss_label = Label.new()
+	_boss_label.text = nome
+	_boss_label.add_theme_font_size_override("font_size", 22)
+	_boss_label.add_theme_color_override("font_color", Color(0.98, 0.72, 0.52))
+	_boss_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_boss_label.add_theme_constant_override("outline_size", 5)
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_label.position = Vector2.ZERO
+	_boss_label.size = Vector2(LARGHEZZA, Y_BARRA + 2.0)
+	_boss_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_boss_label)
+	barra.colore_maschera = Color(0.06, 0.025, 0.03, 0.9)
+	barra.position = Vector2(0.0, Y_BARRA)
+	barra.size = Vector2(LARGHEZZA, ALTEZZA_BARRA)
+	box.add_child(barra)
+	_boss_barra = barra
+	# Tenuta (stagger): filo sotto il canale, largo quanto il canale stesso.
+	var ch: Rect2 = barra.mappa_rect(barra.canale)
+	var st_track: ColorRect = ColorRect.new()
+	st_track.color = Color(0.06, 0.09, 0.12, 0.85)
+	st_track.position = Vector2(ch.position.x, Y_BARRA + ALTEZZA_BARRA + 4.0)
+	st_track.size = Vector2(ch.size.x, 7.0)
+	st_track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(st_track)
+	_boss_stagger_fill = _riempimento_tenuta(st_track)
+
+
+func _riempimento_tenuta(st_track: Control) -> ColorRect:
+	var fill: ColorRect = ColorRect.new()
+	fill.color = Color(0.5, 0.85, 1.0)
+	fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+	fill.anchor_right = 0.0
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	st_track.add_child(fill)
+	return fill
 
 
 func _aggiorna_boss_hp() -> void:
 	if _boss == null or not is_instance_valid(_boss):
 		return
 	var frac: float = clampf(float(_boss.hp) / float(maxi(_boss.hp_max, 1)), 0.0, 1.0)
-	if _boss_maschera != null and is_instance_valid(_boss_maschera):
-		_boss_maschera.anchor_left = frac   # copre il canale da frac a destra
+	if _boss_barra != null and is_instance_valid(_boss_barra):
+		_boss_barra.frazione = frac   # la maschera copre il canale da frac a destra
 	elif _boss_fill != null and is_instance_valid(_boss_fill):
 		_boss_fill.anchor_right = frac
 		_boss_fill.color = Color(0.95, 0.45, 0.25) if frac <= _boss.furia_soglia else Color(0.85, 0.28, 0.24)
@@ -2547,16 +2572,19 @@ func _riprova() -> void:
 func _aggiorna_hp() -> void:
 	if _hp_label != null:
 		_hp_label.text = "Villaggio  %d / %d" % [hp_villaggio, hp_villaggio_max]
-	if _hp_fill != null:
-		var frac: float = clampf(float(hp_villaggio) / float(maxi(hp_villaggio_max, 1)), 0.0, 1.0)
+	var frac: float = clampf(float(hp_villaggio) / float(maxi(hp_villaggio_max, 1)), 0.0, 1.0)
+	# Barra di salute a colpo d'occhio (verde sano → ambra → rosso critico).
+	var col: Color = Color(0.82, 0.30, 0.26)
+	if frac > 0.6:
+		col = Color(0.46, 0.70, 0.40)
+	elif frac > 0.3:
+		col = Color(0.85, 0.70, 0.34)
+	if _hp_barra != null and is_instance_valid(_hp_barra):
+		_hp_barra.frazione = frac
+		_hp_barra.colore_riempimento = col
+	elif _hp_fill != null:
 		_hp_fill.anchor_right = frac
-		# Barra di salute a colpo d'occhio (verde sano → ambra → rosso critico).
-		if frac > 0.6:
-			_hp_fill.color = Color(0.46, 0.70, 0.40)
-		elif frac > 0.3:
-			_hp_fill.color = Color(0.85, 0.70, 0.34)
-		else:
-			_hp_fill.color = Color(0.82, 0.30, 0.26)
+		_hp_fill.color = col
 
 
 func _aggiorna_risorse() -> void:
@@ -2576,46 +2604,58 @@ func _aggiorna_ondata_label() -> void:
 
 # Banner d'ondata (telegrafia): cartiglio bronzo (§8i) se presente, altrimenti label nuda.
 func _mostra_banner(testo: String) -> void:
+	var righe: PackedStringArray = testo.split("\n", false, 1)
+	var titolo: String = righe[0] if righe.size() > 0 else testo
+	var sotto: String = righe[1] if righe.size() > 1 else ""
+	var testi: VBoxContainer = VBoxContainer.new()
+	testi.alignment = BoxContainer.ALIGNMENT_CENTER
+	testi.add_theme_constant_override("separation", 0)
+	testi.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var lbl: Label = _label_banner(titolo, 30, Color(0.98, 0.88, 0.56))
+	testi.add_child(lbl)
+	if sotto != "":
+		testi.add_child(_label_banner(sotto, 19, Color(0.93, 0.85, 0.68)))
+	var vw: float = get_viewport().get_visible_rect().size.x
 	var holder: Control = Control.new()
 	holder.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	holder.offset_top = 196.0
-	holder.offset_bottom = 320.0
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Cartiglio dedicato dell'Assedio (§P7 7k) se presente, altrimenti il cartouche UI-kit.
-	var cart: Texture2D = _siege_ui_tex("wave_banner")
-	if cart == null:
-		cart = UiStyle.ui_texture("cartouche")
-	if cart != null:
-		var np: NinePatchRect = NinePatchRect.new()
-		np.texture = cart
-		np.patch_margin_left = 80
-		np.patch_margin_right = 80
-		np.patch_margin_top = 30
-		np.patch_margin_bottom = 30
-		np.anchor_left = 0.5
-		np.anchor_right = 0.5
-		np.offset_left = -380.0
-		np.offset_right = 380.0
-		np.offset_top = 0.0
-		np.offset_bottom = 124.0
-		np.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		holder.add_child(np)
-	var lbl: Label = Label.new()
-	lbl.text = testo
-	lbl.add_theme_font_size_override("font_size", 32)
-	lbl.add_theme_color_override("font_color", Color(0.97, 0.86, 0.52))
-	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	lbl.add_theme_constant_override("outline_size", 6)
-	lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(lbl)
+	# Cartello appeso dedicato dell'Assedio (§P7 7k), altrimenti il cartiglio del UI-kit:
+	# disegnato a proporzioni vere, con il testo DENTRO la pergamena (prima il 9-slice lo
+	# schiacciava in una striscia e il testo ne debordava).
+	var path: String = SIEGE_DIR + "ui/wave_banner.png"
+	var cartello: CorniceDipinta = UiStyle.cornice_dipinta(path)
+	var alto: float = 230.0
+	if cartello == null:
+		path = "res://Assets/art/ui/cartouche.png"
+		cartello = UiStyle.cornice_dipinta(path)
+		alto = 150.0
+	if cartello != null:
+		var s: float = alto / cartello.regione.size.y
+		var interno: Rect2 = UiStyle.interno_dipinto(path)
+		var font: Font = lbl.get_theme_font("font")
+		var tw: float = font.get_string_size(titolo, HORIZONTAL_ALIGNMENT_LEFT, -1, 30).x
+		if sotto != "":
+			tw = maxf(tw, font.get_string_size(sotto, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x)
+		# Larghezza su misura del testo: la pergamena (interno) + i capi fuori da essa + aria.
+		var fuori: float = (cartello.regione.size.x - interno.size.x) * s
+		var w: float = clampf(tw + fuori + 110.0, cartello.larghezza_minima(alto) + 60.0, vw - 160.0)
+		cartello.position = Vector2((vw - w) * 0.5, 0.0)
+		cartello.size = Vector2(w, alto)
+		holder.add_child(cartello)
+		var r: Rect2 = cartello.mappa_rect(interno)
+		testi.position = cartello.position + r.position
+		testi.size = r.size
+		holder.offset_top = 166.0
+	else:
+		testi.set_anchors_preset(Control.PRESET_FULL_RECT)
+		alto = 124.0
+		holder.offset_top = 196.0
+	holder.offset_bottom = holder.offset_top + alto
+	holder.add_child(testi)
 	_ui.add_child(holder)
 	holder.modulate.a = 0.0
 	# Punch: il banner "atterra" con uno scatto (scale-pop + colpetto) invece di comparire.
-	var vw: float = get_viewport().get_visible_rect().size.x
-	holder.pivot_offset = Vector2(vw * 0.5, 62.0)
+	holder.pivot_offset = Vector2(vw * 0.5, alto * 0.5)
 	holder.scale = Vector2(0.78, 0.78)
 	var t: Tween = create_tween()
 	t.tween_property(holder, "modulate:a", 1.0, 0.18)
@@ -2625,6 +2665,19 @@ func _mostra_banner(testo: String) -> void:
 	t.tween_interval(1.5)
 	t.tween_property(holder, "modulate:a", 0.0, 0.5)
 	t.tween_callback(holder.queue_free)
+
+
+func _label_banner(testo: String, corpo: int, col: Color) -> Label:
+	var l: Label = Label.new()
+	l.text = testo
+	l.add_theme_font_size_override("font_size", corpo)
+	l.add_theme_color_override("font_color", col)
+	l.add_theme_color_override("font_outline_color", Color(0.12, 0.05, 0.02, 0.92))
+	l.add_theme_constant_override("outline_size", 6 if corpo >= 26 else 4)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
 
 
 func _aggiorna_diplo() -> void:
@@ -2659,18 +2712,18 @@ func _scuoti() -> void:
 # dietro, il frame ornato (centro trasparente) la incornicia. Fallback-safe: niente frame
 # se l'asset manca (resta la barra a colori). Vedi Docs/13-redesign-estetico.md.
 func _decora_barra(track: Control) -> void:
-	var frame: Texture2D = UiStyle.ui_texture("bar_frame")
-	if frame == null:
+	var cornice: CorniceDipinta = UiStyle.cornice_dipinta("res://Assets/art/ui/bar_frame.png")
+	if cornice == null:
 		return
-	var np: NinePatchRect = NinePatchRect.new()
-	np.texture = frame
-	np.set_anchors_preset(Control.PRESET_FULL_RECT)
-	np.patch_margin_left = 26
-	np.patch_margin_right = 26
-	np.patch_margin_top = 5
-	np.patch_margin_bottom = 5
-	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track.add_child(np)
+	# La cornice AVVOLGE la traccia: il suo canale cavo coincide con il rettangolo della
+	# traccia (prima il 9-slice la schiacciava in una doppia riga dentro la barra).
+	var s: float = track.custom_minimum_size.y / cornice.canale.size.y
+	cornice.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cornice.offset_left = -cornice.canale.position.x * s
+	cornice.offset_top = -cornice.canale.position.y * s
+	cornice.offset_right = (cornice.regione.size.x - cornice.canale.end.x) * s
+	cornice.offset_bottom = (cornice.regione.size.y - cornice.canale.end.y) * s
+	track.add_child(cornice)
 
 
 # Sbuffo di morte di un nemico: scintille brevi + alone, juice senza asset.

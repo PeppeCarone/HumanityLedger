@@ -3,7 +3,10 @@
 - Static refs: every res://Assets/... path in *.gd and *.tres -> exists?
 - Event illustrations: every Decision.illustrazione_id -> art/eventi/<id>.png exists?
 - Orphans: Assets/art image files never referenced statically (best-effort;
-  dynamic load("...%d...") paths are listed separately as "dynamic dirs").
+  dynamic load("...%d...") paths are listed separately as "dynamic dirs"; literal calls
+  to the texture helpers - ui_texture("x"), icona("cat", "x"), _siege_tex("x"),
+  _fx_tex("x") - count as references; folders reached through a path constant plus a
+  computed name (SIEGE_DIR + ..., UI_DIR + ...) are flagged "via helper").
 
 Run from repo root: python tools/asset_audit.py
 """
@@ -30,7 +33,12 @@ def main():
     illu_ids = set()
     ref_re = re.compile(r'res://(Assets|data)/[^"\'\s)]+')
     fmt_re = re.compile(r'"(res://Assets/[^"]*%[ds][^"]*)"')
-    illu_re = re.compile(r'illustrazione_id\s*=\s*"([^"]+)"')
+    # Solo nei .tres e a inizio riga: nei .gd la stessa parola compare dentro il codice.
+    illu_re = re.compile(r'^illustrazione_id\s*=\s*"([^"]+)"', re.MULTILINE)
+    const_re = re.compile(r'const\s+(\w+)\s*(?::\s*String)?\s*=\s*"(res://Assets/[^"]*/)"')
+    helper_re = re.compile(r'\b(ui_texture|icona|_siege_tex|_fx_tex)\("([^"]+)"(?:,\s*"([^"]+)")?\)')
+    helper_dirs = set()
+    helper_calls = []
 
     for f in all_text_files():
         txt = open(f, encoding="utf-8", errors="ignore").read()
@@ -38,8 +46,28 @@ def main():
             static_refs.add(m.group(0))
         for m in fmt_re.finditer(txt):
             dynamic_dirs.add(m.group(1))
-        for m in illu_re.finditer(txt):
-            illu_ids.add(m.group(1))
+        if f.endswith(".tres"):
+            for m in illu_re.finditer(txt):
+                illu_ids.add(m.group(1))
+        if f.endswith(".gd"):
+            for m in const_re.finditer(txt):
+                if re.search(r"\b%s\s*\+" % m.group(1), txt):
+                    helper_dirs.add(m.group(2))
+            helper_calls += helper_re.findall(txt)
+
+    # Chiamate letterali agli helper di texture = riferimenti statici.
+    for fn, a, b in helper_calls:
+        if fn == "ui_texture":
+            static_refs.add("res://Assets/art/ui/%s.png" % a)
+        elif fn == "icona" and b:
+            static_refs.add("res://Assets/art/icons/%s/%s.png" % (a, b))
+        elif fn == "_fx_tex":
+            static_refs.add("res://Assets/art/siege/fx/%s.png" % a)
+        elif fn == "_siege_tex":
+            for sub in ("era1", "era2", "finale"):
+                cand = "res://Assets/art/siege/%s/%s.png" % (sub, a)
+                if os.path.exists(res_to_fs(cand)):
+                    static_refs.add(cand)
 
     # 1) broken static references
     broken = []
@@ -59,7 +87,7 @@ def main():
     # 2) event illustrations
     print("\n=== 2. ILLUSTRAZIONI EVENTI (Decision.illustrazione_id) ===")
     evdir = os.path.join(ASSETS, "art", "eventi")
-    have = {os.path.splitext(x)[0] for x in os.listdir(evdir)} if os.path.isdir(evdir) else set()
+    have = {os.path.splitext(x)[0] for x in os.listdir(evdir) if x.endswith(".png")} if os.path.isdir(evdir) else set()
     for i in sorted(illu_ids):
         mark = "ok " if i in have else "MANCA"
         print(f"  [{mark}] {i}")
@@ -89,7 +117,9 @@ def main():
         orphan_groups[grp] += 1
     if orphan_groups:
         for g in sorted(orphan_groups):
-            print(f"  {orphan_groups[g]:3d}  {g}")
+            via = any((g + "/").startswith(h) for h in helper_dirs)
+            nota = "   (via helper: nomi calcolati, verificare a mano)" if via else ""
+            print(f"  {orphan_groups[g]:3d}  {g}{nota}")
     else:
         print("  nessuno")
 
